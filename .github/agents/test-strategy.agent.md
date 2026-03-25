@@ -40,14 +40,14 @@ Use this agent to add or adjust tests for implemented changes.
 
 Detect the OS before issuing commands.
 
-| Task | Windows (PowerShell) | macOS / Linux (bash/zsh) |
-|---|---|---|
-| Run all unit tests | `.venv\Scripts\pytest tests/unit/ -v` | `.venv/bin/pytest tests/unit/ -v` |
-| Run specific test | `.venv\Scripts\pytest tests/unit/test_foo.py -v` | `.venv/bin/pytest tests/unit/test_foo.py -v` |
-| Run with coverage | `.venv\Scripts\pytest --cov=data --cov=ui --cov-report=html` | `.venv/bin/pytest --cov=data --cov=ui --cov-report=html` |
+| Task | Windows (Git Bash) | Windows (PowerShell fallback) | macOS / Linux / WSL |
+|---|---|---|---|
+| Run all unit tests | `.venv/Scripts/pytest tests/unit/ -v` | `.venv\Scripts\pytest tests/unit/ -v` | `.venv/bin/pytest tests/unit/ -v` |
+| Run specific test | `.venv/Scripts/pytest tests/unit/test_foo.py -v` | `.venv\Scripts\pytest tests/unit/test_foo.py -v` | `.venv/bin/pytest tests/unit/test_foo.py -v` |
+| Run with coverage | `.venv/Scripts/pytest --cov=data --cov=ui --cov-report=html` | `.venv\Scripts\pytest --cov=data --cov=ui --cov-report=html` | `.venv/bin/pytest --cov=data --cov=ui --cov-report=html` |
 
-- Windows: PowerShell only. No `bash`, `&&`, or Unix-specific syntax.
-- macOS/Linux: native bash/zsh.
+- Windows: Git Bash is the primary shell. Fall back to PowerShell when unavailable. Avoid `&&` chaining only in PowerShell — it works fine in Git Bash.
+- macOS/Linux/WSL: native bash/zsh.
 - Use `tempfile.TemporaryDirectory()` in all tests — never write to the project root.
 
 ## Output Contract

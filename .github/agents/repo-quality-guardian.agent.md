@@ -48,15 +48,15 @@ Use this agent to enforce repository quality, architecture, and safety expectati
 
 Detect the OS before issuing commands.
 
-| Task | Windows (PowerShell) | macOS / Linux (bash/zsh) |
-|---|---|---|
-| Quality gate (all checks) | `python validate.py` | `python validate.py` |
-| Ruff lint | `.venv\Scripts\ruff check .` | `.venv/bin/ruff check .` |
-| Pyright | `.venv\Scripts\pyright data/ callbacks/ ui/ visualization/` | `.venv/bin/pyright data/ callbacks/ ui/ visualization/` |
-| Run tests | `.venv\Scripts\pytest tests/unit/ -v` | `.venv/bin/pytest tests/unit/ -v` |
+| Task | Windows (Git Bash) | Windows (PowerShell fallback) | macOS / Linux / WSL |
+|---|---|---|---|
+| Quality gate (all checks) | `python validate.py` | `python validate.py` | `python validate.py` |
+| Ruff lint | `.venv/Scripts/ruff check .` | `.venv\Scripts\ruff check .` | `.venv/bin/ruff check .` |
+| Pyright | `.venv/Scripts/pyright data/ callbacks/ ui/ visualization/` | `.venv\Scripts\pyright data/ callbacks/ ui/ visualization/` | `.venv/bin/pyright data/ callbacks/ ui/ visualization/` |
+| Run tests | `.venv/Scripts/pytest tests/unit/ -v` | `.venv\Scripts\pytest tests/unit/ -v` | `.venv/bin/pytest tests/unit/ -v` |
 
-- Windows: PowerShell only. No `bash`, `grep`, `find`, or `&&` chaining.
-- macOS/Linux: native bash/zsh.
+- Windows: Git Bash is the primary shell (`grep`, `rg`, `find`, `fd`). Fall back to PowerShell when Git Bash is unavailable.
+- macOS/Linux/WSL: native bash/zsh.
 - Always run `python validate.py` before declaring work complete.
 
 ## Output Contract

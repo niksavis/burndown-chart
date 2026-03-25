@@ -39,7 +39,7 @@ Apply artifacts in this order:
 - `.github/instructions/context7-refresh.instructions.md`
 - `.github/instructions/python-code-quality.instructions.md`
 - `.github/instructions/html-css-style-color-guide.instructions.md`
-- `.github/instructions/powershell-python-env.instructions.md`
+- `.github/instructions/terminal-python-env.instructions.md`
 - `.github/instructions/release-workflow.instructions.md`
 - `.github/instructions/build-pipeline.instructions.md`
 - `.github/instructions/cache-management.instructions.md`

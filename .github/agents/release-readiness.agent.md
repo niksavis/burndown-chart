@@ -32,14 +32,14 @@ Use this agent before release preparation and version updates.
 
 Detect the OS before issuing commands.
 
-| Task | Windows (PowerShell) | macOS / Linux (bash/zsh) |
-|---|---|---|
-| Quality gate | `python validate.py` | `python validate.py` |
-| Changelog preview | `.venv\Scripts\python regenerate_changelog.py --preview --json` | `.venv/bin/python regenerate_changelog.py --preview --json` |
-| Release patch | `.venv\Scripts\python release.py patch` | `.venv/bin/python release.py patch` |
+| Task | Windows (Git Bash) | Windows (PowerShell fallback) | macOS / Linux / WSL |
+|---|---|---|---|
+| Quality gate | `python validate.py` | `python validate.py` | `python validate.py` |
+| Changelog preview | `.venv/Scripts/python regenerate_changelog.py --preview --json` | `.venv\Scripts\python regenerate_changelog.py --preview --json` | `.venv/bin/python regenerate_changelog.py --preview --json` |
+| Release patch | `.venv/Scripts/python release.py patch` | `.venv\Scripts\python release.py patch` | `.venv/bin/python release.py patch` |
 
-- Windows: PowerShell only. No bash, `&&`, or Unix paths.
-- macOS/Linux: native bash/zsh.
+- Windows: Git Bash is the primary shell. Fall back to PowerShell when unavailable.
+- macOS/Linux/WSL: native bash/zsh.
 - Always run `python validate.py` before `release.py`.
 
 ## Output Contract

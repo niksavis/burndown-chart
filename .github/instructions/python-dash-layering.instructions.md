@@ -41,9 +41,9 @@ until the underlying cycle is structurally dissolved:
 
 Run before and after any change that adds, moves, or removes an import:
 
-```powershell
-.venv\Scripts\python.exe -c "from callbacks import register_all_callbacks; print('OK')"
-.venv\Scripts\python.exe -m ruff check . --select PLC0415
+```bash
+.venv/Scripts/python.exe -c "from callbacks import register_all_callbacks; print('OK')"
+.venv/Scripts/python.exe -m ruff check . --select PLC0415
 ```
 
 Both must pass. A startup crash is a circular import; a new PLC0415 is an

@@ -57,7 +57,7 @@ Verify: `bd --version` (minimum 0.60.0)
 
 Run these three commands from the repo root after cloning:
 
-```powershell
+```bash
 bd bootstrap          # sets up local Dolt database from .beads/metadata.json
 bd backup fetch-git   # restores all issues from the origin/beads-backup snapshot
 bd status             # verify: should show 663+ issues
@@ -65,7 +65,7 @@ bd status             # verify: should show 663+ issues
 
 Then install the git hooks so beads integrates with git commits:
 
-```powershell
+```bash
 python install_hooks.py --force
 ```
 

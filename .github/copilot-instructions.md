@@ -57,15 +57,16 @@ If running any Python command, activate the venv first using the platform-approp
 
 | Platform | Activation pattern |
 |---|---|
+| Windows (Git Bash) | `source .venv/Scripts/activate && <python command>` |
 | Windows (PowerShell) | `.venv\Scripts\Activate.ps1; <python command>` |
-| macOS / Linux (bash/zsh) | `source .venv/bin/activate && <python command>` |
+| macOS / Linux / WSL | `source .venv/bin/activate && <python command>` |
 
 Alternatively, call the venv interpreter directly (no activation needed):
 
 | Platform | Direct call |
 |---|---|
-| Windows | `.venv\Scripts\python.exe <args>` |
-| macOS / Linux | `.venv/bin/python <args>` |
+| Windows | `.venv/Scripts/python.exe <args>` (Git Bash) or `.venv\Scripts\python.exe <args>` (PowerShell) |
+| macOS / Linux / WSL | `.venv/bin/python <args>` |
 
 Applies to: python scripts, pytest, pip install, release.py, regenerate_changelog.py, all .py.
 
@@ -102,8 +103,8 @@ Applies to: python scripts, pytest, pip install, release.py, regenerate_changelo
 - **Naming**: snake_case.py, PascalCase, snake_case(), UPPER_CASE.
 - **Logging**: follow docs/LOGGING_STANDARDS.md; never log sensitive data.
 - **Performance**: page < 2s, charts < 500ms, interactions < 100ms.
-- **Platform awareness**: Detect the OS before issuing terminal commands. Windows uses PowerShell (`Get-ChildItem`, `Select-String`, `Copy-Item -Force`). macOS/Linux uses bash/zsh native tools. `validate.py` works on all platforms.
-- **Windows local dev**: PowerShell only for local development. No bash utilities.
+- **Platform awareness**: Detect the OS and active shell before issuing terminal commands. Windows default is Git Bash (`grep`, `find`, `rg`, `ls`); PowerShell is the fallback (`Get-ChildItem`, `Select-String`, `Copy-Item -Force`). macOS/Linux/WSL use bash/zsh natively. `validate.py` works on all platforms.
+- **Windows local dev**: Git Bash is the primary shell. PowerShell is the fallback when Git Bash is unavailable. WSL is supported for Linux-native workflows.
 - **Simplicity**: Keep implementations simple (KISS). Avoid over-engineering.
 - **Reusability**: Extract shared logic to reusable functions (DRY). No duplication.
 - **Boy Scout Rule**: Leave touched code and customization artifacts clearer than you found them.
@@ -176,6 +177,7 @@ When implementation reveals recurring or novel specialized task patterns, evolve
 - Never queue a follow-up terminal command while a previous command is still running.
 - Never send readiness probe commands (for example `echo`, `Write-Output`, `pwd`) while a long-running command is active.
 - Never use `python -c "..."` inline snippets in PowerShell for complex quoting scenarios; write temporary `.py` files instead.
+- In Git Bash, use Unix utilities (`grep`, `find`, `cat`, `rg`, `fd`) and `source .venv/Scripts/activate` for venv activation.
 - **`git push` MUST run as a background process** (`isBackground=true`) — the pre-push hook
   runs the full validate.py suite including pytest (~2-3 min). Running any other terminal
   command before push completes sends KeyboardInterrupt to pytest, corrupting the run.

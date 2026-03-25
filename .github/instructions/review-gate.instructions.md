@@ -23,7 +23,7 @@ This project uses trunk-based development — `main` is the only branch and
 there are no PRs.  The pre-push hook runs `python validate.py` automatically.
 For ad-hoc manual runs:
 
-```powershell
+```bash
 # Fast check during development (ruff + djlint + pyright)
 python validate.py --fast
 
@@ -36,7 +36,7 @@ python validate.py --fix
 
 If any tool is missing, install dev dependencies first:
 
-```powershell
+```bash
 pip install -r requirements-dev.txt
 npm install
 ```

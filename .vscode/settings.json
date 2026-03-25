@@ -3,11 +3,23 @@
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
   "python.terminal.activateEnvironment": false,
-  "terminal.integrated.defaultProfile.windows": "PowerShell (.venv)",
+  "terminal.integrated.defaultProfile.windows": "Git Bash (.venv)",
   "terminal.integrated.profiles.windows": {
+    "Git Bash (.venv)": {
+      "source": "Git Bash",
+      "args": ["--init-file", ".venv/Scripts/activate"],
+      "icon": "terminal-bash"
+    },
+    "Git Bash": {
+      "source": "Git Bash",
+      "icon": "terminal-bash"
+    },
     "PowerShell (.venv)": {
       "source": "PowerShell",
       "args": ["-NoExit", "-Command", "& '.venv\\Scripts\\Activate.ps1'"]
+    },
+    "PowerShell": {
+      "source": "PowerShell"
     }
   },
   "[python]": {

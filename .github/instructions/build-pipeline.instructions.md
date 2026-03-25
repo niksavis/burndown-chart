@@ -51,15 +51,15 @@ Apply these rules when changing build scripts, release automation, or packaging 
 
 ### Build environment
 
-- PowerShell only (no bash commands)
-- Virtual environment must be activated (`.venv\Scripts\activate`)
+- The build scripts (`build.ps1`, `package.ps1`) are PowerShell — use PowerShell for build tasks.
+- Virtual environment must be activated before running build scripts.
 - Clean build: remove dist/, build/ before building
 - Signing: optional, skip if no certificate configured
 
 ### Testing builds
 
 ```powershell
-# Activate venv, then run the build script (handles both app and updater)
+# PowerShell: activate venv, then run the build script (handles both app and updater)
 .venv\Scripts\Activate.ps1
 .\build\build.ps1
 

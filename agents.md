@@ -35,7 +35,7 @@ If specialized patterns are discovered during implementation, run the self-evolv
 
 ## External Agent Quick Start
 
-```powershell
+```bash
 bd dolt status
 git pull --rebase
 bd backup fetch-git
@@ -45,7 +45,7 @@ bd ready --json
 
 ## Beads Commands
 
-```powershell
+```bash
 bd ready --json
 bd show <id> --json
 bd update <id> --status in_progress
@@ -63,7 +63,7 @@ Rules:
 
 For any new Python package, perform onboarding explicitly:
 
-```powershell
+```bash
 # Runtime dependency
 # 1) Edit requirements.in
 pip-compile requirements.in
@@ -79,7 +79,7 @@ Never edit compiled requirement files directly.
 
 ## Non-Interactive Command Rule
 
-Use `-Force` for file operations to avoid interactive hangs:
+When using PowerShell (fallback), use `-Force` for file operations to avoid interactive hangs:
 
 ```powershell
 Copy-Item -Force source dest
@@ -88,11 +88,13 @@ Remove-Item -Force file
 Remove-Item -Recurse -Force dir
 ```
 
+In Git Bash (primary), use standard Unix commands: `cp`, `mv`, `rm -f`, `rm -rf`.
+
 ## Session End (External Agents)
 
 Do not finish until both main and beads snapshot are pushed:
 
-```powershell
+```bash
 git pull --rebase
 bd backup export-git
 git push

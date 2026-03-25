@@ -27,20 +27,20 @@ Four focused tools that cover nearly all read-only codebase exploration and stru
 
 Check availability before use:
 
-```powershell
-# Windows (PowerShell)
-rg --version; fd --version; jq --version; yq --version
+```bash
+# Windows (Git Bash) or macOS/Linux
+rg --version && fd --version && jq --version && yq --version
 ```
 
-```bash
-# macOS/Linux
-rg --version && fd --version && jq --version && yq --version
+```powershell
+# Windows (PowerShell fallback)
+rg --version; fd --version; jq --version; yq --version
 ```
 
 **Install if missing:**
 
-```powershell
-# Windows (winget)
+```bash
+# Windows (Git Bash or PowerShell — winget)
 winget install BurntSushi.ripgrep.MSVC sharkdp.fd jqlang.jq MikeFarah.yq
 ```
 

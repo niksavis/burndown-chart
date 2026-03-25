@@ -61,23 +61,21 @@ Use this agent for complex, multi-step software engineering tasks that require d
 
 Detect the operating system before issuing any terminal command.
 
-| Task | Windows (PowerShell) | macOS / Linux (bash/zsh) |
-|---|---|---|
-| Activate venv | `.venv\Scripts\Activate.ps1` | `source .venv/bin/activate` |
-| Run python | `.venv\Scripts\python.exe <args>` | `.venv/bin/python <args>` |
-| Run pytest | `.venv\Scripts\pytest tests/unit/ -v` | `.venv/bin/pytest tests/unit/ -v` |
-| Run ruff | `.venv\Scripts\ruff check .` | `.venv/bin/ruff check .` |
-| Run pyright | `.venv\Scripts\pyright data/ callbacks/ ui/ visualization/` | `.venv/bin/pyright data/ callbacks/ ui/ visualization/` |
-| Quality gate | `python validate.py` | `python validate.py` |
-| File listing | `Get-ChildItem` | `ls` |
-| Search text | `Select-String` | `grep` |
-| Copy file | `Copy-Item -Force src dst` | `cp src dst` |
+| Task | Windows (Git Bash) | Windows (PowerShell fallback) | macOS / Linux / WSL |
+|---|---|---|---|
+| Activate venv | `source .venv/Scripts/activate` | `.venv\Scripts\Activate.ps1` | `source .venv/bin/activate` |
+| Run python | `.venv/Scripts/python.exe <args>` | `.venv\Scripts\python.exe <args>` | `.venv/bin/python <args>` |
+| Run pytest | `.venv/Scripts/pytest tests/unit/ -v` | `.venv\Scripts\pytest tests/unit/ -v` | `.venv/bin/pytest tests/unit/ -v` |
+| Run ruff | `.venv/Scripts/ruff check .` | `.venv\Scripts\ruff check .` | `.venv/bin/ruff check .` |
+| Run pyright | `.venv/Scripts/pyright data/ callbacks/ ui/ visualization/` | `.venv\Scripts\pyright data/ callbacks/ ui/ visualization/` | `.venv/bin/pyright data/ callbacks/ ui/ visualization/` |
+| Quality gate | `python validate.py` | `python validate.py` | `python validate.py` |
+| File listing | `ls` / `find` / `fd` | `Get-ChildItem` | `ls` / `find` / `fd` |
+| Search text | `grep` / `rg` | `Select-String` / `rg` | `grep` / `rg` |
+| Copy file | `cp src dst` | `Copy-Item -Force src dst` | `cp src dst` |
 
 **Rules:**
-- Windows: use PowerShell (`pwsh`) only. Never use `bash`, `grep`, `cat`, `find`, or `&&` syntax.
-- macOS/Linux: use bash/zsh natively.
-- `validate.py` is the single entry point for all quality checks — call it before any push.
-- When uncertain about the platform, check `$env:OS` (PowerShell) or `uname` (bash) first.
+- Windows: Git Bash is the primary shell. Use Unix utilities (`grep`, `find`, `rg`, `fd`, `cat`). Fall back to PowerShell (`pwsh`) when Git Bash is unavailable.
+- macOS/Linux/WSL: use bash/zsh natively.
 
 ## Anti-Patterns
 

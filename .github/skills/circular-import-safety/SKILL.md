@@ -161,8 +161,8 @@ bar = importlib.import_module("data.foo").bar
 
 ### Fast startup smoke test (catches circular imports at interpreter init)
 
-```powershell
-.venv\Scripts\python.exe -c "from callbacks import register_all_callbacks; print('OK')"
+```bash
+.venv/Scripts/python.exe -c "from callbacks import register_all_callbacks; print('OK')"
 ```
 
 If this raises `ImportError: cannot import name 'X' from partially initialized
@@ -170,8 +170,8 @@ module 'Y'` — you have a new circular import cycle.
 
 ### Lint enforcement check (catches lazy imports missed by review)
 
-```powershell
-.venv\Scripts\python.exe -m ruff check . --select PLC0415
+```bash
+.venv/Scripts/python.exe -m ruff check . --select PLC0415
 ```
 
 Source files outside `tests/` must report zero violations (all existing guards
@@ -181,9 +181,9 @@ already have `# noqa: PLC0415`). A new violation means a new unapproved lazy imp
 
 Run both before touching any cross-module import:
 
-```powershell
-.venv\Scripts\python.exe -m ruff check . --select PLC0415
-.venv\Scripts\python.exe -c "from callbacks import register_all_callbacks; print('OK')"
+```bash
+.venv/Scripts/python.exe -m ruff check . --select PLC0415
+.venv/Scripts/python.exe -c "from callbacks import register_all_callbacks; print('OK')"
 ```
 
 Run both again after the edit. Both must still pass.

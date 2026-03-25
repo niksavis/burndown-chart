@@ -34,14 +34,14 @@ Use this agent when edits touch multiple Python layers.
 
 Detect the OS before issuing commands.
 
-| Task | Windows (PowerShell) | macOS / Linux (bash/zsh) |
-|---|---|---|
-| Pyright (type + boundary check) | `.venv\Scripts\pyright data/ callbacks/ ui/ visualization/` | `.venv/bin/pyright data/ callbacks/ ui/ visualization/` |
-| Ruff lint | `.venv\Scripts\ruff check .` | `.venv/bin/ruff check .` |
-| Quality gate | `python validate.py --fast` | `python validate.py --fast` |
+| Task | Windows (Git Bash) | Windows (PowerShell fallback) | macOS / Linux / WSL |
+|---|---|---|---|
+| Pyright (type + boundary check) | `.venv/Scripts/pyright data/ callbacks/ ui/ visualization/` | `.venv\Scripts\pyright data/ callbacks/ ui/ visualization/` | `.venv/bin/pyright data/ callbacks/ ui/ visualization/` |
+| Ruff lint | `.venv/Scripts/ruff check .` | `.venv\Scripts\ruff check .` | `.venv/bin/ruff check .` |
+| Quality gate | `python validate.py --fast` | `python validate.py --fast` | `python validate.py --fast` |
 
-- Windows: PowerShell only. No bash utilities.
-- macOS/Linux: native bash/zsh.
+- Windows: Git Bash is the primary shell. Fall back to PowerShell when unavailable.
+- macOS/Linux/WSL: native bash/zsh.
 
 ## Output Contract
 

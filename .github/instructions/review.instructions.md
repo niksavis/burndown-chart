@@ -210,22 +210,28 @@ def test_function():
 
 ## Platform (Windows)
 
-### PowerShell ONLY
+### Shell Priority
 
-```powershell
-# ✓ GOOD
-Select-String "pattern" file.txt    # NOT grep
-Get-ChildItem *.py                  # NOT find
-Get-Content file.txt                # NOT cat
+1. **Git Bash** (primary) — Unix commands work natively.
+2. **PowerShell** — fallback when Git Bash is unavailable.
+3. **Ubuntu (WSL)** — for Linux-native workflows.
 
-# ❌ BAD: Bash commands fail on Windows
+```bash
+# Git Bash (primary) - ✓ GOOD
 grep "pattern" file.txt
 find . -name "*.py"
+cat file.txt
+
+# PowerShell fallback - ✓ GOOD when Git Bash unavailable
+Select-String "pattern" file.txt
+Get-ChildItem *.py
+Get-Content file.txt
 ```
 
 ### Virtual Environment
 
-- ALWAYS: `.venv\Scripts\activate` before Python commands
+- Git Bash: `source .venv/Scripts/activate`
+- PowerShell: `.venv\Scripts\Activate.ps1`
 - Check: prompt shows `(.venv)`
 
 ## Pre-Push Checklist
@@ -244,7 +250,7 @@ these before declaring work complete:
 ☐ Architecture layers respected
 ☐ Functions <50 lines
 ☐ Tests → tempfile.TemporaryDirectory()
-☐ Platform-aware terminal commands (no bash on Windows)
+☐ Platform-aware terminal commands (Git Bash primary, PowerShell fallback)
 ☐ Performance targets met
 ```
 

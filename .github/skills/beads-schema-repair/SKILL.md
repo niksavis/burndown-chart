@@ -7,7 +7,7 @@ description: >-
   to restore, after fresh bd bootstrap on a machine with an older binary, or
   whenever bd status shows 0 issues after a fetch. Covers symptom recognition,
   column diffing, ALTER TABLE repair via dolt CLI, verification, and re-run
-  of the restore. Platform: Windows PowerShell.
+  of the restore. Platform: Windows (Git Bash primary; PowerShell required for data-pipeline inspection steps).
 ---
 
 # Skill: Beads Dolt Schema Repair

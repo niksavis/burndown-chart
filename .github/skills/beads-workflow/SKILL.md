@@ -25,7 +25,7 @@ waiting for the next code push.
 
 Verify:
 
-```powershell
+```bash
 bd --version   # must be 0.60.0+
 bd context     # must show backend=dolt
 bd status      # must show 600+ issues
@@ -40,7 +40,7 @@ Skipping this step risks duplicate work and causes non-fast-forward errors on th
 
 Via `git pull` (recommended — also syncs code):
 
-```powershell
+```bash
 git pull --rebase                                      # auto-fetches beads via post-merge hook
 git branch -f beads-backup origin/beads-backup         # align local branch so export succeeds
 bd ready --json                                        # shows open, unblocked, unclaimed work
@@ -48,7 +48,7 @@ bd ready --json                                        # shows open, unblocked, 
 
 Mid-session without a code pull:
 
-```powershell
+```bash
 bd backup fetch-git
 git branch -f beads-backup origin/beads-backup         # align local branch so export succeeds
 bd ready --json
@@ -66,7 +66,7 @@ bd ready --json
 
 Check for existing or similar beads before creating a new one.
 
-```powershell
+```bash
 bd search "keyword" --json          # full-text search
 bd list --status open --json        # browse open issues
 ```
@@ -85,7 +85,7 @@ bd list --status open --json        # browse open issues
 
 Create **before** writing code. Always include `--description`.
 
-```powershell
+```bash
 bd create "Short imperative title" \
     --description="Context: why this is needed. Acceptance: what done looks like." \
     -t feature|bug|task|chore \
@@ -103,7 +103,7 @@ Priority guide: `0`=critical `1`=high `2`=medium (default) `3`=low `4`=backlog
 
 Publish the new bead so teammates see it before you start working.
 
-```powershell
+```bash
 bd backup export-git
 ```
 
@@ -122,7 +122,7 @@ Run this right after every `bd create` call. Do not wait until the next push.
 
 ## Step 4: Claim and Export When Starting Work
 
-```powershell
+```bash
 bd update <id> --claim --json      # sets status=in_progress, owner=you
 bd backup export-git               # publish claim immediately
 ```
@@ -140,7 +140,7 @@ bd backup export-git               # publish claim immediately
 
 If a blocking dependency or impediment is discovered:
 
-```powershell
+```bash
 bd update <id> --status blocked --json
 bd note <id> "Blocked by: <reason or dep-id>"
 bd backup export-git
@@ -148,7 +148,7 @@ bd backup export-git
 
 Add the blocking bead as a dependency when possible:
 
-```powershell
+```bash
 bd dep add <id> <blocking-id>
 ```
 
@@ -156,14 +156,14 @@ bd dep add <id> <blocking-id>
 
 ## Step 6: Close and Push When Done
 
-```powershell
+```bash
 bd close <id> --reason "Brief summary of what was done" --json
 ```
 
 **Do not export manually here.** The pre-push hook runs `bd backup export-git`
 automatically before every code push. Close the bead, then commit and push:
 
-```powershell
+```bash
 git add .
 git commit -m "type(scope): description (burndown-chart-<id>)"
 git push    # hook auto-exports beads snapshot
@@ -171,7 +171,7 @@ git push    # hook auto-exports beads snapshot
 
 If the work is abandoned rather than completed:
 
-```powershell
+```bash
 bd close <id> --reason "Abandoned: <why>" --json
 bd backup export-git    # export now since no push is imminent
 ```
