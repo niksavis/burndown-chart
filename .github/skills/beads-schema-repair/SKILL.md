@@ -41,16 +41,16 @@ Use this skill when `bd backup fetch-git` succeeds structurally but restores
 > **Issue prefix**: Always read `.beads/config.yaml` (`issue-prefix` field) before
 > referencing any bead IDs in commit messages or commands. For this repo it is
 > `burndown-chart` (e.g. `burndown-chart-42`), never `bd-42`.
-> ```powershell
-> Select-String "issue-prefix" .beads\config.yaml
+> ```bash
+> grep "issue-prefix" .beads/config.yaml
 > ```
 
 ---
 
 ## Step 1 — Confirm the Symptom
 
-```powershell
-bd backup fetch-git 2>&1 | Select-Object -Last 10
+```bash
+bd backup fetch-git 2>&1 | tail -10
 ```
 
 Expected failure output:
@@ -70,29 +70,24 @@ If `Issues:` is non-zero, the schema is fine — this skill does not apply.
 
 ### What columns does the backup expect?
 
-```powershell
-git show origin/beads-backup:.beads/backup/issues.jsonl |
-  Select-Object -First 1 |
-  ConvertFrom-Json |
-  Get-Member -MemberType NoteProperty |
-  Select-Object -ExpandProperty Name |
-  Sort-Object
+```bash
+git show origin/beads-backup:.beads/backup/issues.jsonl | \
+  head -1 | jq 'keys[]'
 ```
 
 ### What columns does the live schema have?
 
 Start the Dolt server if not running:
 
-```powershell
+```bash
 bd dolt start
 ```
 
 Note the port from the output (e.g. `port 55311`). Then from `.beads\dolt`:
 
-```powershell
-cd .beads\dolt
-dolt sql -q "USE burndown_chart; SHOW COLUMNS FROM issues" 2>&1 |
-  Select-Object -ExpandProperty Line
+```bash
+cd .beads/dolt
+dolt sql -q "USE burndown_chart; SHOW COLUMNS FROM issues" 2>&1
 ```
 
 > **Why from `.beads\dolt`?** When run from the data directory, `dolt sql` detects
@@ -120,7 +115,7 @@ are the ones to add. Common missing columns (bd 0.62.0 binary `1402021b`):
 **Stay in `.beads\dolt`** (from Step 2). Build a single `ALTER TABLE` with all
 missing columns. Example for the known 6-column gap:
 
-```powershell
+```bash
 dolt sql -q "USE burndown_chart; ALTER TABLE issues ADD COLUMN hook_bead VARCHAR(255) NULL DEFAULT '', ADD COLUMN rig VARCHAR(255) NULL DEFAULT '', ADD COLUMN agent_state TEXT NULL DEFAULT '', ADD COLUMN role_bead VARCHAR(255) NULL DEFAULT '', ADD COLUMN role_type VARCHAR(32) NULL DEFAULT '', ADD COLUMN last_activity DATETIME NULL" 2>&1
 ```
 
@@ -139,13 +134,9 @@ that column from the statement) or a type mismatch (check JSONL sample values).
 
 Sample a few rows to validate types before altering:
 
-```powershell
-git show origin/beads-backup:.beads/backup/issues.jsonl |
-  Select-Object -First 5 |
-  ForEach-Object {
-    $_ | ConvertFrom-Json |
-    Select-Object hook_bead, rig, agent_state, role_bead, role_type, last_activity
-  }
+```bash
+git show origin/beads-backup:.beads/backup/issues.jsonl | \
+  head -5 | jq '{hook_bead, rig, agent_state, role_bead, role_type, last_activity}'
 ```
 
 - Numeric 0/1 values → `TINYINT(1)` (boolean)
@@ -160,9 +151,9 @@ git show origin/beads-backup:.beads/backup/issues.jsonl |
 
 Still from `.beads\dolt`:
 
-```powershell
-dolt sql -q "USE burndown_chart; SHOW COLUMNS FROM issues" 2>&1 |
-  Select-String "hook_bead|rig|agent_state|role_bead|role_type|last_activity"
+```bash
+dolt sql -q "USE burndown_chart; SHOW COLUMNS FROM issues" 2>&1 | \
+  grep -E "hook_bead|rig|agent_state|role_bead|role_type|last_activity"
 ```
 
 All 6 (or however many you added) should appear with their types.
@@ -173,9 +164,9 @@ All 6 (or however many you added) should appear with their types.
 
 Return to repo root and re-run the fetch:
 
-```powershell
-cd C:\Development\burndown-chart
-bd backup fetch-git 2>&1 | Select-Object -Last 10
+```bash
+cd "$(git rev-parse --show-toplevel)"
+bd backup fetch-git 2>&1 | tail -10
 ```
 
 Expected success output:
@@ -194,7 +185,7 @@ Fetched backup snapshot from git branch beads-backup and restored local database
 
 ## Step 6 — Final Verification
 
-```powershell
+```bash
 bd status
 bd ready
 ```
@@ -224,15 +215,13 @@ bd ready
 
 If the schema is corrupted beyond targeted ALTER TABLE repair:
 
-```powershell
-cd C:\Development\burndown-chart
+```bash
+# Return to repo root first
+cd "$(git rev-parse --show-toplevel)"
 bd dolt stop
-[System.IO.Directory]::Delete("$PWD\.beads\dolt", $true)  # safer than Remove-Item on this machine
+rm -rf .beads/dolt
 bd bootstrap     # answer Y at prompt
 ```
 
 Then return to Step 2 of this skill to identify and add missing columns before
 running `bd backup fetch-git`.
-
-> Use `[System.IO.Directory]::Delete()` instead of `Remove-Item -Recurse -Force`
-> if PowerShell policy blocks the latter on this machine.

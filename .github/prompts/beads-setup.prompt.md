@@ -10,7 +10,7 @@ You are setting up the beads (bd) issue tracking tool for the burndown-chart rep
 
 Check if bd is installed:
 
-```powershell
+```bash
 bd --version
 ```
 
@@ -25,7 +25,7 @@ Verify the minimum version is 0.60.0 or newer.
 
 Run `bd bootstrap` from the repository root. This sets up the local Dolt database without overwriting anything if already initialized.
 
-```powershell
+```bash
 bd bootstrap
 ```
 
@@ -35,7 +35,7 @@ If bootstrap reports the database is already initialized, that is fine — conti
 
 Pull the current issue snapshot from the `beads-backup` branch on origin:
 
-```powershell
+```bash
 bd backup fetch-git
 ```
 
@@ -43,7 +43,7 @@ Expected output: something like "Restored NNN issues from backup snapshot".
 
 ## Step 4: Verify the setup
 
-```powershell
+```bash
 bd status
 bd ready --json
 ```
@@ -53,7 +53,7 @@ bd ready --json
 
 ## Step 5: Confirm git hooks are installed
 
-```powershell
+```bash
 bd hooks install
 ```
 
@@ -64,12 +64,12 @@ This ensures beads git hooks (in `.beads/hooks/`) are symlinked into `.git/hooks
 Tell the developer the two commands they need to remember:
 
 **Start of session (get latest issues from team):**
-```powershell
+```bash
 bd backup fetch-git
 ```
 
 **End of session (publish your issue changes to team):**
-```powershell
+```bash
 bd backup export-git
 ```
 

@@ -59,9 +59,9 @@ If refactoring crosses layers, move logic to the correct layer rather than addin
 - Respect existing style and naming conventions.
 - Avoid unrelated reformatting and broad churn.
 - After every module split or import restructure, run the circular import smoke test:
-  ```powershell
-  .venv\Scripts\python.exe -c "from callbacks import register_all_callbacks; print('OK')"
-  .venv\Scripts\python.exe -m ruff check . --select PLC0415
+  ```bash
+  .venv/Scripts/python.exe -c "from callbacks import register_all_callbacks; print('OK')"
+  .venv/Scripts/python.exe -m ruff check . --select PLC0415
   ```
   Both must pass before declaring the refactor complete.
 - If a PLC0415 violation appears after a restructure, do NOT suppress it with `# noqa`.

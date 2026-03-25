@@ -20,7 +20,7 @@ Both binaries must be installed globally and available on `PATH` before using be
 Dolt is the version-controlled database engine that beads uses internally.
 
 **Windows:**
-```powershell
+```bash
 winget install DoltHub.Dolt
 # Or download the MSI from https://github.com/dolthub/dolt/releases/latest
 ```
@@ -73,7 +73,7 @@ python install_hooks.py --force
 > to `.beads/hooks`, which silently bypasses `.git/hooks/` and all quality gates in it.
 > Always verify and unset it after setup:
 >
-> ```powershell
+> ```bash
 > git config --local core.hooksPath   # should return nothing
 > git config --local --unset core.hooksPath  # fix if set
 > ```
@@ -89,7 +89,7 @@ If a developer has the old pre-Dolt version of beads, follow these steps to migr
 
 ### Step 1: Identify old version
 
-```powershell
+```bash
 bd --version
 ```
 
@@ -123,16 +123,16 @@ if (Test-Path .beads) {
 
 ### Step 3: Install new bd
 
-```powershell
-# Windows
-irm https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.ps1 | iex
+```bash
+# Windows — install via PowerShell (required for irm/iex)
+# Run in PowerShell: irm https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.ps1 | iex
 ```
 
 Verify the new version: `bd --version` (must be 0.60.0+)
 
 ### Step 4: Re-initialize and restore
 
-```powershell
+```bash
 git pull --rebase           # get the current .beads/ config committed by the team
 bd bootstrap                # set up fresh local Dolt database
 bd backup fetch-git         # restore all issues from origin/beads-backup
@@ -144,14 +144,14 @@ bd status                   # verify issues loaded correctly
 
 ## Updating bd (existing installation)
 
-```powershell
+```bash
 bd upgrade
 bd --version   # confirm new version
 ```
 
 If the upgrade adds new hook versions, reinstall hooks:
 
-```powershell
+```bash
 bd hooks install
 ```
 
@@ -161,7 +161,7 @@ bd hooks install
 
 ### Start of session
 
-```powershell
+```bash
 git pull --rebase
 bd backup fetch-git                                    # pull latest issue snapshot from team
 git branch -f beads-backup origin/beads-backup         # align local branch so export succeeds
@@ -182,7 +182,7 @@ This is the primary collision-avoidance mechanism. Always run `bd backup fetch-g
 
 ### Claiming work (atomic signal to team)
 
-```powershell
+```bash
 bd update <id> --claim --json   # marks in_progress + sets owner
 ```
 
@@ -191,7 +191,7 @@ see the claim on their next session start.
 
 ### End of session
 
-```powershell
+```bash
 bd backup export-git  # publish your issue changes to origin/beads-backup
 git push              # push code changes to origin/main
 ```
@@ -216,7 +216,7 @@ name of the local clone directory.
 
 ## Verify Your Setup is Correct
 
-```powershell
+```bash
 bd context   # should show: database=burndown_chart, backend=dolt
 bd status    # should show 663+ issues
 bd ready     # shows unblocked work available
