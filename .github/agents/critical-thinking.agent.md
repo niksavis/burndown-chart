@@ -11,7 +11,6 @@ tools:
     'web/githubRepo',
     'read/problems',
     'search',
-    'search/searchResults',
     'search/usages',
   ]
 ---
