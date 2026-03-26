@@ -1,6 +1,6 @@
 ---
 name: 'context7-retrieval-patterns'
-description: 'Retrieve up-to-date library documentation with Context7 MCP and ground code changes'
+description: 'Retrieve up-to-date library documentation with Context7 MCP and ground code changes. Use when tasks involve external APIs, version-sensitive behavior, migrations, deprecations, setup/configuration decisions, or framework/library best-practice questions.'
 ---
 
 # Skill: Context7 Retrieval Patterns

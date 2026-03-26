@@ -40,3 +40,6 @@ Use this skill when working in `callbacks/`, `data/`, `visualization/`, or relat
 
 - `get_errors` for changed files.
 - `pytest tests/unit/ -v` when unit-level behavior changes.
+- `ruff check .` and `pyright .` before completion.
+- `python -m djlint --lint <template_dir>` when template files are touched (if applicable).
+- `npm run lint:md` when markdown files are touched.

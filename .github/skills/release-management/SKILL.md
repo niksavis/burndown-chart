@@ -1,6 +1,6 @@
 ---
 name: release-management
-description: 'Execute release preparation and changelog updates safely'
+description: 'Execute release preparation and changelog updates safely. Use when drafting release notes, preparing version bumps, validating release prerequisites, or checking release workflow completeness before tagging or publishing.'
 ---
 
 # Skill: Release Management
@@ -15,10 +15,18 @@ Use for release prep, changelog updates, and version workflow.
 
 ## Workflow
 
-1. Generate changelog preview JSON.
-2. Update `changelog.md` with flat benefit-focused bullets.
-3. Validate release script inputs and constraints.
-4. Summarize what was validated and what remains manual.
+1. Generate changelog preview JSON:
+   `source .venv/Scripts/activate && python regenerate_changelog.py --preview --json`
+2. Update `changelog.md` with flat user-benefit bullets (bold major features).
+3. Validate release prerequisites and pending blockers:
+   `bd ready --json` — confirm no open blockers; `bd stats` for summary.
+4. Commit changelog updates before running release.py.
+5. Run release script with semantic bump:
+   `source .venv/Scripts/activate && python release.py patch|minor|major`
+   (This updates version files, regenerates version info, updates codebase context metrics, commits, tags, and pushes.)
+6. Summarize what was validated and what remains manual.
+
+See `.github/instructions/release-workflow.instructions.md` for canonical release constraints.
 
 ## Guardrails
 

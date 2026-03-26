@@ -28,14 +28,25 @@ Four focused tools that cover nearly all read-only codebase exploration and stru
 Check availability before use:
 
 ```bash
-# Windows (Git Bash) or macOS/Linux
-rg --version && fd --version && jq --version && yq --version
+# Git Bash (Windows) / WSL / macOS / Linux
+command -v rg && echo "rg installed"
+command -v fd || command -v fdfind && echo "fd installed"  # fdfind on Ubuntu/Debian/WSL
+command -v jq && echo "jq installed"
+command -v yq && echo "yq installed"
 ```
 
 ```powershell
-# Windows (PowerShell fallback)
-rg --version; fd --version; jq --version; yq --version
+# Windows PowerShell (fallback)
+Get-Command rg -ErrorAction SilentlyContinue
+Get-Command fd -ErrorAction SilentlyContinue
+Get-Command jq -ErrorAction SilentlyContinue
+Get-Command yq -ErrorAction SilentlyContinue
 ```
+
+> **fd binary name by platform**: On Ubuntu/Debian (including WSL), the apt package `fd-find`
+> installs the binary as `fdfind`. Shell profiles alias it to `fd`, but agents running
+> non-interactive bash/zsh sessions do not inherit those aliases. Use `fdfind` explicitly
+> on Linux/WSL, or resolve at runtime (see fd section below).
 
 **Install if missing:**
 
@@ -45,8 +56,14 @@ winget install BurntSushi.ripgrep.MSVC sharkdp.fd jqlang.jq MikeFarah.yq
 ```
 
 ```bash
-# macOS/Linux (Homebrew)
+# macOS (Homebrew)
 brew install ripgrep fd jq yq
+```
+
+```bash
+# Linux / WSL (Ubuntu/Debian)
+sudo apt install ripgrep fd-find jq
+pip install yq   # or: brew install yq (if Homebrew on Linux)
 ```
 
 ## Tool Selection Guide
@@ -142,6 +159,27 @@ rg "catch\s*\(" --type ts
 ---
 
 ## fd — File Discovery
+
+### Cross-Platform Binary Name
+
+| Platform                      | Binary   | Install                                 |
+| ----------------------------- | -------- | --------------------------------------- |
+| Windows (Git Bash/PowerShell) | `fd`     | `winget install sharkdp.fd`             |
+| macOS (Homebrew)              | `fd`     | `brew install fd`                       |
+| Linux / WSL (Ubuntu/Debian)   | `fdfind` | `sudo apt install fd-find`              |
+
+**Agent rule**: Do not assume `fd` resolves on Linux/WSL. Resolve the binary at runtime:
+
+```bash
+# Safe cross-platform invocation (Git Bash, WSL, Linux, macOS)
+FD=$(command -v fd 2>/dev/null || command -v fdfind) && $FD "pattern" dir/
+```
+
+Or inline per command:
+
+```bash
+$(command -v fd 2>/dev/null || echo fdfind) -e py src/
+```
 
 ### Essentials
 
@@ -352,11 +390,82 @@ fd "pyproject.toml" --exec yq '.project.dependencies' {}
 - Use `yq -o=json | jq` when you need YAML data fed into a jq pipeline
 - Use `rg -l` (filenames only) when building a file list to pass to other tools
 - On Windows PowerShell, pipe works the same; prefer single quotes inside double-quoted `-e` expressions
+- **PowerShell stderr**: Use `2>$null` instead of `2>/dev/null`. Never use `2>&1` when
+  piping `--json` output to a JSON consumer — it merges stderr and corrupts JSON.
+
+---
+
+## Tool Selection Matrix
+
+| Need                                 | Best tool                                                         | Fallback             |
+| ------------------------------------ | ----------------------------------------------------------------- | -------------------- |
+| Find function or class definition    | `rg "^def\|^class" dir/`                                          | `grep_search`        |
+| Find all usages of a symbol          | `rg symbol dir/`                                                  | `grep_search`        |
+| Full semantic code search            | `semantic_search`                                                 | `rg` with globs      |
+| Find a file by partial name          | `fd partial_name` (Win/macOS), `fdfind partial_name` (Linux/WSL)  | `file_search`        |
+| Find files by extension              | `fd -e ext dir/` (Win/macOS), `fdfind -e ext dir/` (Linux/WSL)    | `file_search **/ext` |
+| Inspect JSON output                  | `jq` pipe                                                         | manual `read_file`   |
+| Inspect YAML/TOML configs            | `yq`                                                              | manual `read_file`   |
+| Semantic / conceptual questions      | `semantic_search`                                                 | N/A                  |
+
+---
+
+## Integration with Agent Workflow
+
+When rg and fd are available, prefer them in the **parallel context-gathering phase**.
+On Linux/WSL use `fdfind` directly (agents do not inherit shell aliases):
+
+```text
+Phase 1 (parallel read-only): rg / fd (or fdfind on Linux/WSL) / jq for fast discovery
+Phase 2 (sequential): read_file for specific line ranges
+Phase 3 (sequential): edits + validation
+```
+
+Example workflow for finding and fixing a function:
+
+```bash
+# 1. Locate the function fast
+rg "def my_function" src/ --type py
+
+# 2. Read the specific file + line range (build on rg line numbers with read_file)
+
+# 3. Find all callers before editing
+rg "my_function" src/ --type py
+
+# 4. Find related tests
+fd "test_" tests/ -e py --exec rg "my_function" {}
+```
+
+---
+
+## Command Safety Guardrails (PowerShell Only)
+
+These rules apply only when the shell is PowerShell. Git Bash, macOS, and WSL do not have these constraints.
+
+### Multi-key sorting
+
+```powershell
+# FORBIDDEN — parser error
+Sort-Object Percent -Descending, Lines -Descending
+
+# CORRECT — explicit per-key direction (preferred)
+Sort-Object -Property @{Expression='Percent'; Descending=$true}, @{Expression='Lines'; Descending=$true}
+
+# CORRECT — same direction for all keys
+Sort-Object -Property Percent, Lines -Descending
+```
+
+### Markdown lint target discipline
+
+- Run Markdown linters only on Markdown targets (`*.md`).
+- Do not pass JSON, Python, or other non-Markdown files to markdownlint tools.
+- Prefer a project-provided Markdown lint script (e.g. `npm run lint:md`) to keep globs and ignores consistent.
+
+---
 
 ## References
 
-- Advanced patterns reference: `references/advanced-patterns.md`
-- ripgrep guide: https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md
-- jq manual: https://jqlang.org/jq/manual/
-- yq documentation: https://mikefarah.gitbook.io/yq/
-- fd documentation: https://github.com/sharkdp/fd#readme
+- ripgrep guide: <https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md>
+- jq manual: <https://jqlang.org/jq/manual/>
+- yq documentation: <https://mikefarah.gitbook.io/yq/>
+- fd documentation: <https://github.com/sharkdp/fd#readme>

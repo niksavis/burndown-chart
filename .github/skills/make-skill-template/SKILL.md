@@ -133,6 +133,8 @@ my-awesome-skill/
 - [ ] `description` is wrapped in single quotes
 - [ ] Body content is under 500 lines
 - [ ] Bundled assets are under 5MB each
+- [ ] If the skill adds Python dependencies, it instructs onboarding via `requirements.in` / `requirements-dev.in` + `pip-compile --strip-extras` + install from compiled `requirements*.txt`
+- [ ] If the skill introduces automation entrypoints, it uses Python scripts first and keeps shell scripts as compatibility wrappers only
 
 ## Troubleshooting
 
@@ -143,6 +145,12 @@ my-awesome-skill/
 | Description too short    | Add capabilities, triggers, and keywords                 |
 | Assets not found         | Use relative paths from skill root                       |
 
+## Create a Skill with AI
+
+Type `/create-skill` in Agent mode chat and describe the skill you want. The agent asks clarifying questions and generates a SKILL.md file with frontmatter, steps, and optional scripts. This is the fastest path to a new, well-formed skill.
+
 ## References
 
-- Agent Skills official spec: <https://agentskills.io/specification>
+- Agent Skills official documentation: <https://code.visualstudio.com/docs/copilot/customization/agent-skills>
+- Custom agents reference: <https://code.visualstudio.com/docs/copilot/customization/custom-agents>
+- Hooks reference: <https://code.visualstudio.com/docs/copilot/customization/hooks>
