@@ -3,21 +3,21 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "pwsh -NoProfile -Command \"Write-Host '[release-hygiene] active: keep changelog user-focused and follow release workflow.'\"",
+        "command": "echo '[release-hygiene] active: keep changelog user-focused and follow release workflow.'",
         "timeout": 5
       }
     ],
     "UserPromptSubmit": [
       {
         "type": "command",
-        "command": "pwsh -NoProfile -Command \"Write-Host '[release-hygiene] reminder: activate venv in-command, use flat user-benefit bullets, and avoid sensitive data.'\"",
+        "command": "echo '[release-hygiene] reminder: activate venv in-command, use flat user-benefit bullets, and avoid sensitive data.'",
         "timeout": 5
       }
     ],
     "Stop": [
       {
         "type": "command",
-        "command": "pwsh -NoProfile -Command \"Write-Host '[release-hygiene] session end: verify release checks and changelog quality status are reported.'\"",
+        "command": "echo '[release-hygiene] session end: verify release checks and changelog quality status are reported.'",
         "timeout": 5
       }
     ]

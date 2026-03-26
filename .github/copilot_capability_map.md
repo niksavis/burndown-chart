@@ -77,6 +77,7 @@ When recurring or novel task patterns are discovered during implementation:
 | `.github/skills/circular-import-safety/SKILL.md`       | Detect, diagnose, and resolve circular Python import cycles   | Any cross-module import change, PLC0415 violations, module restructure |
 | `.github/skills/make-skill-template/SKILL.md`          | Skill scaffolding template (`disable-model-invocation: true`) | Creating new skills — invoke explicitly |
 | `.github/skills/beads-workflow/SKILL.md`               | Full multi-dev beads lifecycle: fetch, search, create, export, claim, close | Any bead create/claim/status change     |
+| dev-tools-setup | Install and configure optional development tools (rg, jq, yq, fd, copilot CLI); platform-specific install commands (winget / Homebrew / apt). | `.github/skills/dev-tools-setup/SKILL.md` |
 
 ## Custom Agents (Subagents)
 
@@ -92,6 +93,8 @@ When recurring or novel task patterns are discovered during implementation:
 | `.github/agents/github-actions-expert.agent.md` | CI/CD workflow generation and debugging                                        | GitHub Actions / CI pipeline changes      |
 | `.github/agents/critical-thinking.agent.md`     | Adversarial review and assumption challenge (`disable-model-invocation: true`) | Invoke explicitly for pre-commit critique |
 | `.github/agents/custom-agent-foundry.agent.md`  | Agent design and scaffolding (`disable-model-invocation: true`)                | Creating or updating custom agents/skills |
+| `.github/agents/janitor.agent.md`               | Tech debt cleanup: delete dead code, simplify logic, audit deps, clean tests and documentation. | Codebase cleanup and tech debt remediation |
+| `.github/agents/development-environment-bootstrap.agent.md` | Fresh clone onboarding, venv rebuild, setup failure recovery, and gate-based readiness verification. | Environment initialization and recovery |
 
 ## Prompts
 

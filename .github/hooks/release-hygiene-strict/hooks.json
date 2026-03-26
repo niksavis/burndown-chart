@@ -3,21 +3,21 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "pwsh -NoProfile -Command \"Write-Host '[release-hygiene-strict] active: release workflow and changelog quality checks are mandatory.'\"",
+        "command": "echo '[release-hygiene-strict] active: release workflow and changelog quality checks are mandatory.'",
         "timeout": 5
       }
     ],
     "UserPromptSubmit": [
       {
         "type": "command",
-        "command": "pwsh -NoProfile -Command \"Write-Host '[release-hygiene-strict] enforce: venv-in-command, flat user-benefit changelog bullets, and no sensitive data.'\"",
+        "command": "echo '[release-hygiene-strict] enforce: venv-in-command, flat user-benefit changelog bullets, and no sensitive data.'",
         "timeout": 5
       }
     ],
     "Stop": [
       {
         "type": "command",
-        "command": "pwsh -NoProfile -Command \"Write-Host '[release-hygiene-strict] gate: final response must report release validation checks and skipped items.'\"",
+        "command": "echo '[release-hygiene-strict] gate: final response must report release validation checks and skipped items.'",
         "timeout": 5
       }
     ]

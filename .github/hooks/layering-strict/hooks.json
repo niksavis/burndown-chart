@@ -3,21 +3,21 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "pwsh -NoProfile -Command \"Write-Host '[layering-strict] active: boundary compliance must be validated and reported explicitly.'\"",
+        "command": "echo '[layering-strict] active: boundary compliance must be validated and reported explicitly.'",
         "timeout": 5
       }
     ],
     "UserPromptSubmit": [
       {
         "type": "command",
-        "command": "pwsh -NoProfile -Command \"Write-Host '[layering-strict] enforce: keep callbacks routing-only and avoid cross-layer logic leakage.'\"",
+        "command": "echo '[layering-strict] enforce: keep callbacks routing-only and avoid cross-layer logic leakage.'",
         "timeout": 5
       }
     ],
     "Stop": [
       {
         "type": "command",
-        "command": "pwsh -NoProfile -Command \"Write-Host '[layering-strict] gate: final response must state boundary validation outcome and unresolved risks.'\"",
+        "command": "echo '[layering-strict] gate: final response must state boundary validation outcome and unresolved risks.'",
         "timeout": 5
       }
     ]

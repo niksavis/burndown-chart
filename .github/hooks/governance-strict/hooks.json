@@ -3,21 +3,21 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "pwsh -NoProfile -Command \"Write-Host '[governance-strict] active: final responses must include explicit validation outcomes and skipped-check reasons.'\"",
+        "command": "echo '[governance-strict] active: final responses must include explicit validation outcomes and skipped-check reasons.'",
         "timeout": 5
       }
     ],
     "UserPromptSubmit": [
       {
         "type": "command",
-        "command": "pwsh -NoProfile -Command \"Write-Host '[governance-strict] enforce: keep layering boundaries, no secrets/customer data, no emoji in code/logging/comments, and Python-first cross-platform automation.'\"",
+        "command": "echo '[governance-strict] enforce: keep layering boundaries, no secrets/customer data, no emoji in code/logging/comments, and Python-first cross-platform automation.'",
         "timeout": 5
       }
     ],
     "Stop": [
       {
         "type": "command",
-        "command": "pwsh -NoProfile -Command \"Write-Host '[governance-strict] gate: verify get_errors clean for changed files and report any unvalidated checks.'\"",
+        "command": "echo '[governance-strict] gate: verify get_errors clean for changed files and report any unvalidated checks.'",
         "timeout": 5
       }
     ]

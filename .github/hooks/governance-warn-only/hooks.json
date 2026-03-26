@@ -3,21 +3,21 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "pwsh -NoProfile -Command \"Write-Host '[governance] session started: apply repo instructions, keep changes minimal, and enforce layered architecture.'\"",
+        "command": "echo '[governance] session started: apply repo instructions, keep changes minimal, and enforce layered architecture.'",
         "timeout": 5
       }
     ],
     "UserPromptSubmit": [
       {
         "type": "command",
-        "command": "pwsh -NoProfile -Command \"Write-Host '[governance] reminder: zero diagnostics, no customer data, no emoji in code/logging/comments.'\"",
+        "command": "echo '[governance] reminder: zero diagnostics, no customer data, no emoji in code/logging/comments.'",
         "timeout": 5
       }
     ],
     "Stop": [
       {
         "type": "command",
-        "command": "pwsh -NoProfile -Command \"Write-Host '[governance] session end: verify get_errors clean and summarize validation performed.'\"",
+        "command": "echo '[governance] session end: verify get_errors clean and summarize validation performed.'",
         "timeout": 5
       }
     ]

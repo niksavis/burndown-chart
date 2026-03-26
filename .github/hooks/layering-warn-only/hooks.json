@@ -3,21 +3,21 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "pwsh -NoProfile -Command \"Write-Host '[layering] active: preserve callbacks/data/ui/visualization boundaries.'\"",
+        "command": "echo '[layering] active: preserve callbacks/data/ui/visualization boundaries.'",
         "timeout": 5
       }
     ],
     "UserPromptSubmit": [
       {
         "type": "command",
-        "command": "pwsh -NoProfile -Command \"Write-Host '[layering] reminder: callbacks route only, business logic in data, charts in visualization, layout/components in ui.'\"",
+        "command": "echo '[layering] reminder: callbacks route only, business logic in data, charts in visualization, layout/components in ui.'",
         "timeout": 5
       }
     ],
     "Stop": [
       {
         "type": "command",
-        "command": "pwsh -NoProfile -Command \"Write-Host '[layering] session end: confirm no boundary violations were introduced.'\"",
+        "command": "echo '[layering] session end: confirm no boundary violations were introduced.'",
         "timeout": 5
       }
     ]

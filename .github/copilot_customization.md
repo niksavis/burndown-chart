@@ -70,6 +70,7 @@ Apply artifacts in this order:
 - `.github/skills/beads-schema-repair/SKILL.md` (diagnose and repair Dolt schema mismatches that prevent issue restoration after `bd backup fetch-git`)
 - `.github/skills/make-skill-template/SKILL.md` (`disable-model-invocation: true` — invoke explicitly to scaffold new skills)
 - `.github/skills/beads-workflow/SKILL.md` (full multi-developer beads lifecycle: fetch before starting, search for duplicates, create with description, export immediately on create/claim/block, auto-export on push)
+- `.github/skills/dev-tools-setup/SKILL.md` (Install ripgrep, jq, yq, fd, GitHub Copilot CLI, and other optional dev tools. Use when a tool is not found or when setting up a new contributor workstation.)
 
 ## Prompts
 
@@ -93,6 +94,8 @@ Apply artifacts in this order:
 - `.github/agents/release-readiness.agent.md`
 - `.github/agents/github-actions-expert.agent.md`
 - `.github/agents/critical-thinking.agent.md`
+- `.github/agents/janitor.agent.md`
+- `.github/agents/development-environment-bootstrap.agent.md`
 
 ## Agent Configuration Notes
 
