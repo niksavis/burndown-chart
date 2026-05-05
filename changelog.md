@@ -1,5 +1,19 @@
 # Changelog
 
+## v2.15.3
+
+_Released: 2026-05-05_
+
+### Bug Fixes
+
+- **DORA and Forecast Stability**: Restored missing DORA values and aligned forecast scope calculations so current projections and delivery insights stay consistent.
+- **Active Work Timeline Reliability**: Fixed parent/child grouping regressions so standalone parent-type issues render correctly and no longer appear as their own children.
+
+### Improvements
+
+- Improved release automation and changelog safeguards to better detect partial release runs and keep version metadata consistent with git tags.
+- Updated repository automation and validation configuration for more predictable local and CI workflow behavior.
+
 ## v2.15.2
 
 _Released: 2026-03-24_
