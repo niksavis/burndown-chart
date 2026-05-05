@@ -44,7 +44,7 @@ from configuration.settings import (
 
 # Application version - used in the UI and for tracking
 # Follow semantic versioning (MAJOR.MINOR.PATCH)
-__version__ = "2.15.2"
+__version__ = "2.15.3"
 
 # Define public API
 __all__ = [
