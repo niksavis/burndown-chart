@@ -109,6 +109,7 @@ def get_active_work_data(
     parent_field: str = "parent",
     flow_end_statuses: list[str] | None = None,
     flow_wip_statuses: list[str] | None = None,
+    parent_issue_types: list[str] | None = None,
     filter_parents: bool = True,
 ) -> dict:
     """Get active work data with nested epic timeline.
@@ -191,6 +192,7 @@ def get_active_work_data(
         flow_end_statuses,
         flow_wip_statuses,
         all_issues_unfiltered,
+        parent_issue_types,
     )
 
     return {"timeline": timeline}
@@ -446,6 +448,7 @@ def _build_epic_timeline(
     flow_end_statuses: list[str] | None,
     flow_wip_statuses: list[str] | None,
     all_issues_unfiltered: list[dict] | None = None,
+    parent_issue_types: list[str] | None = None,
 ) -> list[dict]:
     """Build epic timeline aggregation from issues.
 
@@ -467,6 +470,12 @@ def _build_epic_timeline(
     if all_issues_unfiltered is None:
         all_issues_unfiltered = issues
     epics = defaultdict(list)
+    standalone_parent_summaries: dict[str, str] = {}
+    normalized_parent_issue_types = {
+        issue_type.strip().lower()
+        for issue_type in (parent_issue_types or [])
+        if isinstance(issue_type, str)
+    }
 
     # Group by parent
     for issue in issues:
@@ -488,14 +497,33 @@ def _build_epic_timeline(
                 parent_key = parent
 
         if not parent_key:
-            parent_key = "No Parent"
+            issue_type = issue.get("issue_type")
+            if issue_type is None and isinstance(issue.get("fields"), dict):
+                issue_type = issue.get("fields", {}).get("issuetype", {}).get("name")
+
+            normalized_issue_type = (
+                issue_type.strip().lower() if isinstance(issue_type, str) else ""
+            )
+            issue_key = issue.get("issue_key")
+
+            # Parent-level issues with no children should still render as their
+            # own cards instead of being grouped under "Other".
+            if issue_key and normalized_issue_type in normalized_parent_issue_types:
+                parent_key = issue_key
+                standalone_parent_summaries[parent_key] = (
+                    issue.get("summary") or issue_key
+                )
+                epics[parent_key]
+                continue
+            else:
+                parent_key = "No Parent"
 
         epics[parent_key].append(issue)
 
     # Build epic summaries with sorted child issues
     timeline = []
     for epic_key, child_issues in epics.items():
-        if not child_issues:
+        if not child_issues and epic_key not in standalone_parent_summaries:
             continue
 
         progress = calculate_epic_progress(
@@ -504,7 +532,9 @@ def _build_epic_timeline(
 
         # Get epic summary (from first child's parent field)
         epic_summary = epic_key  # Default to key
-        if epic_key != "No Parent":
+        if epic_key in standalone_parent_summaries:
+            epic_summary = standalone_parent_summaries[epic_key]
+        elif epic_key != "No Parent":
             first_issue = child_issues[0]
             parent = first_issue.get(parent_field)
             if not parent and parent_field.startswith("customfield_"):

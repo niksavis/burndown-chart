@@ -79,6 +79,18 @@ def calculate_metrics_from_settings(
                             except ValueError, AttributeError:
                                 pass
 
+                    # Include fixVersion release dates in range calculation
+                    fix_versions = fields.get("fixVersions") or []
+                    for fv in fix_versions:
+                        release_date_str = fv.get("releaseDate")
+                        if release_date_str:
+                            try:
+                                all_dates.append(
+                                    datetime.fromisoformat(release_date_str)
+                                )
+                            except ValueError, AttributeError:
+                                pass
+
                 if all_dates:
                     all_dates.sort()
                     earliest_date = all_dates[0]

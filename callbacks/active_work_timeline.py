@@ -129,6 +129,7 @@ def _render_active_work_timeline_content(
         workflow_mappings = field_mappings.get("workflow", {})
 
         parent_field = general_mappings.get("parent_field")
+        parent_issue_types = general_mappings.get("parent_issue_types", [])
         flow_end_statuses = workflow_mappings.get("flow_end_statuses", [])
         flow_wip_statuses = workflow_mappings.get("flow_wip_statuses", [])
         development_projects = settings.get("development_projects", [])
@@ -178,6 +179,7 @@ def _render_active_work_timeline_content(
                 parent_field=parent_field,
                 flow_end_statuses=flow_end_statuses if flow_end_statuses else None,
                 flow_wip_statuses=flow_wip_statuses if flow_wip_statuses else None,
+                parent_issue_types=parent_issue_types,
                 filter_parents=True,  # Filter out parent issues from child calculations
             )
             logger.info("[ACTIVE WORK] get_active_work_data returned successfully")

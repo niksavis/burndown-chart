@@ -154,6 +154,9 @@ def calculate_and_save_dora_weekly_metrics(
 def load_dora_metrics_from_cache(n_weeks: int = 12) -> dict[str, Any] | None:
     """Load DORA metrics from cache for the last N weeks.
 
+    Uses the most recent N weeks from saved snapshots (not from today),
+    ensuring future-dated releases already calculated are included.
+
     Args:
         n_weeks: Number of weeks to load
 
@@ -161,7 +164,23 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> dict[str, Any] | None:
         Dictionary with aggregated metrics and weekly trends, or None if no cache
     """
     try:
-        weeks = get_last_n_weeks(n_weeks)
+        from data.metrics_snapshots import load_snapshots  # noqa: PLC0415
+
+        snapshots = load_snapshots()
+
+        # Get weeks that have DORA data, sorted chronologically
+        dora_weeks = sorted(
+            wk
+            for wk, metrics in snapshots.items()
+            if any(k.startswith("dora_") for k in metrics)
+        )
+
+        if dora_weeks:
+            # Use the most recent n_weeks from available snapshot data
+            selected_week_labels = dora_weeks[-n_weeks:]
+        else:
+            # Fallback: use last n weeks from today (legacy behavior)
+            selected_week_labels = [label for label, _, _ in get_last_n_weeks(n_weeks)]
 
         weekly_labels = []
         weekly_deployment_freq = []
@@ -195,7 +214,7 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> dict[str, Any] | None:
         # Track if any data exists in cache
         has_any_data = False
 
-        for week_label, _, _ in weeks:
+        for week_label in selected_week_labels:
             weekly_labels.append(week_label)
 
             # Load each metric from cache
@@ -293,10 +312,14 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> dict[str, Any] | None:
         # Calculate overall metrics
         # Deployment Frequency: average deployments and releases per week
         deployment_freq_per_week = (
-            total_deployments / len(weeks) if len(weeks) > 0 else 0
+            total_deployments / len(selected_week_labels)
+            if len(selected_week_labels) > 0
+            else 0
         )
         release_freq_per_week = (
-            total_releases / len(weeks) if len(weeks) > 0 else 0
+            total_releases / len(selected_week_labels)
+            if len(selected_week_labels) > 0
+            else 0
         )  # NEW
 
         logger.info(f"[LOAD_CACHE] all_lead_times list: {all_lead_times}")

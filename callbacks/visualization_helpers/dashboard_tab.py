@@ -22,6 +22,7 @@ from data.budget_calculator import (
     get_budget_baseline_vs_actual,
 )
 from data.iso_week_bucketing import get_week_label
+from data.persistence import load_unified_project_data
 from data.persistence.factory import get_backend
 from data.processing import calculate_velocity_from_dataframe
 from data.time_period_calculator import format_year_week, get_iso_week
@@ -56,6 +57,19 @@ def _render_dashboard_tab(
     data_points_count = int(settings.get("data_points_count", 12))
     total_items = settings.get("total_items", 0)
     total_points = settings.get("total_points", 0)
+    forecast_total_items = total_items
+    forecast_total_points = total_points
+
+    try:
+        project_scope = load_unified_project_data().get("project_scope", {})
+        forecast_total_items = project_scope.get("remaining_items", total_items)
+        forecast_total_points = project_scope.get(
+            "remaining_total_points", total_points
+        )
+    except Exception as exc:
+        logger.warning(
+            "Failed to load unified project scope for dashboard forecast: %s", exc
+        )
     show_milestone = settings.get("show_milestone", False)
     milestone = settings.get("milestone", None) if show_milestone else None
 
@@ -94,15 +108,15 @@ def _render_dashboard_tab(
                     "No week_label column - using date range filtering (less accurate)"
                 )
 
-        df = compute_cumulative_values(df, total_items, total_points)
+        df = compute_cumulative_values(df, forecast_total_items, forecast_total_points)
         df_unfiltered = compute_cumulative_values(
-            df_unfiltered, total_items, total_points
+            df_unfiltered, forecast_total_items, forecast_total_points
         )
 
     _, pert_data = create_forecast_plot(
         df=df,
-        total_items=total_items,
-        total_points=total_points,
+        total_items=forecast_total_items,
+        total_points=forecast_total_points,
         pert_factor=pert_factor,
         deadline_str=deadline,
         milestone_str=milestone,
@@ -157,8 +171,8 @@ def _render_dashboard_tab(
         med_weekly_items=med_weekly_items,
         med_weekly_points=med_weekly_points,
         days_to_deadline=days_to_deadline,
-        total_items=total_items,
-        total_points=total_points,
+        total_items=forecast_total_items,
+        total_points=forecast_total_points,
         data_points_count=data_points_count,
         deadline_str=deadline,
         show_points=show_points,

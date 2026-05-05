@@ -18,6 +18,24 @@ import time
 logger = logging.getLogger(__name__)
 
 
+def _build_project_clause(devops_projects: list[str]) -> str:
+    """Build project clause for DevOps JQL."""
+    if len(devops_projects) == 1:
+        return f'project = "{devops_projects[0]}"'
+
+    project_list = '", "'.join(devops_projects)
+    return f'project in ("{project_list}")'
+
+
+def _build_type_clause(devops_task_types: list[str]) -> str:
+    """Build issue type clause for DevOps JQL."""
+    if len(devops_task_types) == 1:
+        return f'issuetype = "{devops_task_types[0]}"'
+
+    type_list = '", "'.join(devops_task_types)
+    return f'issuetype in ("{type_list}")'
+
+
 def should_use_two_phase_fetch(config: dict) -> tuple[bool, str]:
     """
     Determine if two-phase fetch should be used based on configuration.
@@ -104,19 +122,8 @@ def build_devops_jql(
     Returns:
         JQL query string for DevOps issues
     """
-    # Build project filter
-    if len(devops_projects) == 1:
-        project_clause = f'project = "{devops_projects[0]}"'
-    else:
-        project_list = '", "'.join(devops_projects)
-        project_clause = f'project in ("{project_list}")'
-
-    # Build issue type filter
-    if len(devops_task_types) == 1:
-        type_clause = f'issuetype = "{devops_task_types[0]}"'
-    else:
-        type_list = '", "'.join(devops_task_types)
-        type_clause = f'issuetype in ("{type_list}")'
+    project_clause = _build_project_clause(devops_projects)
+    type_clause = _build_type_clause(devops_task_types)
 
     # Build fixVersion filter (with batching for large lists)
     if not fixversion_names or len(fixversion_names) == 0:
@@ -151,6 +158,54 @@ def build_devops_jql(
     )
     logger.debug(f"[TWO-PHASE] DevOps JQL: {jql[:200]}...")
 
+    return jql
+
+
+def extract_issue_keys_from_issues(issues: list[dict]) -> list[str]:
+    """Extract sorted unique issue keys from issues."""
+    issue_keys = {
+        str(issue.get("key", "")).strip()
+        for issue in issues
+        if str(issue.get("key", "")).strip()
+    }
+    result = sorted(issue_keys)
+    logger.info(
+        f"[TWO-PHASE] Extracted {len(result)} unique issue keys from "
+        f"{len(issues)} development issues"
+    )
+    return result
+
+
+def build_devops_linked_jql(
+    devops_projects: list[str],
+    devops_task_types: list[str],
+    development_issue_keys: list[str],
+    batch_size: int = 200,
+) -> str:
+    """Build DevOps JQL using ScriptRunner linkedIssuesOf against dev keys."""
+    project_clause = _build_project_clause(devops_projects)
+    type_clause = _build_type_clause(devops_task_types)
+
+    if not development_issue_keys:
+        linked_clause = "issuekey in ()"
+    else:
+        linked_clauses = []
+        for i in range(0, len(development_issue_keys), batch_size):
+            batch = development_issue_keys[i : i + batch_size]
+            subquery = f"key in ({', '.join(batch)})"
+            linked_clauses.append(f'issueFunction in linkedIssuesOf("{subquery}")')
+
+        if len(linked_clauses) == 1:
+            linked_clause = linked_clauses[0]
+        else:
+            linked_clause = f"({' OR '.join(linked_clauses)})"
+
+    jql = f"({project_clause}) AND ({type_clause}) AND ({linked_clause})"
+    logger.info(
+        f"[TWO-PHASE] Built linked DevOps JQL: {len(devops_projects)} projects, "
+        f"{len(devops_task_types)} types, {len(development_issue_keys)} issue keys"
+    )
+    logger.debug(f"[TWO-PHASE] Linked DevOps JQL: {jql[:200]}...")
     return jql
 
 
@@ -220,21 +275,60 @@ def fetch_jira_issues_two_phase(
 
         # ===== PHASE 2: Extract fixVersions =====
         fixversion_names = extract_fixversions_from_issues(dev_issues)
+        development_issue_keys = extract_issue_keys_from_issues(dev_issues)
+
+        def fetch_devops_by_linked_issues() -> tuple[bool, list[dict]]:
+            """Fetch DevOps tasks linked to development issues."""
+            if not development_issue_keys:
+                logger.warning(
+                    "[TWO-PHASE] No development issue keys found - "
+                    "cannot use linked issue fallback"
+                )
+                return True, []
+
+            logger.info(
+                "[TWO-PHASE] Falling back to linked issue fetch for DevOps tasks"
+            )
+            linked_jql = build_devops_linked_jql(
+                devops_projects, devops_task_types, development_issue_keys
+            )
+            linked_config = config.copy()
+            linked_config["jql_query"] = linked_jql
+            linked_success, linked_issues = fetch_paginated_func(
+                linked_config, max_results
+            )
+            if not linked_success:
+                logger.error("[TWO-PHASE] Linked issue fallback fetch failed")
+                return False, []
+
+            logger.info(
+                "[TWO-PHASE] Linked issue fallback fetched "
+                f"{len(linked_issues)} DevOps issues"
+            )
+            return True, linked_issues
 
         if not fixversion_names or len(fixversion_names) == 0:
             logger.warning(
                 "[TWO-PHASE] No fixVersions found in development issues - "
-                "skipping DevOps fetch"
+                "trying linked issue fallback"
             )
-            logger.info(
-                "[TWO-PHASE] Returning only development issues (no DevOps linkage)"
-            )
+
+            linked_success, linked_issues = fetch_devops_by_linked_issues()
+            if not linked_success:
+                logger.warning(
+                    "[TWO-PHASE] Linked issue fallback failed - "
+                    "returning development issues only"
+                )
+                linked_issues = []
+
+            merged_issues = dev_issues + linked_issues
+
             elapsed_time = time.time() - start_time
             logger.info(
-                f"[TWO-PHASE] Fetch complete: {len(dev_issues)} issues in "
+                f"[TWO-PHASE] Fetch complete: {len(merged_issues)} issues in "
                 f"{elapsed_time:.2f}s"
             )
-            return True, dev_issues
+            return True, merged_issues
 
         # ===== PHASE 3: Fetch DevOps Issues =====
         logger.info("[TWO-PHASE] Phase 3: Fetching DevOps issues")
@@ -267,8 +361,25 @@ def fetch_jira_issues_two_phase(
             f"(filtered from potentially thousands)"
         )
 
+        if len(devops_issues) == 0:
+            logger.warning(
+                "[TWO-PHASE] FixVersion-based DevOps fetch returned 0 issues - "
+                "trying linked issue fallback"
+            )
+            linked_success, linked_issues = fetch_devops_by_linked_issues()
+            if linked_success and linked_issues:
+                devops_issues = linked_issues
+                logger.info(
+                    "[TWO-PHASE] Using linked issue fallback result for DevOps data"
+                )
+
         # ===== PHASE 4: Merge Results =====
-        merged_issues = dev_issues + devops_issues
+        merged_issues_by_key = {
+            issue.get("key"): issue
+            for issue in dev_issues + devops_issues
+            if issue.get("key")
+        }
+        merged_issues = list(merged_issues_by_key.values())
 
         elapsed_time = time.time() - start_time
         logger.info(

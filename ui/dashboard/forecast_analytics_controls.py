@@ -61,10 +61,10 @@ def calculate_schedule_status(
             }
 
         # Calculate percentage of deadline timeline used by forecast.
-        percentage = (days_to_forecast / days_to_deadline) * 100
+        percentage = max(0.0, (days_to_forecast / days_to_deadline) * 100)
 
         # Determine status
-        if days_to_forecast < days_to_deadline:
+        if days_to_forecast <= days_to_deadline:
             # Ahead of schedule
             badge_text = "On Schedule"
             if percentage <= 70:
@@ -86,7 +86,7 @@ def calculate_schedule_status(
             "bar_width": min(percentage, 100),  # Bar width capped at 100% for CSS
             "badge_text": badge_text,
             "color": color,
-            "status": "ahead" if days_to_forecast < days_to_deadline else "behind",
+            "status": "ahead" if days_to_forecast <= days_to_deadline else "behind",
         }
     except Exception:
         return {

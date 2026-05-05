@@ -8,6 +8,13 @@ from data.dora_metrics import is_production_environment
 logger = logging.getLogger(__name__)
 
 
+def _normalize_issue_type_name(issue_type: str | None) -> str:
+    """Normalize issue type names for case-insensitive comparison."""
+    if not issue_type:
+        return ""
+    return issue_type.strip().lower()
+
+
 def count_deployments_for_week(
     issues: list,
     flow_end_statuses: list[str],
@@ -29,10 +36,10 @@ def count_deployments_for_week(
     for issue in issues:
         if "fields" in issue and isinstance(issue.get("fields"), dict):
             status = issue.get("fields", {}).get("status", {}).get("name", "")
-            fix_versions = issue.get("fields", {}).get("fixVersions", [])
+            fix_versions = issue.get("fields", {}).get("fixVersions") or []
         else:
             status = issue.get("status", "")
-            fix_versions = issue.get("fixVersions", [])
+            fix_versions = issue.get("fixVersions") or []
 
         if status not in flow_end_statuses:
             continue
@@ -69,9 +76,9 @@ def filter_issues_by_deployment_week(
     filtered = []
     for issue in issues:
         if "fields" in issue and isinstance(issue.get("fields"), dict):
-            fix_versions = issue.get("fields", {}).get("fixVersions", [])
+            fix_versions = issue.get("fields", {}).get("fixVersions") or []
         else:
-            fix_versions = issue.get("fixVersions", [])
+            fix_versions = issue.get("fixVersions") or []
 
         for fv in fix_versions:
             release_date_str = fv.get("releaseDate")
@@ -127,6 +134,16 @@ def classify_dora_issues(
 
     devops_task_types = app_settings.get("devops_task_types", [])
     bug_types = app_settings.get("bug_types", ["Bug"])
+    normalized_devops_types = {
+        _normalize_issue_type_name(task_type)
+        for task_type in devops_task_types
+        if isinstance(task_type, str)
+    }
+    normalized_bug_types = {
+        _normalize_issue_type_name(bug_type)
+        for bug_type in bug_types
+        if isinstance(bug_type, str)
+    }
     production_env_values = app_settings.get("production_environment_values", [])
     dora_mappings = app_settings.get("field_mappings", {}).get("dora", {})
     affected_environment_mapping = dora_mappings.get("affected_environment", "")
@@ -137,7 +154,7 @@ def classify_dora_issues(
             issue_type = issue["fields"].get("issuetype", {}).get("name", "")
         else:
             issue_type = issue.get("issue_type", "")
-        if issue_type in devops_task_types:
+        if _normalize_issue_type_name(issue_type) in normalized_devops_types:
             operational_tasks.append(issue)
 
     logger.info(
@@ -154,7 +171,7 @@ def classify_dora_issues(
         else:
             issue_type = issue.get("issue_type", "")
 
-        if issue_type in bug_types:
+        if _normalize_issue_type_name(issue_type) in normalized_bug_types:
             if is_production_environment(
                 issue,
                 affected_environment_mapping,

@@ -183,6 +183,16 @@ def calculate_and_save_weekly_metrics(
             valid_fix_versions=development_fix_versions,
             flow_end_statuses=flow_end_statuses,
         )
+        if not fixversion_release_map and development_issues:
+            logger.warning(
+                "[DORA] No Operational Task release map found; "
+                "falling back to development issue fixVersion release dates"
+            )
+            fixversion_release_map = build_fixversion_release_map(
+                development_issues,
+                valid_fix_versions=development_fix_versions,
+                flow_end_statuses=None,
+            )
         logger.info(
             f"[DORA] Built fixVersion release map: "
             f"{len(fixversion_release_map)} versions "

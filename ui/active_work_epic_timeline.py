@@ -15,6 +15,46 @@ from ui.active_work_components import (
 )
 
 
+def _get_empty_epic_message(epic_key: str) -> str:
+    """Return empty-state copy for expanded epic sections."""
+    if epic_key != "No Parent":
+        return "No tickets assigned to this epic."
+    return "No issues"
+
+
+def _create_empty_epic_note(epic_key: str) -> html.Div:
+    """Render a styled empty-state note for epic detail sections."""
+    message = _get_empty_epic_message(epic_key)
+    return html.Div(
+        [
+            html.H6(
+                [
+                    html.I(className="fas fa-info-circle me-1"),
+                    "Info",
+                ],
+                className="text-secondary mb-2 mt-2",
+                style={"fontSize": "0.9rem"},
+            ),
+            html.Div(
+                [
+                    html.Div(
+                        [
+                            html.I(
+                                className="fas fa-circle-info me-1 text-secondary",
+                                style={"fontSize": "0.75rem"},
+                            ),
+                            html.Span(message, className="active-work-summary"),
+                        ],
+                        className="active-work-issue-row",
+                    )
+                ],
+                className="ms-3",
+            ),
+        ],
+        className="mb-3",
+    )
+
+
 def create_nested_epic_timeline(
     timeline: list[dict],
     show_points: bool = False,
@@ -359,7 +399,7 @@ def create_nested_epic_timeline(
                     html.Div(
                         issue_sections
                         if issue_sections
-                        else html.P("No issues", className="text-muted"),
+                        else _create_empty_epic_note(epic_key),
                         className="card-body p-3 pt-0",
                     ),
                 ],
@@ -405,7 +445,6 @@ def create_nested_epic_timeline(
 def _render_filtered_timeline(timeline: list[dict], show_points: bool = False) -> list:
     """Render epic cards from timeline data (for server-side filtering).
 
-    Args:
         timeline: List of epic dicts with child_issues
         show_points: Whether to show story points
 
@@ -634,7 +673,7 @@ def _render_filtered_timeline(timeline: list[dict], show_points: bool = False) -
                     html.Div(
                         issue_sections
                         if issue_sections
-                        else html.P("No issues", className="text-muted"),
+                        else _create_empty_epic_note(epic_key),
                         className="card-body p-3 pt-0",
                     ),
                 ],

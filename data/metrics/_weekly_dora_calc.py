@@ -94,6 +94,7 @@ def _calculate_deployment_frequency(
     week_start: datetime,
     week_end: datetime,
     development_fix_versions: set,
+    fixversion_release_map: dict,
 ) -> dict:
     """Calculate Deployment Frequency snapshot for the given week."""
 
@@ -107,10 +108,33 @@ def _calculate_deployment_frequency(
             valid_fix_versions=development_fix_versions,
         )
         week_data = weekly_deployments.get(week_label, {})
+        deployment_count = week_data.get("deployments", 0)
+        release_count = week_data.get("releases", 0)
+        release_names = week_data.get("release_names", [])
+
+        # Fallback for datasets where Operational Tasks are not loaded in the query.
+        # Use release dates directly from the shared fixVersion release map.
+        if deployment_count == 0 and fixversion_release_map:
+            fallback_release_names = sorted(
+                release_name
+                for release_name, release_date in fixversion_release_map.items()
+                if week_start <= release_date < week_end
+            )
+            if fallback_release_names:
+                release_count = len(fallback_release_names)
+                deployment_count = release_count
+                release_names = fallback_release_names
+                logger.info(
+                    "Week %s: Deployment frequency fallback used release-map data "
+                    "(%s releases)",
+                    week_label,
+                    release_count,
+                )
+
         return {
-            "deployment_count": week_data.get("deployments", 0),
-            "release_count": week_data.get("releases", 0),
-            "release_names": week_data.get("release_names", []),
+            "deployment_count": deployment_count,
+            "release_count": release_count,
+            "release_names": release_names,
             "week": week_label,
         }
     except Exception as e:
@@ -284,6 +308,7 @@ def calculate_dora_metrics(
         week_start,
         week_end,
         development_fix_versions,
+        fixversion_release_map,
     )
     save_metric_snapshot(week_label, "dora_deployment_frequency", deployment_snapshot)
     metrics_saved += 1

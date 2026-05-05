@@ -478,6 +478,48 @@ class TestBuildEpicTimeline:
         epic_order = [epic["epic_key"] for epic in timeline]
         assert epic_order == ["EPIC-B", "EPIC-A", "EPIC-C"]
 
+    def test_build_epic_timeline_keeps_standalone_parent_as_own_group(self):
+        """Parent-type issue without children should not be grouped under No Parent."""
+        issues = [
+            {
+                "issue_key": "EPIC-900",
+                "summary": "Standalone Epic",
+                "issue_type": "Epic",
+                "status": "In Progress",
+                "health_indicators": {"is_wip": True},
+            },
+            {
+                "issue_key": "TASK-1",
+                "summary": "Independent Task",
+                "issue_type": "Story",
+                "status": "In Progress",
+                "health_indicators": {"is_wip": True},
+            },
+        ]
+
+        timeline = _build_epic_timeline(
+            issues=issues,
+            backend=None,
+            profile_id=None,
+            query_id=None,
+            parent_field="parent",
+            flow_end_statuses=["Done"],
+            flow_wip_statuses=["In Progress"],
+            all_issues_unfiltered=issues,
+            parent_issue_types=["Epic"],
+        )
+
+        epic_keys = [entry["epic_key"] for entry in timeline]
+        assert "EPIC-900" in epic_keys
+        assert "No Parent" in epic_keys
+
+        standalone_entry = next(
+            entry for entry in timeline if entry["epic_key"] == "EPIC-900"
+        )
+        assert standalone_entry["epic_summary"] == "Standalone Epic"
+        assert standalone_entry["total_issues"] == 0
+        assert standalone_entry["child_issues"] == []
+
     def test_build_epic_timeline_sorts_epics_by_health_priority_on_tie(self):
         """Test health priority tie-breaker for epics with equal completion."""
         issues = [

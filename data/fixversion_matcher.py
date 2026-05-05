@@ -676,10 +676,10 @@ def build_fixversion_release_map(
 
         # Handle both nested (JIRA API) and flat (database) formats
         if "fields" in issue and isinstance(issue.get("fields"), dict):
-            fix_versions = issue.get("fields", {}).get("fixVersions", [])
+            fix_versions = issue.get("fields", {}).get("fixVersions") or []
         else:
             # Flat format: fixVersions at root level
-            fix_versions = issue.get("fixVersions", [])
+            fix_versions = issue.get("fixVersions") or []
         for fv in fix_versions:
             fv_name = fv.get("name")
             release_date_str = fv.get("releaseDate")
@@ -739,10 +739,10 @@ def get_deployment_date_for_issue(
     """
     # Handle both nested (JIRA API) and flat (database) formats
     if "fields" in issue and isinstance(issue.get("fields"), dict):
-        fix_versions = issue.get("fields", {}).get("fixVersions", [])
+        fix_versions = issue.get("fields", {}).get("fixVersions") or []
     else:
         # Flat format: fixVersions at root level
-        fix_versions = issue.get("fixVersions", [])
+        fix_versions = issue.get("fixVersions") or []
 
     deployment_dates = []
     for fv in fix_versions:
