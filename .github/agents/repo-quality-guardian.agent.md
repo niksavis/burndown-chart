@@ -3,7 +3,7 @@ name: 'Repo Quality Guardian'
 description: 'Focused enforcement of burndown-chart quality, architecture, and safety rules'
 model: Claude Sonnet 4.6
 tools:
-  [search/codebase, search/fileSearch, search/listDirectory, search/textSearch, search/usages, read/readFile, read/problems, read/terminalLastCommand, read/terminalSelection, edit/editFiles, execute/runInTerminal, execute/getTerminalOutput, execute/runTests, execute/testFailure, agent/runSubagent]
+  [search/codebase, search/fileSearch, search/listDirectory, search/textSearch, search/usages, read/readFile, read/problems, read/terminalLastCommand, read/terminalSelection, edit/editFiles, execute/runInTerminal, execute/getTerminalOutput, execute/runTests, execute/testFailure, mcp_beads/context, mcp_beads/ready, mcp_beads/blocked, agent/runSubagent]
 handoffs:
   - label: 'Write Tests'
     agent: 'Test Strategy'

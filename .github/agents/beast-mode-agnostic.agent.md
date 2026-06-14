@@ -3,7 +3,7 @@ name: 'Beast Mode Agnostic'
 description: 'High-autonomy execution agent for complex software tasks, optimized for high-context models without vendor-specific assumptions'
 model: GPT-5.3-Codex
 tools:
-  [search/codebase, search/fileSearch, search/listDirectory, search/textSearch, search/usages, read/readFile, read/problems, read/terminalSelection, read/terminalLastCommand, read/getTaskOutput, edit/createDirectory, edit/createFile, edit/editFiles, edit/rename, execute/runInTerminal, execute/getTerminalOutput, execute/sendToTerminal, execute/killTerminal, execute/runTask, execute/createAndRunTask, execute/runTests, execute/testFailure, web/fetch, web/githubRepo, web/githubTextSearch, vscode/askQuestions, agent/runSubagent, todo]
+  [search/codebase, search/fileSearch, search/listDirectory, search/textSearch, search/usages, read/readFile, read/problems, read/terminalSelection, read/terminalLastCommand, read/getTaskOutput, edit/createDirectory, edit/createFile, edit/editFiles, edit/rename, execute/runInTerminal, execute/getTerminalOutput, execute/sendToTerminal, execute/killTerminal, execute/runTask, execute/createAndRunTask, execute/runTests, execute/testFailure, web/fetch, web/githubRepo, web/githubTextSearch, vscode/askQuestions, agent/runSubagent, mcp_beads/context, mcp_beads/ready, mcp_beads/blocked, mcp_beads/create, mcp_beads/update, mcp_beads/claim, mcp_beads/close, mcp_beads/dep, mcp_beads/admin, todo]
 ---
 
 # Beast Mode Agnostic Agent
