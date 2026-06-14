@@ -4,17 +4,7 @@ description: 'Designs and scaffolds high-quality custom agents with correct tool
 model: Claude Sonnet 4.6
 disable-model-invocation: true
 tools:
-  [
-    'search/codebase',
-    'search',
-    'search/usages',
-    'search/changes',
-    'edit/editFiles',
-    'read/problems',
-    'web/fetch',
-    'web/githubRepo',
-    'vscode/extensions',
-  ]
+  [vscode/extensions, vscode/askQuestions, read/problems, read/readFile, edit/createDirectory, edit/createFile, edit/editFiles, search/codebase, search/fileSearch, search/listDirectory, search/textSearch, search/usages, web/fetch, web/githubRepo]
 ---
 
 # Custom Agent Foundry Agent
@@ -74,7 +64,7 @@ Use this agent to design and create `.agent.md` files that are clear, minimal, a
 name: Display name for the agent
 description: Brief, clear description shown in chat input
 model: GPT-5.3-Codex
-tools: ['search/codebase', 'search', 'edit/editFiles']
+tools: ['search/codebase', 'search/textSearch', 'read/readFile', 'edit/editFiles']
 handoffs: # Optional: workflow transitions
   - label: Next Step
     agent: target-agent-name

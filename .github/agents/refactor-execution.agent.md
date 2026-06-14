@@ -3,19 +3,16 @@ name: 'Refactor Execution'
 description: 'Executes behavior-preserving refactors with layered-architecture, security, and validation gates'
 model: GPT-5.3-Codex
 tools:
-  [
-    'search/codebase',
-    'search',
-    'search/usages',
-    'search/changes',
-    'edit/editFiles',
-    'read/problems',
-    'execute/runInTerminal',
-    'execute/getTerminalOutput',
-    'read/terminalLastCommand',
-    'read/terminalSelection',
-  ]
+  [search/codebase, search/fileSearch, search/listDirectory, search/textSearch, search/usages, read/readFile, read/problems, read/terminalSelection, read/terminalLastCommand, edit/editFiles, edit/rename, execute/runInTerminal, execute/getTerminalOutput, execute/runTests, execute/testFailure, agent/runSubagent, todo]
 handoffs:
+  - label: 'Architecture Boundary Check'
+    agent: 'Layering Enforcer'
+    prompt: 'Check for layering violations introduced by this refactor and return minimal corrective actions.'
+    send: false
+  - label: 'Write Focused Tests'
+    agent: 'Test Strategy'
+    prompt: 'Write or adjust targeted tests for the refactored behavior and return command outputs plus residual test gaps.'
+    send: false
   - label: 'Review Quality'
     agent: 'Repo Quality Guardian'
     prompt: 'Review the refactored code for quality, architecture boundaries, and safety rules.'
@@ -40,6 +37,16 @@ Use this agent when the task is refactoring existing code while preserving behav
 3. Keep signatures stable unless change is required by task.
 4. Run validations after each significant step (`get_errors`, targeted tests where available).
 5. Stop and report blockers if behavior risk or unrelated regressions emerge.
+
+## Skill Invocation and Handback
+
+1. Load `.github/skills/refactor/SKILL.md` before any structural edits.
+2. Load `.github/skills/circular-import-safety/SKILL.md` before cross-module import moves.
+3. Hand back to the parent agent with:
+  - refactor units completed
+  - behavior-preservation notes
+  - diagnostics/tests executed
+  - blockers and next recommended handoff
 
 ## Quality Gates
 

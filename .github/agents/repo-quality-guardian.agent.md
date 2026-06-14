@@ -3,18 +3,7 @@ name: 'Repo Quality Guardian'
 description: 'Focused enforcement of burndown-chart quality, architecture, and safety rules'
 model: Claude Sonnet 4.6
 tools:
-  [
-    'search/codebase',
-    'search',
-    'search/usages',
-    'search/changes',
-    'edit/editFiles',
-    'read/problems',
-    'execute/runInTerminal',
-    'execute/getTerminalOutput',
-    'read/terminalLastCommand',
-    'read/terminalSelection',
-  ]
+  [search/codebase, search/fileSearch, search/listDirectory, search/textSearch, search/usages, read/readFile, read/problems, read/terminalLastCommand, read/terminalSelection, edit/editFiles, execute/runInTerminal, execute/getTerminalOutput, execute/runTests, execute/testFailure, agent/runSubagent]
 handoffs:
   - label: 'Write Tests'
     agent: 'Test Strategy'
@@ -41,6 +30,15 @@ Use this agent to enforce repository quality, architecture, and safety expectati
 - Produce concise, action-oriented updates.
 - Validate changed files and report results.
 - If blocked, state blocker and propose smallest viable next action.
+
+## Skill Invocation and Handback
+
+1. Load `.github/skills/python-backend-quality/SKILL.md` for Python changes.
+2. Load `.github/skills/refactor/SKILL.md` when reviewing structural changes.
+3. Hand back to parent with:
+  - rule checks and PASS/FAIL
+  - exact blocker list (if any)
+  - minimum change set required to pass gate
 
 ## Platform-Aware Terminal Commands
 

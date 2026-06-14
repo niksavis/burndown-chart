@@ -77,6 +77,16 @@ If refactoring crosses layers, move logic to the correct layer rather than addin
 - Module boundaries are cleaner after refactor than before.
 - Documentation/index artifacts are updated when reusable guidance changes.
 
+## Subagent Handback Packet
+
+When this skill is used by a delegated subagent, return the following packet to the parent agent:
+
+1. Skill used: `refactor`
+2. Refactor units completed
+3. Behavior-preservation evidence
+4. Diagnostics/tests run and outcomes
+5. Remaining risk or required next handoff
+
 ## Recommended companions
 
 - `.github/instructions/python-dash-layering.instructions.md`

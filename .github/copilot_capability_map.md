@@ -19,18 +19,25 @@ Purpose: one reviewable map of all Copilot customization artifacts, what each do
 
 ### Default Agent Routing
 
-- `context7-expert` for external API/version-sensitive tasks.
-- `layering-enforcer` for architecture boundary risks.
-- `refactor-execution` for behavior-preserving structure changes.
-- `test-strategy` for test planning/updates.
-- `repo-quality-guardian` as final quality gate.
-- `release-readiness` for pre-release checks.
+- `Beast Mode Agnostic` as the primary orchestrator for complex tasks.
+- `Context7 Expert` for external API/version-sensitive tasks.
+- `Layering Enforcer` for architecture boundary risks.
+- `Refactor Execution` for behavior-preserving structure changes.
+- `Test Strategy` for test planning/updates.
+- `Repo Quality Guardian` as final quality gate.
+- `Release Readiness` for pre-release checks.
+
+### Handover Contract
+
+- Orchestrator delegates specialized work via handoffs (research, refactor, cleanup, tests, quality).
+- Subagents load relevant skills from `.github/skills/**/SKILL.md` before implementation.
+- Subagents return a handback packet: skills loaded, actions performed, validation evidence, blockers, next step.
 
 ### Self-Evolving Specialization
 
 When recurring or novel task patterns are discovered during implementation:
 
-1. Use `custom-agent-foundry` to create/update specialized agents.
+1. Use `Custom Agent Foundry` to create/update specialized agents.
 2. Use `agent-skills.instructions.md` + `make-skill-template` to create/update skills.
 3. Update discoverability docs (`copilot_customization.md`, `copilot_capability_map.md`).
 4. Validate changed artifacts with `get_errors`.
@@ -137,7 +144,7 @@ Recommended baseline composition:
 ## Task-to-Artifact Routing
 
 - **Python backend**: `python-backend-quality` skill + `python-code-quality` instruction + `python-dash-layering` instruction + `testing-quality` instruction
-- **External API freshness**: `context7-retrieval-patterns` skill + `context7-refresh` instruction + `context7-expert` agent
+- **External API freshness**: `context7-retrieval-patterns` skill + `context7-refresh` instruction + `Context7 Expert` agent
 - **Frontend/JavaScript**: `frontend-javascript-quality` skill + `html-css-style-color-guide` instruction + `security-data-safety` instruction
 - **Persistence/Database**: `sqlite-persistence-safety` skill + `cache-management` instruction + `testing-quality` instruction
 - **Chart/Visualization**: `plotly-visualization-quality` skill + `python-dash-layering` instruction
@@ -146,10 +153,10 @@ Recommended baseline composition:
 - **Dependency onboarding**: `.github/copilot-instructions.md` `Dependency Onboarding (Required)` + `build-pipeline` instruction
 - **Updater system**: `updater-reliability` skill + `build-pipeline` instruction
 - **Configuration**: `configuration-changes` instruction + `security-data-safety` instruction
-- **Refactor**: `refactor` skill + `circular-import-safety` skill + `safe-refactor-python` prompt + `refactor-execution` agent + `layering-enforcer` agent + `testing-quality` instruction
+- **Refactor**: `refactor` skill + `circular-import-safety` skill + `safe-refactor-python` prompt + `Refactor Execution` agent + `Layering Enforcer` agent + `testing-quality` instruction
 - **Circular/lazy import issue**: `circular-import-safety` skill + `python-dash-layering` instruction + `python-code-quality` instruction
-- **Release prep**: `release-management` skill + `release-readiness` agent + `release-notes-draft` prompt
-- **Documentation (latest guidelines)**: `documentation-update` prompt + `context7-retrieval-patterns` skill + `context7-refresh` instruction + `context7-expert` agent
+- **Release prep**: `release-management` skill + `Release Readiness` agent + `release-notes-draft` prompt
+- **Documentation (latest guidelines)**: `documentation-update` prompt + `context7-retrieval-patterns` skill + `context7-refresh` instruction + `Context7 Expert` agent
 
 ## Context Loading Optimization
 

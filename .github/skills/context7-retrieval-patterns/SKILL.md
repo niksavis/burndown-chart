@@ -54,6 +54,16 @@ Return a compact packet that includes:
 5. Confidence and any unresolved ambiguities
 6. Evidence: library IDs queried and topics asked
 
+## Subagent Handback Packet
+
+When this skill is used inside a delegated subagent task, return this compact packet to the parent orchestrator:
+
+1. Skill used: `context7-retrieval-patterns`
+2. Library IDs resolved and topics queried
+3. Version status (current/latest/unknown)
+4. Actionable implementation constraints for repository edits
+5. Validation recommendations and confidence level
+
 ## Suggested Validations
 
 - `get_errors` for changed files after implementation.

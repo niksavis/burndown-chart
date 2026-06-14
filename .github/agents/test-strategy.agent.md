@@ -3,19 +3,7 @@ name: 'Test Strategy'
 description: 'Designs and applies focused tests for changed behavior'
 model: Claude Sonnet 4.6
 tools:
-  [
-    'search/codebase',
-    'search',
-    'search/usages',
-    'edit/editFiles',
-    'read/problems',
-    'search/changes',
-    'execute/runTask',
-    'execute/runInTerminal',
-    'execute/getTerminalOutput',
-    'read/terminalLastCommand',
-    'read/terminalSelection',
-  ]
+  [search/codebase, search/fileSearch, search/listDirectory, search/textSearch, search/usages, read/readFile, read/problems, read/terminalLastCommand, read/terminalSelection, edit/editFiles, execute/runTask, execute/runInTerminal, execute/getTerminalOutput, execute/runTests, execute/testFailure, agent/runSubagent]
 handoffs:
   - label: 'Final Quality Gate'
     agent: 'Repo Quality Guardian'
@@ -53,3 +41,12 @@ Detect the OS before issuing commands.
 1. Tests added/updated and rationale.
 2. Test command(s) executed and results.
 3. Remaining gaps or follow-up suggestions.
+
+## Skill Invocation and Handback
+
+1. Load `.github/skills/python-backend-quality/SKILL.md` for backend test updates.
+2. Load `.github/skills/refactor/SKILL.md` when tests are updated as part of refactor validation.
+3. Hand back to parent with:
+  - tests created/updated
+  - exact command outputs
+  - uncovered scenarios and recommended next gate

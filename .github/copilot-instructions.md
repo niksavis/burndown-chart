@@ -42,7 +42,7 @@ When guidance conflicts, higher-precedence artifacts win.
 1. **VENV**: Before any Python command, activate the virtual environment in the same shell.
 2. **ZERO ERRORS**: `get_errors` must be clean after every change and before commit.
 3. **ARCH GUIDES FIRST**: Consult docs/architecture before any code edit.
-4. **CONTEXT7**: For any code generation, library/API question, setup, or configuration task — auto-invoke `resolve-library-id` then `query-docs` before implementation. Do not answer from memory. Route to `context7-expert` for version migration, deprecation, or upgrade-impact analysis.
+4. **CONTEXT7**: For any code generation, library/API question, setup, or configuration task — auto-invoke `resolve-library-id` then `get-library-docs` before implementation. Do not answer from memory. Route to `Context7 Expert` for version migration, deprecation, or upgrade-impact analysis.
 5. **LAYERING**: callbacks/ routes only; data/ holds logic; ui/ renders; visualization/ charts.
 6. **NO CUSTOMER DATA**: Never commit real names, domains, IDs, or credentials.
 7. **TEST ISOLATION**: Use tempfile.TemporaryDirectory() in tests.
@@ -140,14 +140,21 @@ For non-trivial implementation tasks (multi-file, refactor, migration, release, 
 
 ### Default Subagent Routing
 
-- External API/version-sensitive tasks: `context7-expert`.
-- Layer boundary risks: `layering-enforcer`.
-- Behavior-preserving structure work: `refactor-execution`.
-- Test planning/updates: `test-strategy`.
-- Final completion gate: `repo-quality-guardian`.
-- Release readiness: `release-readiness`.
-- Architecture/decision trade-offs: `critical-thinking`.
-- Creating/updating agent files: `custom-agent-foundry`.
+- Orchestrator for complex tasks: `Beast Mode Agnostic`.
+- External API/version-sensitive tasks: `Context7 Expert`.
+- Layer boundary risks: `Layering Enforcer`.
+- Behavior-preserving structure work: `Refactor Execution`.
+- Test planning/updates: `Test Strategy`.
+- Final completion gate: `Repo Quality Guardian`.
+- Release readiness: `Release Readiness`.
+- Architecture/decision trade-offs: `Critical Thinking`.
+- Creating/updating agent files: `Custom Agent Foundry`.
+
+### Subagent Skill and Handback Contract
+
+- Subagents must load applicable `.github/skills/**/SKILL.md` files before implementation.
+- Subagents must return a handback packet with: skills loaded, actions taken, validation evidence, blockers, and next step.
+- Orchestrator agents should treat missing handback evidence as incomplete and request a corrected pass.
 
 ## Self-Evolving Specialization Loop (Required)
 
@@ -160,7 +167,7 @@ When implementation reveals recurring or novel specialized task patterns, evolve
 - New/updated **skill** for reusable domain procedure/resources.
 - New/updated **instruction** for scoped policy enforcement.
 
-3. Use `custom-agent-foundry` to create/update specialized subagents.
+3. Use `Custom Agent Foundry` to create/update specialized subagents.
 4. Use `agent-skills.instructions.md` and `make-skill-template` to create/update skills.
 5. Wire discoverability updates in `.github/copilot_customization.md` and `.github/copilot_capability_map.md`.
 6. Validate with `get_errors` and report what was added and why.

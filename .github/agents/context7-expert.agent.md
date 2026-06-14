@@ -3,19 +3,7 @@ name: 'Context7 Expert'
 description: 'Fetches current library documentation with version-aware guidance and upgrade-safe recommendations'
 model: GPT-5.3-Codex
 tools:
-  [
-    'search/codebase',
-    'search',
-    'search/usages',
-    'edit/editFiles',
-    'search/changes',
-    'read/problems',
-    'web/fetch',
-    'execute/runInTerminal',
-    'execute/getTerminalOutput',
-    'read/terminalLastCommand',
-    'read/terminalSelection',
-  ]
+  [search/codebase, search/fileSearch, search/listDirectory, search/textSearch, read/readFile, read/problems, edit/editFiles, execute/runInTerminal, execute/getTerminalOutput, web/fetch, io.github.upstash/context7/resolve-library-id, io.github.upstash/context7/get-library-docs]
 ---
 
 # Context7 Expert Agent
@@ -46,7 +34,7 @@ Always run this minimum sequence:
 1. Identify library names from request.
 2. Call `mcp_context7_resolve-library-id` for each library.
 3. Select best library ID by name match, reputation, and snippet coverage.
-4. Call `mcp_context7_query-docs` for relevant topics/symbols.
+4. Call `mcp_context7_get-library-docs` for relevant topics/symbols.
 5. Check workspace dependency versions and compare with latest available versions.
 6. If upgrade exists, include migration-impact notes.
 7. Only then provide final recommendations.
@@ -56,7 +44,7 @@ Always run this minimum sequence:
 1. Confirm Context7 availability in workspace configuration.
 2. Resolve the target library/topic from user request.
 3. Run `mcp_context7_resolve-library-id` before any docs query.
-4. Run focused `mcp_context7_query-docs` calls for exact symbols/behaviors required.
+4. Run focused `mcp_context7_get-library-docs` calls for exact symbols/behaviors required.
 5. Detect current dependency version in workspace when applicable.
 6. Determine latest stable version (Context7 metadata first, registry fallback).
 7. If user is behind, fetch docs for both current and latest version when possible.
@@ -88,6 +76,17 @@ Every response must include:
 6. Version-scoped API guidance.
 7. Migration notes if upgrade is available.
 8. Repository edit recommendations and validation plan.
+
+## Skill Invocation and Handback
+
+1. Load `.github/skills/context7-retrieval-patterns/SKILL.md` before retrieval.
+2. If implementation touches Python backend paths, also load `.github/skills/python-backend-quality/SKILL.md` for guardrails.
+3. Return a handback packet for the orchestrator with:
+  - libraries resolved and IDs used
+  - topics queried
+  - current vs latest version status
+  - migration notes (if any)
+  - actionable repo edits and validation plan
 
 ## Quality Gates
 

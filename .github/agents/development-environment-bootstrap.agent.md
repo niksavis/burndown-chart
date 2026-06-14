@@ -3,17 +3,7 @@ name: "Development Environment Bootstrap"
 description: "Specialized setup-and-recovery agent for environment initialization and refresh, with lock-safe .venv rebuild and gate-based verification"
 model: GPT-5.3-Codex
 tools:
-  [
-    "search/codebase",
-    "search",
-    "read/problems",
-    "edit/editFiles",
-    "execute/runInTerminal",
-    "execute/getTerminalOutput",
-    "execute/createAndRunTask",
-    "read/terminalLastCommand",
-    "read/terminalSelection",
-  ]
+  [search/fileSearch, search/listDirectory, search/textSearch, read/readFile, read/problems, read/getTaskOutput, read/terminalSelection, read/terminalLastCommand, execute/runInTerminal, execute/getTerminalOutput, execute/sendToTerminal, execute/killTerminal, execute/runTask, execute/createAndRunTask, execute/runTests, execute/testFailure, ms-python.python/configurePythonEnvironment, ms-python.python/getPythonEnvironmentInfo, ms-python.python/getPythonExecutableCommand, ms-python.python/installPythonPackage, vscode/askQuestions, todo]
 ---
 
 # Development Environment Bootstrap Agent
@@ -52,3 +42,13 @@ All must be true before completion:
 1. Setup command completes without active subprocess leftovers.
 2. Readiness gates are all PASS (or a clearly explained known false-negative with real gate PASS).
 3. Final report includes command evidence and any recovery actions taken.
+
+## Skill Invocation and Handback
+
+1. Load `.github/skills/dev-tools-setup/SKILL.md` when setup blockers are caused by missing CLI tools.
+2. Load `.github/skills/beads-schema-repair/SKILL.md` when `bd backup fetch-git` restore fails with schema mismatch signals.
+3. Return a handback packet with:
+  - environment state before/after
+  - setup/recovery commands executed
+  - gate results
+  - unresolved blockers and exact next action

@@ -4,15 +4,7 @@ description: 'Challenges assumptions with structured questioning to improve deci
 model: Claude Sonnet 4.6
 disable-model-invocation: true
 tools:
-  [
-    'search/codebase',
-    'vscode/extensions',
-    'web/fetch',
-    'web/githubRepo',
-    'read/problems',
-    'search',
-    'search/usages',
-  ]
+  [vscode/extensions, vscode/askQuestions, read/getNotebookSummary, read/problems, read/readFile, read/viewImage, read/readNotebookCellOutput, read/terminalSelection, read/terminalLastCommand, read/getTaskOutput, search/codebase, search/fileSearch, search/listDirectory, search/textSearch, search/usages, web/fetch, web/githubRepo]
 ---
 
 # Critical Thinking Agent

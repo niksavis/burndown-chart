@@ -99,9 +99,10 @@ Apply artifacts in this order:
 
 ## Agent Configuration Notes
 
-- All agents use dual-model arrays (Codex + Sonnet 4.6). Priority order reflects task fit: Codex-first for execution-heavy tasks, Sonnet-first for reasoning-heavy tasks.
-- `disable-model-invocation: true` is set on meta artifacts that should never be auto-spawned as subagents: `critical-thinking`, `custom-agent-foundry`, `make-skill-template`.
-- Handoff chain: `refactor-execution` → `repo-quality-guardian` → `test-strategy` → `repo-quality-guardian`.
+- Agent models are intentionally role-specific (`GPT-5.3-Codex` for execution-heavy agents, `Claude Sonnet 4.6` for reasoning/review-heavy agents).
+- `disable-model-invocation: true` is set on meta artifacts that should never be auto-spawned as subagents: `Critical Thinking`, `Custom Agent Foundry`, and the `make-skill-template` skill.
+- Primary handoff pipeline is orchestrator-first: `Beast Mode Agnostic` → specialized subagents (`Context7 Expert`, `Refactor Execution`, `Universal Janitor`, `Test Strategy`, `Layering Enforcer`, `Release Readiness`, `GitHub Actions Expert`) → `Repo Quality Guardian` final gate.
+- Subagents are expected to return a handback packet with skills loaded, actions taken, validation evidence, blockers, and next step.
 
 ## Hook Packs
 

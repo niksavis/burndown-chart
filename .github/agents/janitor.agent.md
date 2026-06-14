@@ -3,36 +3,19 @@ name: "Universal Janitor"
 description: "Perform janitorial tasks on any codebase including cleanup, simplification, and tech debt remediation."
 model: GPT-5.3-Codex
 tools:
-  [
-    "vscode/extensions",
-    "vscode/getProjectSetupInfo",
-    "vscode/installExtension",
-    "vscode/newWorkspace",
-    "vscode/runCommand",
-    "vscode/vscodeAPI",
-    "execute/getTerminalOutput",
-    "execute/runTask",
-    "execute/createAndRunTask",
-    "execute/runTests",
-    "execute/runInTerminal",
-    "execute/testFailure",
-    "read/terminalSelection",
-    "read/terminalLastCommand",
-    "read/getTaskOutput",
-    "read/problems",
-    "read/readFile",
-    "browser",
-    "github/*",
-    "io.github.upstash/context7/*",
-    "microsoftdocs/mcp/*",
-    "edit/editFiles",
-    "search",
-    "web",
-  ]
+  [search/codebase, search/fileSearch, search/listDirectory, search/textSearch, search/usages, read/readFile, read/problems, read/terminalSelection, read/terminalLastCommand, edit/editFiles, edit/rename, execute/runInTerminal, execute/getTerminalOutput, execute/runTests, execute/testFailure, web/fetch, web/githubRepo, io.github.upstash/context7/resolve-library-id, io.github.upstash/context7/get-library-docs, microsoftdocs/mcp/microsoft_docs_search, microsoftdocs/mcp/microsoft_docs_fetch, microsoftdocs/mcp/microsoft_code_sample_search, agent/runSubagent, todo]
 handoffs:
   - label: "Doc Grounding"
     agent: "Context7 Expert"
     prompt: "Use Context7 and Microsoft Learn MCP retrieval workflow for any external API, version-sensitive, migration, or Microsoft/Azure guidance before implementation."
+    send: false
+  - label: "Refactor Implementation"
+    agent: "Refactor Execution"
+    prompt: "Apply behavior-preserving cleanup refactors for the identified debt hotspots and return validation evidence."
+    send: false
+  - label: "Final Quality Gate"
+    agent: "Repo Quality Guardian"
+    prompt: "Run final quality checks on the janitorial change set and report PASS/FAIL with blockers."
     send: false
 ---
 # Universal Janitor
@@ -124,6 +107,17 @@ Use the "Doc Grounding" handoff to Context7 Expert for complex multi-library res
 3. **Simplify Incrementally**: One concept at a time
 4. **Validate Continuously**: Test after each removal
 5. **Document Nothing**: Let code speak for itself
+
+## Skill Invocation and Handback
+
+1. Load `.github/skills/refactor/SKILL.md` before structural cleanup.
+2. Load `.github/skills/cli-search-tools/SKILL.md` before broad dead-code or usage discovery.
+3. For external API cleanup, load `.github/skills/context7-retrieval-patterns/SKILL.md` before applying API changes.
+4. Hand back with:
+  - deletions/simplifications performed
+  - proof they are behavior-safe
+  - diagnostics/tests executed
+  - any deferred cleanup with rationale
 
 ## Analysis Priority
 

@@ -3,18 +3,7 @@ name: 'Layering Enforcer'
 description: 'Checks and enforces callbacks/data/ui/visualization boundaries'
 model: Claude Sonnet 4.6
 tools:
-  [
-    'search/codebase',
-    'search',
-    'search/usages',
-    'edit/editFiles',
-    'read/problems',
-    'search/changes',
-    'execute/runInTerminal',
-    'execute/getTerminalOutput',
-    'read/terminalLastCommand',
-    'read/terminalSelection',
-  ]
+  [execute/getTerminalOutput, execute/runInTerminal, read/problems, read/readFile, read/terminalSelection, read/terminalLastCommand, edit/editFiles, search/codebase, search/fileSearch, search/listDirectory, search/textSearch, search/usages]
 ---
 
 # Layering Enforcer Agent
