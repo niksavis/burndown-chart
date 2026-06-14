@@ -3,7 +3,7 @@ name: 'Release Readiness'
 description: 'Validates release hygiene, changelog quality, and workflow completeness'
 model: Claude Sonnet 4.6
 tools:
-  [execute/getTerminalOutput, execute/runInTerminal, read/problems, read/readFile, read/terminalSelection, read/terminalLastCommand, edit/editFiles, search/codebase, search/fileSearch, search/listDirectory, search/textSearch, search/usages, mcp_beads/context, mcp_beads/ready, mcp_beads/blocked]
+  [execute/getTerminalOutput, execute/runInTerminal, read/problems, read/readFile, read/terminalSelection, read/terminalLastCommand, edit/editFiles, search/codebase, search/fileSearch, search/listDirectory, search/textSearch, search/usages, beads/context, beads/ready, beads/blocked]
 ---
 
 # Release Readiness Agent

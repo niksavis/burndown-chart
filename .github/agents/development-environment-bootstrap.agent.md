@@ -3,7 +3,7 @@ name: "Development Environment Bootstrap"
 description: "Specialized setup-and-recovery agent for environment initialization and refresh, with lock-safe .venv rebuild and gate-based verification"
 model: GPT-5.3-Codex
 tools:
-  [search/fileSearch, search/listDirectory, search/textSearch, read/readFile, read/problems, read/getTaskOutput, read/terminalSelection, read/terminalLastCommand, execute/runInTerminal, execute/getTerminalOutput, execute/sendToTerminal, execute/killTerminal, execute/runTask, execute/createAndRunTask, execute/runTests, execute/testFailure, ms-python.python/configurePythonEnvironment, ms-python.python/getPythonEnvironmentInfo, ms-python.python/getPythonExecutableCommand, ms-python.python/installPythonPackage, mcp_beads/context, mcp_beads/admin, vscode/askQuestions, todo]
+  [search/fileSearch, search/listDirectory, search/textSearch, read/readFile, read/problems, read/getTaskOutput, read/terminalSelection, read/terminalLastCommand, execute/runInTerminal, execute/getTerminalOutput, execute/sendToTerminal, execute/killTerminal, execute/runTask, execute/createAndRunTask, execute/runTests, execute/testFailure, ms-python.python/configurePythonEnvironment, ms-python.python/getPythonEnvironmentInfo, ms-python.python/getPythonExecutableCommand, ms-python.python/installPythonPackage, beads/context, beads/admin, vscode/askQuestions, todo]
 ---
 
 # Development Environment Bootstrap Agent

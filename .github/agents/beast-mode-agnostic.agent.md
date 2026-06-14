@@ -3,7 +3,7 @@ name: 'Beast Mode Agnostic'
 description: 'High-autonomy execution agent for complex software tasks, optimized for high-context models without vendor-specific assumptions'
 model: GPT-5.3-Codex
 tools:
-  [search/codebase, search/fileSearch, search/listDirectory, search/textSearch, search/usages, read/readFile, read/problems, read/terminalSelection, read/terminalLastCommand, read/getTaskOutput, edit/createDirectory, edit/createFile, edit/editFiles, edit/rename, execute/runInTerminal, execute/getTerminalOutput, execute/sendToTerminal, execute/killTerminal, execute/runTask, execute/createAndRunTask, execute/runTests, execute/testFailure, web/fetch, web/githubRepo, web/githubTextSearch, vscode/askQuestions, agent/runSubagent, mcp_beads/context, mcp_beads/ready, mcp_beads/blocked, mcp_beads/create, mcp_beads/update, mcp_beads/claim, mcp_beads/close, mcp_beads/dep, mcp_beads/admin, todo]
+  [vscode/askQuestions, execute/getTerminalOutput, execute/killTerminal, execute/sendToTerminal, execute/runTask, execute/createAndRunTask, execute/runInTerminal, execute/runTests, execute/testFailure, read/problems, read/readFile, read/terminalSelection, read/terminalLastCommand, read/getTaskOutput, agent/runSubagent, edit/createDirectory, edit/createFile, edit/editFiles, edit/rename, search/codebase, search/fileSearch, search/listDirectory, search/textSearch, search/usages, web/fetch, web/githubRepo, web/githubTextSearch, beads/admin, beads/blocked, beads/claim, beads/close, beads/context, beads/create, beads/dep, beads/discover_tools, beads/get_tool_info, beads/list, beads/ready, beads/reopen, beads/show, beads/stats, beads/update, todo]
 ---
 
 # Beast Mode Agnostic Agent
