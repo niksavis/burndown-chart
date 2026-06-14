@@ -127,4 +127,9 @@ Use the "Doc Grounding" handoff to Context7 Expert for complex multi-library res
 4. Simplify conditional logic
 5. Remove unnecessary dependencies
 
+## Beads Access Policy
+
+- No beads mutation access for this agent.
+- Return discovered follow-up work to the orchestrator for issue creation or state changes.
+
 Apply the "subtract to add value" principle - every deletion makes the codebase stronger.

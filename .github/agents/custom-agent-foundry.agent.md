@@ -206,3 +206,8 @@ Provide the complete file content, not just snippets. After creation, explain th
 - Be practical: Focus on real-world usage patterns
 - Be concise: Clear and direct without unnecessary verbosity
 - Be thorough: Don't skip important details in agent definitions
+
+## Beads Access Policy
+
+- No beads mutation access for this agent.
+- Any issue-tracking lifecycle changes belong to the orchestrator or designated operational agents.

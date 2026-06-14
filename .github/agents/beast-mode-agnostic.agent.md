@@ -69,6 +69,13 @@ Require every delegated subagent response to include:
 - No unrelated refactors or speculative feature additions.
 - For broad or risky edits (mass renames/deletes/schema shifts), produce a short Destructive Action Plan and pause for explicit approval.
 
+## Beads Access Policy
+
+- This agent is the primary owner of beads lifecycle mutations.
+- When beads MCP tools are available, this agent may perform: create, claim, update, close, dependency linking, ready/blocked queries, and context/admin checks.
+- Subagents must hand back recommendations or evidence; this agent applies final issue state changes.
+- Maintain lifecycle order: claim -> work -> close.
+
 ## Platform-Aware Terminal Commands
 
 Detect the operating system before issuing any terminal command.

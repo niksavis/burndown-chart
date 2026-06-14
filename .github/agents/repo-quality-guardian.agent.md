@@ -40,6 +40,12 @@ Use this agent to enforce repository quality, architecture, and safety expectati
   - exact blocker list (if any)
   - minimum change set required to pass gate
 
+## Beads Access Policy
+
+- This agent has read-only beads scope for verification.
+- Allowed scope: readiness/blocked checks and issue status confirmation.
+- This agent must not mutate issue state (no create/claim/update/close/dependency writes).
+
 ## Platform-Aware Terminal Commands
 
 Detect the OS before issuing commands.

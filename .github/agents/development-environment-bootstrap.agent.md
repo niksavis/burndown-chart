@@ -52,3 +52,9 @@ All must be true before completion:
   - setup/recovery commands executed
   - gate results
   - unresolved blockers and exact next action
+
+## Beads Access Policy
+
+- This agent may use beads only for operational maintenance and recovery checks.
+- Allowed scope: schema/context health, backup fetch/sync/export workflows, and repair diagnostics.
+- This agent must not create, claim, reprioritize, or close product work issues unless explicitly directed by the user.

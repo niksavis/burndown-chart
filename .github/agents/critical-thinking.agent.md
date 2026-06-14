@@ -38,3 +38,8 @@ Use this agent to challenge assumptions and improve reasoning quality before cod
 2. Single highest-impact question.
 3. Why the question matters.
 4. Optional follow-up direction based on possible answers.
+
+## Beads Access Policy
+
+- No beads mutation access for this agent.
+- If process issues are identified, return recommendations to the orchestrator agent.

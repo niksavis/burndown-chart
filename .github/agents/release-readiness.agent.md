@@ -35,3 +35,9 @@ Detect the OS before issuing commands.
 1. Release checklist status.
 2. Changelog draft quality notes.
 3. Explicit go/no-go recommendation with blockers.
+
+## Beads Access Policy
+
+- This agent has read-only beads scope for release gating.
+- Allowed scope: identify blocked and ready issues relevant to release cut decisions.
+- This agent must not create, claim, or close issues.

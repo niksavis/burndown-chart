@@ -76,3 +76,8 @@ Detect the OS before issuing commands.
 2. Behavior-preservation notes (what was intentionally unchanged).
 3. Validation evidence (`get_errors`, targeted tests if run).
 4. Remaining risk or follow-up suggestions.
+
+## Beads Access Policy
+
+- No beads mutation access for this agent.
+- Any issue lifecycle updates must be handed back to the orchestrator agent.

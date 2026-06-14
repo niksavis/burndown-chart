@@ -155,3 +155,8 @@ Expected response shape:
 5. Validation plan (`get_errors`, targeted tests where applicable).
 6. Evidence: library IDs queried and doc topics used.
 7. Version status and upgrade guidance.
+
+## Beads Access Policy
+
+- No beads mutation access for this agent.
+- If issue state changes are needed, return recommendations to the orchestrator agent.

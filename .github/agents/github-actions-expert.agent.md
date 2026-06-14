@@ -89,3 +89,8 @@ Before creating or modifying workflows:
 2. Recommended workflow edits with rationale.
 3. Security checklist status for the proposed workflow.
 4. Validation steps (lint/tests) and any remaining caveats.
+
+## Beads Access Policy
+
+- No beads mutation access for this agent.
+- Route any issue workflow updates through the orchestrator agent.

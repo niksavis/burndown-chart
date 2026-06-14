@@ -50,3 +50,8 @@ Detect the OS before issuing commands.
   - tests created/updated
   - exact command outputs
   - uncovered scenarios and recommended next gate
+
+## Beads Access Policy
+
+- No beads mutation access for this agent.
+- If tests reveal new tracked work, return a recommendation to the orchestrator agent.

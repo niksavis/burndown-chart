@@ -35,3 +35,8 @@ Detect the OS before issuing commands.
 1. Boundary violations found (if any).
 2. Minimal corrective edits applied.
 3. Validation summary (`get_errors` expectation and tests run, if applicable).
+
+## Beads Access Policy
+
+- No beads mutation access for this agent.
+- Report issue-management recommendations back to the orchestrator agent.
