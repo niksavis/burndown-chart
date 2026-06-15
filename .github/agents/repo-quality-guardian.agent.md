@@ -36,9 +36,9 @@ Use this agent to enforce repository quality, architecture, and safety expectati
 1. Load `.github/skills/python-backend-quality/SKILL.md` for Python changes.
 2. Load `.github/skills/refactor/SKILL.md` when reviewing structural changes.
 3. Hand back to parent with:
-  - rule checks and PASS/FAIL
-  - exact blocker list (if any)
-  - minimum change set required to pass gate
+- rule checks and PASS/FAIL
+- exact blocker list (if any)
+- minimum change set required to pass gate
 
 ## Beads Access Policy
 

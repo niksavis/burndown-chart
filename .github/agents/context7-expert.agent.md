@@ -82,11 +82,11 @@ Every response must include:
 1. Load `.github/skills/context7-retrieval-patterns/SKILL.md` before retrieval.
 2. If implementation touches Python backend paths, also load `.github/skills/python-backend-quality/SKILL.md` for guardrails.
 3. Return a handback packet for the orchestrator with:
-  - libraries resolved and IDs used
-  - topics queried
-  - current vs latest version status
-  - migration notes (if any)
-  - actionable repo edits and validation plan
+- libraries resolved and IDs used
+- topics queried
+- current vs latest version status
+- migration notes (if any)
+- actionable repo edits and validation plan
 
 ## Quality Gates
 

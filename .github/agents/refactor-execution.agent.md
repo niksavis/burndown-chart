@@ -43,10 +43,10 @@ Use this agent when the task is refactoring existing code while preserving behav
 1. Load `.github/skills/refactor/SKILL.md` before any structural edits.
 2. Load `.github/skills/circular-import-safety/SKILL.md` before cross-module import moves.
 3. Hand back to the parent agent with:
-  - refactor units completed
-  - behavior-preservation notes
-  - diagnostics/tests executed
-  - blockers and next recommended handoff
+- refactor units completed
+- behavior-preservation notes
+- diagnostics/tests executed
+- blockers and next recommended handoff
 
 ## Quality Gates
 

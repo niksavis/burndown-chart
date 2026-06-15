@@ -47,9 +47,9 @@ Detect the OS before issuing commands.
 1. Load `.github/skills/python-backend-quality/SKILL.md` for backend test updates.
 2. Load `.github/skills/refactor/SKILL.md` when tests are updated as part of refactor validation.
 3. Hand back to parent with:
-  - tests created/updated
-  - exact command outputs
-  - uncovered scenarios and recommended next gate
+- tests created/updated
+- exact command outputs
+- uncovered scenarios and recommended next gate
 
 ## Beads Access Policy
 

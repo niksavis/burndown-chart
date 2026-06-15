@@ -114,10 +114,10 @@ Use the "Doc Grounding" handoff to Context7 Expert for complex multi-library res
 2. Load `.github/skills/cli-search-tools/SKILL.md` before broad dead-code or usage discovery.
 3. For external API cleanup, load `.github/skills/context7-retrieval-patterns/SKILL.md` before applying API changes.
 4. Hand back with:
-  - deletions/simplifications performed
-  - proof they are behavior-safe
-  - diagnostics/tests executed
-  - any deferred cleanup with rationale
+- deletions/simplifications performed
+- proof they are behavior-safe
+- diagnostics/tests executed
+- any deferred cleanup with rationale
 
 ## Analysis Priority
 
