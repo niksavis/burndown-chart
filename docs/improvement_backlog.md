@@ -46,6 +46,20 @@ first-run setup checklist that is never mounted.
 
 ---
 
+## Wave 0 status (2026-09-10)
+
+**Landed:** IMP-001 (CI now runs tests — unit blocking, integration reporting-only),
+IMP-002 (`release.py` gained a test gate), IMP-003 (`--cov=callbacks`, honest ratchet),
+IMP-008 partial (2 stale omit entries removed), IMP-010 (hooks fail closed without
+`.venv`), IMP-076 (`tests_stderr.txt` deleted).
+
+**Not landed, deliberately:** IMP-004 withdrawn as mis-diagnosed; IMP-005/006 need a real
+fix rather than a quick one; IMP-007 and the rest of IMP-008 would turn gates red on
+findings nobody has triaged yet; IMP-009 is blocked on IMP-006.
+
+Suite before and after: **5 failed, 1876 passed, 7 skipped, 11 errors** — unchanged, by
+design. Wave 0 changes what is *observed*, not what runs.
+
 ## Wave 0 — Make the gates real
 
 Cheap, low-risk, and it makes every later wave verifiable. Do this first; nothing else here
@@ -56,12 +70,12 @@ is safely measurable until it lands.
 | IMP-001 **[V]** | **Add pytest to CI.** `.github/workflows/lint.yml` ends at the pyright step — no pytest, no coverage, no pip-audit. Add the suite; mark the known-red integration tests `xfail` in the same change so the gate goes green honestly instead of being ignored. | Critical | S |
 | IMP-002 **[V]** | **Gate `release.py` on the full suite.** `release.py:552` runs `validate.py --fast` (ruff + pyright only), so a tag can be cut with a red suite. | Critical | S |
 | IMP-003 **[V]** | **Widen `validate.py`'s default gate** (`validate.py:219`) to include `tests/integration/`, add `--cov=callbacks`, and ratchet `--cov-fail-under` from 44 to the measured value. | Critical | S |
-| IMP-004 **[A]** | **Fix the integration SQLite fixture.** All 15 errors share one root cause: the temp DB is used before schema init (`sqlite3.OperationalError: no such table: profiles`). One fixture change, no production code. Unblocks 15 tests covering import/export and credential stripping. | Critical | S–M |
-| IMP-005 **[A]** | **Fix the 3 real integration failures**: `test_empty_points_field_workflow` (`assert 161 == 30` — unfiltered `total_items`), `test_cache_invalidation_votes_to_empty`, `test_user_story_3_historical_review`. | High | M |
-| IMP-006 **[A]** | **Resolve cross-test state leakage.** Serial and `-n auto` produce *different* pass sets (3F/15E vs 4F/1E) on identical code — shared SQLite/profile state. Results are currently untrustworthy in both directions. | High | M |
+| ~~IMP-004~~ | **Withdrawn — the premise was wrong.** The audit reported the temp DB was used before schema init. It is not: `tests/fixtures/temp_profiles_dir.py:78` calls `initialize_schema()`, and `test_import_export_scenarios.py` passes **14/14 when run alone**. The errors are pure cross-test leakage. Merged into IMP-006. | — | — |
+| IMP-005 **[V]** | **Fix the real integration failures.** Confirmed present: `test_empty_points_field_workflow_fix` (`assert 161 == 30` — unfiltered `total_items`), `test_cache_invalidation_votes_to_empty`, `test_user_story_3_historical_review`. Two more (`test_export_config_only_file_size_validation`, `test_config_only_strips_credentials_by_default`) fail **only** when run after `test_field_mapping_workflow.py`, so they belong to IMP-006 rather than here. | High | M |
+| IMP-006 **[V]** | **Resolve cross-test state leakage — this is the root cause of most of the red.** Measured 2026-09-10: `tests/integration/test_import_export_scenarios.py` passes 14/14 alone but yields 2 failures + 9 errors inside the directory run; serial vs `-n auto` give different pass sets on identical code. Bisected the poisoner to **`tests/integration/test_field_mapping_workflow.py`**. Its autouse fixture (`:23-70`) patches `data.persistence.factory.get_backend` and comments *"Patch both the factory and all module imports"* — but it patches only the factory attribute, so every module that did `from data.persistence.factory import get_backend` at import time keeps an unpatched reference and reaches the real backend at the real `DEFAULT_SQLITE_PATH`. That same file's `test_empty_mappings_handling` errors **even standalone** for this reason. Note `data/persistence/factory.py` already exposes a public `reset_backend()`. **Tried and insufficient:** adding a teardown `_backend_instance = None` to both fixtures in `tests/fixtures/temp_profiles_dir.py` changed nothing (identical 5F/86P/11E) — the leak is the unpatched import references, not the singleton lifetime alone. Reverted rather than left in as unverified hardening. | High | M |
 | IMP-007 **[A]** | **Fix the vulture config so it detects dead code.** `paths` excludes `callbacks/`, `utils/`, `updater/`, `configuration/`, and 14 of 26 `ignore_names` excuse exactly what dead code is. It reports 0 because it is calibrated to. Pair with Wave 5. | High | S |
 | IMP-008 **[A]** | **Shrink the coverage `omit` list** (`pyproject.toml`): 45 files ≈ 2,992 statements hidden, and 2 entries point at deleted files. The number will drop below 44% — that is the point. Re-baseline honestly. | High | S |
-| IMP-009 **[A]** | **Collect the orphaned tests.** `testpaths` excludes `tests/visual/`, `tests/utils/` and 3 root `tests/test_*.py` — 33 test functions never run. | Medium | S |
+| IMP-009 **[V]** | **Collect the orphaned tests — blocked on IMP-006.** 31 tests under `tests/` and `tests/visual/` are never collected. They pass in isolation (verified), but setting `testpaths = tests` was measured to take the suite from **5F/11E to 53F/33E**: the extra modules perturb collection order and the suite leaks state between tests. Do this after IMP-006, not before — widening first only buries the leak. Attempted and reverted; the reasoning is recorded in `pytest.ini`. | Medium | S |
 | IMP-010 **[A]** | **Hooks fail open.** `install_hooks.py:152,189` `exit 0` silently when `.venv` is absent — the exact state this clone was in — and `.git/hooks/` currently has no hooks installed. The deterministic floor does not exist on a fresh clone. Overlaps the basicly hook migration; see `docs/basicly_migration.md` §3.4. | High | S |
 
 ## Wave 1 — Wrong numbers reaching users

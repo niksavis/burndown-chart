@@ -526,6 +526,42 @@ def bump_version(bump_type: str) -> tuple[bool, str]:
         return False, ""
 
 
+def run_test_gate() -> bool:
+    """Run the unit suite before tagging.
+
+    The lint gate below deliberately skips the full pre-commit sweep on the
+    grounds that the git hooks already cover it. That reasoning does not extend
+    to tests: the pre-commit hook lints staged files and runs no tests, and the
+    pre-push hook that does run them is absent on any clone where
+    ``install_hooks.py`` was never run -- which is the default state. Until
+    2026-09-10 that left every automated gate on the release path lint-only, so
+    a tag could be cut against a red suite.
+
+    Scoped to ``tests/unit/`` on purpose: it is green and deterministic.
+    ``tests/integration/`` is currently red and order-dependent (IMP-004/005/006
+    in docs/improvement_backlog.md); widen this to the whole suite once it is
+    fixed rather than adding a known-red gate nobody can satisfy.
+
+    Returns:
+        True when the suite passes, False otherwise.
+    """
+    print("\n" + "=" * 60)
+    print("Running Test Gate")
+    print("=" * 60)
+
+    success, _ = run_command(
+        [sys.executable, "-m", "pytest", "tests/unit/", "-n", "auto", "-q"],
+        "pytest tests/unit/",
+    )
+
+    if success:
+        print("[OK] Test gate passed")
+        return True
+
+    print("[FAILED] Test gate: unit suite is red; refusing to tag", file=sys.stderr)
+    return False
+
+
 def run_lint_gate() -> bool:
     """Run fast lint + type checks before tagging.
 
@@ -745,6 +781,11 @@ def main():
     # Step 4: Run pre-commit lint gate — catch formatter drift before tagging
     if not run_lint_gate():
         print("\n[FAILED] Pre-commit lint gate", file=sys.stderr)
+        sys.exit(1)
+
+    # Step 4b: Run the test gate — a tag must not be cuttable with a red suite
+    if not run_test_gate():
+        print("\n[FAILED] Test gate", file=sys.stderr)
         sys.exit(1)
 
     # Step 5: Create final release commit (tag will point here)

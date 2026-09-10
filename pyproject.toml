@@ -80,7 +80,6 @@ omit = [
   "visualization/elements.py",
   "visualization/flow_charts.py",
   "visualization/metric_trends.py",
-  "visualization/sprint_charts.py",
   # Pure Dash layout factories — return component trees, no business logic
   "ui/aria_utils.py",
   "ui/bug_charts.py",
@@ -103,7 +102,6 @@ omit = [
   "ui/jql_syntax_highlighter.py",
   "ui/modern_dashboard_complete.py",
   "ui/namespace_input.py",
-  "ui/scope_metrics.py",
   "ui/settings_modal.py",
   "ui/settings_panel.py",
   "ui/sprint_tracker.py",

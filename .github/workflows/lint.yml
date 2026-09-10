@@ -38,3 +38,57 @@ jobs:
 
       - name: Pyright type check
         run: pyright data/ callbacks/ ui/ visualization/ tests/
+
+  # Until 2026-09-10 CI ran no tests at all, so a red suite could merge and ship.
+  # The unit suite is green and deterministic, so it gates. The integration suite
+  # is currently red and order-dependent, so it reports without blocking -- see
+  # the job below.
+  unit-tests:
+    name: Unit tests (blocking)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+
+      - name: Install project dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Pytest (unit, with coverage ratchet)
+        run: |
+          pytest tests/unit/ -n auto -m "not performance" \
+            --cov=data --cov=ui --cov=visualization --cov=callbacks \
+            --cov-config=pyproject.toml --cov-report=term-missing \
+            --cov-fail-under=40 -q
+
+  # Non-blocking on purpose. tests/integration/ has 16 known problems (5 failures
+  # + 11 setup errors) whose split changes with test ordering -- shared module-level
+  # state, not flakiness in the usual sense. Making this blocking today would just
+  # train people to ignore a permanently red gate. It runs so the failures are
+  # visible; flip continue-on-error off once IMP-004/005/006 land.
+  integration-tests:
+    name: Integration tests (reporting only, known red)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+
+      - name: Install project dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Pytest (integration)
+        run: pytest tests/integration/ -p no:randomly -q

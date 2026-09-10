@@ -149,8 +149,22 @@ PRE_COMMIT_HOOK = f"""\
 
 {_PYTHON_DETECT}
 
-if [ ! -f "validate.py" ] || [ ! -d ".venv" ]; then
+if [ ! -f "validate.py" ]; then
     exit 0  # Not a dev worktree (e.g. bd backup); skip.
+fi
+
+# A dev worktree with no .venv used to take the skip branch above and exit 0,
+# so the gate silently passed for anyone who had not built one yet -- the
+# default state of a fresh clone, and the state this repo was found in on
+# 2026-09-10. Fail closed and say how to fix it instead.
+if [ ! -d ".venv" ]; then
+    echo "[git-hook] no .venv found, so the quality gate cannot run." >&2
+    echo "[git-hook] create one, then retry:" >&2
+    echo "[git-hook]   python -m venv .venv" >&2
+    echo "[git-hook]   .venv/bin/pip install -r requirements.txt" >&2
+    echo "[git-hook]   .venv/bin/pip install -r requirements-dev.txt" >&2
+    echo "[git-hook] (Windows: use .venv/Scripts/pip.exe)" >&2
+    exit 1
 fi
 
 # Skip codebase quality checks for beads-backup branch
@@ -186,8 +200,22 @@ PRE_PUSH_HOOK = f"""\
 
 {_PYTHON_DETECT}
 
-if [ ! -f "validate.py" ] || [ ! -d ".venv" ]; then
+if [ ! -f "validate.py" ]; then
     exit 0  # Not a dev worktree (e.g. bd backup); skip.
+fi
+
+# A dev worktree with no .venv used to take the skip branch above and exit 0,
+# so the gate silently passed for anyone who had not built one yet -- the
+# default state of a fresh clone, and the state this repo was found in on
+# 2026-09-10. Fail closed and say how to fix it instead.
+if [ ! -d ".venv" ]; then
+    echo "[git-hook] no .venv found, so the quality gate cannot run." >&2
+    echo "[git-hook] create one, then retry:" >&2
+    echo "[git-hook]   python -m venv .venv" >&2
+    echo "[git-hook]   .venv/bin/pip install -r requirements.txt" >&2
+    echo "[git-hook]   .venv/bin/pip install -r requirements-dev.txt" >&2
+    echo "[git-hook] (Windows: use .venv/Scripts/pip.exe)" >&2
+    exit 1
 fi
 
 # Read what is being pushed from stdin (format: <local ref> <local sha> ...).

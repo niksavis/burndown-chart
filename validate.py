@@ -223,9 +223,16 @@ def check_coverage(*, include_performance: bool) -> int:
             "--cov=data",
             "--cov=ui",
             "--cov=visualization",
+            # callbacks/ was omitted from measurement entirely, so its 21% went
+            # unreported and unratcheted. Including it lowers the headline number
+            # without changing a line of test coverage: measured 45.82% over the
+            # three original packages, 40.73% over all four (2026-09-10).
+            "--cov=callbacks",
             "--cov-config=pyproject.toml",
             "--cov-report=term-missing",
-            "--cov-fail-under=44",
+            # Ratchet, set just below the measured 40.73%. Raise it when coverage
+            # rises; never lower it to make a red gate pass.
+            "--cov-fail-under=40",
             "-q",
         ],
     )
