@@ -1,0 +1,24 @@
+schema_version: 1
+id: data-safety
+description: This repo handles real customer delivery data; what must never enter the repository, and the placeholders to use instead.
+category: security
+priority: critical
+applies_to: [all, security]
+tags: [privacy, sql]
+status: active
+title: Data Safety
+body: |
+  This application is pointed at real Jira instances, so test fixtures, docs,
+  screenshots and commit messages are all places customer data can leak in.
+
+  - Never commit real customer names, email addresses, domains, Jira URLs, issue
+    keys, custom field IDs, API tokens, or exported issue data.
+  - Use the established placeholders so they stay greppable: `Acme Corp`,
+    `example.com`, `customfield_10001`.
+  - SQL is parameterized, always. No string interpolation into a query, including in
+    tests and one-off scripts.
+  - Validate external API responses before use - a Jira instance can return a shape
+    the code does not expect, and an unvalidated field becomes a wrong number on a
+    chart.
+  - `detect-secrets` runs at commit time against `.secrets.baseline`. A new finding
+    is resolved by removing the secret, not by re-baselining it.

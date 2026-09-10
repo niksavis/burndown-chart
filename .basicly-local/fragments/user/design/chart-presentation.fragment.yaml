@@ -1,0 +1,35 @@
+schema_version: 1
+id: chart-presentation
+description: How charts must present actuals, forecasts, and missing data so a reader cannot misread them.
+category: design
+priority: high
+applies_to: [all, review]
+tags: [visualization, plotly, accessibility]
+status: active
+scope:
+  paths:
+  - visualization/**
+  - ui/**
+  - configuration/chart_config.py
+title: Chart Presentation
+body: |
+  A correct number presented misleadingly is as damaging as a wrong number. Charts in
+  this repo are read by people making commitments, so:
+
+  - Projected data must be visually distinguishable from recorded data at a glance -
+    dash pattern or opacity, plus a legend entry that says which is which. A reader
+    must never mistake a forecast for a fact.
+  - Confidence bands carry a label saying what they represent. An unlabeled band is
+    read as certainty.
+  - Bar charts start at zero. Truncate an axis only on a line or scatter chart, and
+    only where the truncation is visible in the axis labels.
+  - Charts a user compares side by side share an axis range and a unit. Say the unit
+    (story points vs items) in the axis title, and make sure the series actually
+    plotted matches it.
+  - Hover text must show the same value the mark encodes, at a rounding that does not
+    contradict the axis.
+  - Handle the degenerate states deliberately: zero rows, one point, all zeros, and a
+    range with no data each need an explicit empty state. A confident flat line drawn
+    from no data is a defect.
+  - The same semantic series keeps the same color across every chart in the app.
+    Never encode meaning by color alone, and check contrast in both themes.

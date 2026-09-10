@@ -1,0 +1,23 @@
+schema_version: 1
+id: project-overview
+description: What burndown-chart is - purpose, stack, entry points, and where each concern lives.
+category: project
+priority: critical
+applies_to: [all]
+tags: [overview, priming]
+status: active
+title: Project Overview
+body: |
+  - Purpose: an agile delivery dashboard - burndown and burnup charts, velocity and
+    completion forecasting, DORA metrics, flow metrics, and bug analytics - rendered
+    from Jira or imported tabular data.
+  - Stack: Python 3.14+, Dash 4 + Plotly 6 on Waitress, pandas 3 / numpy 2 / scipy for
+    the numeric layer, SQLite for persistence, Pydantic for validation.
+  - Entry point: `app.py`. Production server config in `configuration/server.py`.
+  - Packages: `data/` business logic and calculations, `visualization/` Plotly figure
+    construction, `ui/` component builders and layout, `callbacks/` Dash event wiring,
+    `configuration/` settings and in-product help text, `utils/` shared helpers,
+    `updater/` self-update, `tests/` pytest suite.
+  - Architecture references live in `docs/architecture/`; the metrics each chart shows
+    are specified in `docs/dashboard_metrics.md`, `docs/dora_metrics.md`,
+    `docs/flow_metrics.md`, and indexed by `docs/metrics_index.md`.

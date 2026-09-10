@@ -1,0 +1,22 @@
+schema_version: 1
+id: testing-standards
+description: How tests are written and run in this repo, and what a test must actually assert.
+category: testing
+priority: high
+applies_to: [all, testing]
+tags: [pytest, isolation]
+status: active
+scope:
+  paths:
+  - tests/**
+title: Testing Standards
+body: |
+  - Run with pytest; configuration is in `pytest.ini`. Coverage over the layers that
+    matter: `pytest --cov=data --cov=visualization --cov=ui`.
+  - Every test that touches the filesystem uses `tempfile.TemporaryDirectory()`. A
+    test that writes into the repo or a fixed path will pass alone and fail in a
+    parallel run.
+  - Browser-level tests use Playwright. Do not add Selenium.
+  - A test asserting only "this did not raise" is not coverage. Assert the value.
+  - Never weaken, skip, or delete a failing test to make a gate pass. A skip needs a
+    reason in the skip marker saying what would let it run again.

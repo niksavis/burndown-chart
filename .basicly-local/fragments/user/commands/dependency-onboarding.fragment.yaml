@@ -1,0 +1,30 @@
+schema_version: 1
+id: dependency-onboarding
+description: The pip-compile workflow for adding a dependency; compiled requirement files are generated, never hand-edited.
+category: commands
+priority: medium
+applies_to: [all]
+tags: [dependencies, tooling]
+status: active
+scope:
+  paths:
+  - requirements.in
+  - requirements.txt
+  - requirements-dev.in
+  - requirements-dev.txt
+  - pyproject.toml
+title: Dependency Onboarding
+body: |
+  Adding a package is explicit onboarding work, and needs confirmation first.
+
+  - Runtime dependency: edit `requirements.in`, run `pip-compile requirements.in`,
+    then `pip install -r requirements.txt`.
+  - Development dependency: edit `requirements-dev.in`, run
+    `pip-compile requirements-dev.in`, then `pip install -r requirements-dev.txt`.
+  - `requirements.txt` and `requirements-dev.txt` are generated. Never edit them by
+    hand; a hand-edit is silently reverted by the next compile.
+  - State the version constraint's reason in a comment beside it, as the existing
+    entries do.
+  - Vendored browser assets are fetched by `download_vendor_dependencies.py` and
+    `download_report_dependencies.py` from `vendor_dependencies.txt` and
+    `report_dependencies.txt`; add there, not by committing a bundled file.

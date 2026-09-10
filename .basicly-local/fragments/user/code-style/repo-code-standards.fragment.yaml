@@ -1,0 +1,31 @@
+schema_version: 1
+id: repo-code-standards
+description: Repo-specific size limits, typing, logging, and output conventions for this codebase.
+category: code-style
+priority: high
+applies_to: [all, style]
+tags: [standards, size-limits]
+status: active
+enforced_by:
+- ruff
+- pyright
+- python validate.py
+title: Repo Code Standards
+body: |
+  - Size limits, enforced by review rather than by a linter: Python files 500 lines
+    and functions 50 lines; JavaScript 400 and 40; HTML 300 lines; CSS 500 lines; a
+    single SQL query 50 lines. At 80% of a limit, split into a new module rather than
+    appending - but split along a responsibility, never merely by line count. Several
+    existing `*_core` / `*_comparison` style splits were made by size alone and are
+    harder to follow than the file they came from; do not add more of those.
+  - Type annotations on every function, except Dash callbacks and test fixtures.
+  - Naming: `snake_case.py` modules, `PascalCase` classes, `snake_case()` functions,
+    `UPPER_CASE` constants. Repository filenames are lowercase (`AGENTS.md`,
+    `CLAUDE.md`, `LICENSE` and other tool-mandated names are the exception).
+  - Logging follows `docs/LOGGING_STANDARDS.md`. Never log credentials, tokens, Jira
+    URLs with embedded auth, or customer-identifying values.
+  - No emoji in code, log output, or comments. Markdown documentation may use them.
+  - Performance budgets: page load under 2s, chart render under 500ms, interaction
+    response under 100ms.
+  - `python validate.py` runs ruff, djlint, pyright, markdownlint and pytest in one
+    pass. Run it before pushing.
