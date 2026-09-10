@@ -1,6 +1,13 @@
 ﻿# Burndown - AI Agent Guide
 
-**Stack**: Python 3.13, Dash, Plotly, Waitress | **DB**: SQLite | **Platform**: Windows
+**Stack**: Python 3.14, Dash, Plotly, Waitress | **DB**: SQLite | **Platform**: Windows, WSL/Linux
+
+> **Read `CLAUDE.md` first** for current project state and where to continue.
+> The **Beads Workflow** section below and the `(bd-XXX)` / `(burndown-chart-XXXX)`
+> commit trailer are **retired** — the tracker has been inert since 2026-05-05 and `bd`
+> may not be installed. Track work in `docs/improvement_backlog.md` until the migration
+> in `docs/basicly_migration.md` runs. This file is scheduled for replacement in that
+> migration's Phase 2.
 
 ## Copilot Customization Precedence (Canonical)
 

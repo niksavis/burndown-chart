@@ -1,5 +1,12 @@
 # Agent Instructions - Compatibility Shim
 
+> **Read `CLAUDE.md` first.** It carries the current state of the project and where to
+> continue. Two sections of *this* file are retired and must not be followed: the
+> **Beads Commands** and **Issue Tracking with bd** workflows, and the
+> `(burndown-chart-XXXX)` commit trailer they require. The beads tracker has been inert
+> since 2026-05-05 and `bd` may not be installed. Work is tracked in
+> `docs/improvement_backlog.md` until the migration in `docs/basicly_migration.md` runs.
+
 ## Purpose
 
 This file is a lightweight compatibility bootstrap for external agents (for example, Claude Code or Codex CLI) that may not automatically load `.github/copilot-instructions.md`.

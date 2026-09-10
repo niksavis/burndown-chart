@@ -300,8 +300,18 @@ Each step is a separate commit; the repo stays working at every boundary.
 
 **Phase 0b — immediately before install**
 
-4. `cp .github/copilot-instructions.md ~/copilot-instructions.burndown.bak` — outside
-   the repo. Install destroys it silently (§3.1).
+4. Back up **every generated target that already exists**, outside the repo. Install
+   destroys each silently (§3.1) — there is no manifest entry on a first install, so it
+   cannot tell its own stale output from a file it has never seen:
+
+   ```sh
+   mkdir -p ~/burndown-chart-preinstall
+   cp .github/copilot-instructions.md CLAUDE.md ~/burndown-chart-preinstall/
+   ```
+
+   `CLAUDE.md` was added on 2026-09-10 as the interim agent entry point and is a
+   `build` target, so it is exposed to the same defect. `AGENTS.md` does not exist yet
+   (we have lowercase `agents.md`, a separate file — see §3.2).
 5. Add `__pycache__/` to `.gitignore` if not already covered. The projected hook scripts
    are Python, and the `.gitignore` entry basicly writes covers only
    `basicly.local.toml`, so the first commit after install otherwise fails on modified

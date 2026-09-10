@@ -46,6 +46,11 @@ Documentation for project managers, team leads, and users who want to understand
 
 Documentation for developers extending the application, implementing new metrics, or understanding the technical architecture.
 
+### Current Work
+
+- **[Improvement Backlog](improvement_backlog.md)** ⭐ **CONTRIBUTORS START HERE** - The work queue: 77 items in 5 waves from four specialist audits (2026-09-10), with a measured test/coverage baseline and a safe/caution/danger rating per package. Consult the safety map before refactoring.
+- **[basicly Migration Plan](basicly_migration.md)** - Replacing the hand-authored Copilot configuration with a `basicly`-projected one, and migrating issue tracking off beads. Prepared, not yet executed.
+
 ### Configuration & Integration
 
 - **[Namespace Syntax](namespace_syntax.md)** - JIRA field mapping syntax for implementing custom metrics
