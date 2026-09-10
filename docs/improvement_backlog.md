@@ -46,19 +46,33 @@ first-run setup checklist that is never mounted.
 
 ---
 
-## Wave 0 status (2026-09-10)
+## Wave 0 status — COMPLETE (2026-09-10)
 
-**Landed:** IMP-001 (CI now runs tests — unit blocking, integration reporting-only),
-IMP-002 (`release.py` gained a test gate), IMP-003 (`--cov=callbacks`, honest ratchet),
-IMP-008 partial (2 stale omit entries removed), IMP-010 (hooks fail closed without
-`.venv`), IMP-076 (`tests_stderr.txt` deleted).
+| | Before | After |
+|---|---|---|
+| Serial | 5 failed, 1876 passed, 7 skipped, **11 errors** | **1922 passed, 5 skipped, 3 xfailed, 0 errors** |
+| `-n auto` | 4 failed, 1888 passed, 6 skipped, 1 error | **identical to serial** |
+| Tests run by CI | **none** | whole suite, both jobs blocking |
+| Tests run by `release.py` | **none** | unit suite |
 
-**Not landed, deliberately:** IMP-004 withdrawn as mis-diagnosed; IMP-005/006 need a real
-fix rather than a quick one; IMP-007 and the rest of IMP-008 would turn gates red on
-findings nobody has triaged yet; IMP-009 is blocked on IMP-006.
+**Landed:** IMP-001, IMP-002, IMP-003, IMP-005 (marked, not fixed — see below),
+IMP-006, IMP-008 (partial), IMP-009, IMP-010, IMP-076.
 
-Suite before and after: **5 failed, 1876 passed, 7 skipped, 11 errors** — unchanged, by
-design. Wave 0 changes what is *observed*, not what runs.
+**IMP-006 was the keystone.** `tests/integration/test_field_mapping_workflow.py`
+patched `data.persistence.factory.get_backend`, with a comment claiming it patched
+"both the factory and all module imports". It did not — **44 modules** bind that symbol
+via `from data.persistence.factory import get_backend` at import time and never saw the
+patch, so they reached the real backend at the real path and leaked it into whatever ran
+next. Replacing the patch with `DEFAULT_SQLITE_PATH` + `reset_backend()` (what the
+already-working fixture does) removed **all 11 setup errors and 2 of the 5 failures at
+once**, and made serial and parallel agree. It also unblocked IMP-009: the same
+`testpaths` widening that produced 53 failures / 33 errors before the fix now adds 31
+passing tests and nothing else.
+
+**Still open:** IMP-005 — three genuine product bugs, now `xfail(strict=True)` with
+reasons rather than invisible. Strict means fixing one turns CI red until the marker
+comes off. IMP-007 and the rest of IMP-008 are deferred: both would turn gates red on
+findings nobody has triaged, which is a Wave 5 conversation.
 
 ## Wave 0 — Make the gates real
 

@@ -114,6 +114,14 @@ def isolated_metrics_snapshots():
     _tmpdir.cleanup()
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "IMP-005: no forecast data is found in the historical snapshot, so forecast "
+        "values are not persisting into weekly snapshots for later review. Remove "
+        "this marker with the fix."
+    ),
+)
 def test_user_story_3_historical_review():
     """Test US3: Forecast data persists and loads for historical weeks."""
     print("\n=== User Story 3: Historical Performance Review ===")

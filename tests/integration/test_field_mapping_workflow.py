@@ -26,48 +26,63 @@ class TestFieldMappingWorkflow:
         from data.database import get_db_connection
         from data.migration.schema import create_schema
         from data.persistence.factory import reset_backend
-        from data.persistence.sqlite_backend import SQLiteBackend
 
         _tmpdir = tempfile.TemporaryDirectory(prefix="field_mapping_test_")
         temp_dir = _tmpdir.name
         temp_profiles_dir = Path(temp_dir) / "profiles"
         temp_profiles_dir.mkdir(parents=True, exist_ok=True)
-        temp_db_path = str(temp_profiles_dir / "test_burndown.db")
+        temp_db_path = temp_profiles_dir / "test_burndown.db"
 
         # Initialize temp database with schema
-        with get_db_connection(Path(temp_db_path)) as conn:
+        with get_db_connection(temp_db_path) as conn:
             create_schema(conn)
             conn.commit()
 
-        # Create test backend instance
-        test_backend = SQLiteBackend(temp_db_path)
-
-        # Reset and patch get_backend to always return our test backend
-        reset_backend()
-
-        def mock_get_backend(*args, **kwargs):
-            return test_backend
-
-        # Patch both the factory and all module imports
+        # Redirect the factory's default path rather than replacing get_backend.
+        #
+        # This fixture used to patch `data.persistence.factory.get_backend` to
+        # return a hand-built backend, with a comment claiming it patched "both
+        # the factory and all module imports". It did not: 44 modules bind the
+        # symbol with `from data.persistence.factory import get_backend` at
+        # import time, so those references never saw the patch and reached the
+        # real backend at the real DEFAULT_SQLITE_PATH instead. That both broke
+        # this file's own test_empty_mappings_handling standalone, and leaked a
+        # backend pointing outside the temp dir into whatever ran next --
+        # test_import_export_scenarios.py passed 14/14 alone but produced 2
+        # failures and 9 setup errors after this file.
+        #
+        # Patching the path and resetting the singleton works for every caller,
+        # because they all end up in the real get_backend(), which reads the
+        # module global at call time. This mirrors what the already-working
+        # tests/fixtures/temp_profiles_dir.py fixture does.
         patches = [
-            patch("data.persistence.factory.get_backend", side_effect=mock_get_backend),
+            patch("data.persistence.factory.DEFAULT_SQLITE_PATH", str(temp_db_path)),
+            patch("data.database.DB_PATH", temp_db_path),
             patch("data.profile_manager.PROFILES_DIR", temp_profiles_dir),
         ]
 
         for p in patches:
             p.start()
 
+        # Drop any backend a previous test cached, so the first get_backend()
+        # call inside this test builds one against the patched path.
+        reset_backend()
+
         # Create and switch to a test profile
         profile_id = create_profile("Field Mapping Test", {})
         switch_profile(profile_id)
 
-        yield temp_dir
+        try:
+            yield temp_dir
+        finally:
+            for p in patches:
+                p.stop()
 
-        for p in patches:
-            p.stop()
-
-        reset_backend()
-        _tmpdir.cleanup()
+            # Drop it again on the way out: the instance holds temp_db_path,
+            # which _tmpdir.cleanup() is about to delete. Leaving it cached is
+            # what poisoned unrelated tests downstream.
+            reset_backend()
+            _tmpdir.cleanup()
 
     @pytest.fixture
     def mock_jira_fields(self):

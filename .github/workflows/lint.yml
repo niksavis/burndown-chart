@@ -67,15 +67,14 @@ jobs:
             --cov-config=pyproject.toml --cov-report=term-missing \
             --cov-fail-under=40 -q
 
-  # Non-blocking on purpose. tests/integration/ has 16 known problems (5 failures
-  # + 11 setup errors) whose split changes with test ordering -- shared module-level
-  # state, not flakiness in the usual sense. Making this blocking today would just
-  # train people to ignore a permanently red gate. It runs so the failures are
-  # visible; flip continue-on-error off once IMP-004/005/006 land.
+  # Blocking. This job was briefly reporting-only while tests/integration/ had 16
+  # ordering-dependent problems; IMP-006 fixed the leak causing them, and the three
+  # genuine product bugs that remain are marked xfail(strict=True) with an IMP-005
+  # reference. Strict means a fix makes the run red until the marker is removed, so
+  # nothing is silently swept up.
   integration-tests:
-    name: Integration tests (reporting only, known red)
+    name: Integration tests (blocking)
     runs-on: ubuntu-latest
-    continue-on-error: true
 
     steps:
       - name: Checkout
