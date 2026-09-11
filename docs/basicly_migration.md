@@ -1,12 +1,24 @@
 # basicly Migration Plan
 
-**Status**: preparation only. Nothing is installed yet.
-**Target version**: **`v0.12.0`** — tagged and pushed 2026-09-10. **Pin the tag, not
-`@main`.** (Caveat from the engine maintainers: the `release` and `quality-gates`
-workflows were still running when the tag was confirmed, so the tag and pin are verified
-good but CI-green is not yet confirmed.)
+**Status**: preparation complete, install **blocked pending `v0.12.1`**.
+**Target version**: **`v0.12.1`** — not yet tagged; the engine session is cutting it
+2026-09-11. **Pin the tag, not `@main`.**
+
+> **Do not install `v0.12.0`.** No-go from the engine session, 2026-09-11, for three
+> reasons:
+>
+> - Its **release page never published**, so `gh release view v0.12.0` 404s. The tag and
+>   the `uvx` pin resolve fine — only the page is missing — but the project's rule is
+>   that every release has one.
+> - It is missing a **P0 fix** (`281ee287`): install left a retired managed hook wired
+>   to a deleted script, after which **every commit in the consumer repo failed**. That
+>   is precisely the blast radius we would have taken here.
+> - It is missing `6e0663fd`, a build-time cap sized on a developer machine that fails
+>   on `ubuntu-latest` — the reason the release workflow never reached its publish step.
+
 **Scanned against**: the `basicly` working tree at `../basicly`, plus answers verified
-empirically by the engine's own session against v0.12.0 (§6).
+empirically by the engine's own session, re-confirmed against `main` on 2026-09-11
+(§6).
 
 This document is the pre-flight for replacing this repository's hand-authored,
 Copilot-centric agent configuration with a `basicly`-projected one, and for moving
@@ -14,6 +26,15 @@ issue tracking off `bd` (beads) onto the basicly-owned ledger.
 
 Re-verify the "What install does" section against the actual release before running
 install — it was read from the engine source, not from a shipped artifact.
+
+**Upstream defects this plan is waiting on or working around** (filed by the engine
+session; all tracked on their side, none to be patched locally):
+
+| Id | Defect | Our exposure |
+|---|---|---|
+| `basicly-nv5qfl6` | `build` overwrites a pre-existing hand-authored `.github/copilot-instructions.md` silently | 273 lines; mitigated by the Phase 0b out-of-repo copy |
+| `basicly-mmcqg8a` | `catalog lint` refuses until `[catalog] rank1_floor` is hand-set, and it is a pre-commit hook, so a fresh install cannot commit | blocks the first post-install commit until we edit `basicly.toml` |
+| `basicly-npiudkl` | importer carried the source's `created_by` / `source_repo_path` into the ledger verbatim, which `tracker-path-scan` then refused | **fixed on `main`**; should not reach us on `v0.12.1` |
 
 ---
 
@@ -196,7 +217,17 @@ same id rule as the write, so it reports how many of our 702 would be refused be
 anything is committed.
 
 Import everything, not just the live records: the 691 closed records carry the history
-we want and the fold handles the statuses.
+we want, they **import as closed**, and the fold handles the statuses.
+
+Two further properties, confirmed 2026-09-11:
+
+- **Comment text is capped per field at write time** (`MAX_TEXT_BYTES`). A cut comment
+  is not silently clipped: it is marked `<key>_truncated` with the original byte length
+  recorded beside it, so the loss is visible as evidence.
+- **`--dry-run` now exits non-zero when it reports a refusal**, which makes it usable as
+  a scripted preflight rather than something whose output has to be read by eye.
+- If a redaction problem ever does surface, `basicly tracker scrub` is now a
+  first-class verb that repairs it in place (see `basicly-npiudkl`).
 
 Then retire `bd` from all guidance: `agents.md`, `copilot-instructions.md`,
    `repo_rules.md`, `.github/skills/beads-schema-repair`,
@@ -228,6 +259,11 @@ open        p4 task    burndown-chart-lquw  Add per-layer coverage targets to CI
 basicly's `hooks-build` wires gates through the pre-commit framework and installs the
 git hooks. This repo installs hooks directly via `install_hooks.py`. Both want to own
 `.git/hooks/pre-commit`, `commit-msg`, and `pre-push`.
+
+> **Version-critical.** `v0.12.0` shipped a P0 in exactly this area — install left a
+> retired managed hook pointing at a deleted script, and **every subsequent commit in
+> the consumer repo failed**. Fixed on `main` by `281ee287` and expected in `v0.12.1`.
+> This is the single strongest reason not to install `v0.12.0` here.
 
 `hooks-build` *merges a managed block into the hook config preserving foreign hooks*,
 so the seven existing `.pre-commit-config.yaml` entries survive. The conflict is the
@@ -278,8 +314,18 @@ Each step is a separate commit; the repo stays working at every boundary.
 
 1. This document. **Done.**
 2. Author overlay fragments under `.basicly-local/fragments/user/` per §3.1 triage.
-   Install will not overwrite them. **Done** — 8 fragments, all validated against
-   `fragment.schema.json`:
+   Install will not overwrite them. **Done** — **12 fragments**, validated three ways:
+   through basicly's own `load_fragments_from_roots` (the function `build` calls),
+   against the shipped `fragment.schema.json`, and for id collisions against the
+   packaged catalog's 23 core ids (no overlap).
+
+   > **Schema validation alone is not sufficient — it gave a false pass.** `applies_to`
+   > must be `all` or a registered target (`claude`, `codex`, `copilot`), but the JSON
+   > schema accepts any string and `catalog lint` never checks it. Six of the original
+   > eight fragments used routing-ish values (`rules`, `quality`, `style`, `review`,
+   > `security`, `testing`) and were **unloadable** — they would have failed `install`
+   > at step 10. Those values now live in `tags`. Reported upstream; validate any new
+   > fragment through the loader, not the schema.
 
    | Fragment | Category | Carries |
    |---|---|---|
@@ -291,14 +337,42 @@ Each step is a separate commit; the repo stays working at every boundary.
    | `testing-standards` | testing | pytest, tempdir isolation, Playwright, assert-the-value |
    | `dependency-onboarding` | commands | the `pip-compile` workflow |
    | `data-safety` | security | customer-data ban, placeholders, parameterized SQL |
+   | `python-environment` | commands | **new** — mandatory venv, direct-interpreter calls, no persisted shell state |
+   | `data-architecture` | project | **new** — SQLite topology, the `jira_query_manager` seam, `profiles/` boundary |
+   | `trunk-based-workflow` | commands | **new** — `main`-only, rebase locally, no remote PRs, never bypass a gate |
+   | `app-release-process` | commands | **new** — changelog before `release.py`, and why the order matters |
 
    Two of these (`calculation-integrity`, `chart-presentation`) have no equivalent in
    the old instruction set. They encode the two areas this repo is most sensitive in,
    which the Copilot instructions never stated.
 
+   The four added on 2026-09-11 carry durable content that was only ever recorded in
+   files scheduled for deletion — the venv rule and terminal discipline from
+   `copilot-instructions.md` §61-79 and §188-202, the data topology from
+   `repo_rules.md` §94-101, the branch strategy from §222-234, and the release order
+   from §235-244. Without them, deleting those files in Phase 2 loses real knowledge.
+
+   Deliberately **not** ported, because basicly core or projection replaces them: the
+   Copilot precedence and canonical-source policy, the customization inventory and the
+   three discoverability index files, customization self-healing, the orchestration and
+   subagent-routing sections, the self-evolving specialization loop, the beads workflow
+   and priority system, and the mandatory-Context7 axiom (core's `external-facts`
+   fragment covers its intent without naming a specific MCP server). The commit-format
+   axiom is dropped too — core's `git-discipline` owns that, and the `bd-XXX` trailer it
+   mandated is retired.
+
 3. Freeze the beads live-record list (captured in §3.3 above). **Done.**
 
-**Phase 0b — immediately before install**
+**Phase 0b — immediately before install. Done 2026-09-11.**
+
+Recorded state at completion, all verified rather than assumed: backups taken at commit
+`375ff70a`; `__pycache__/` present at `.gitignore:2` (step 5 was the predicted no-op);
+`.basicly/`, `basicly.toml` and `AGENTS.md` all absent, confirming a genuine first
+install; `.vscode/tasks.json` present, so step 8 of §1 will be skipped; `.venv` built
+on Python 3.14.6 (the hooks refuse to run without one) and ignored at `.gitignore:139`;
+8 overlay fragments intact. Pre-install test baseline captured green and matching the
+documented figure — `1922 passed, 5 skipped, 3 xfailed` — so any post-install red is
+attributable to the install rather than to pre-existing state.
 
 4. Back up **every generated target that already exists**, outside the repo. Install
    destroys each silently (§3.1) — there is no manifest entry on a first install, so it
@@ -306,8 +380,12 @@ Each step is a separate commit; the repo stays working at every boundary.
 
    ```sh
    mkdir -p ~/burndown-chart-preinstall
-   cp .github/copilot-instructions.md CLAUDE.md ~/burndown-chart-preinstall/
+   cp .github/copilot-instructions.md CLAUDE.md .vscode/tasks.json \
+      ~/burndown-chart-preinstall/
    ```
+
+   `.vscode/tasks.json` is backed up too. Install should only skip it, never touch it —
+   the copy costs nothing and makes that assumption falsifiable instead of trusted.
 
    `CLAUDE.md` was added on 2026-09-10 as the interim agent entry point and is a
    `build` target, so it is exposed to the same defect. `AGENTS.md` does not exist yet
@@ -320,13 +398,28 @@ Each step is a separate commit; the repo stays working at every boundary.
 
 **Phase 1 — install**
 
-6. `uvx --from git+https://github.com/niksavis/basicly@v0.12.0 basicly install
+6. `uvx --from git+https://github.com/niksavis/basicly@v0.12.1 basicly install
    --technologies python,node`
+
+   Confirmed correct as written by the engine session, including the decision **not** to
+   pass `--overwrite-scaffolds` on a first run.
 7. Set `[catalog] rank1_floor` in `basicly.toml` to **the number our own run prints** —
    not a value from basicly's docs, because the rate depends on the catalog this install
-   lays down. `catalog-lint` refuses until it is set.
+   lays down. Re-confirmed 2026-09-11: `catalog lint` refuses until it is set, and it
+   runs as a **pre-commit hook**, so the first post-install commit is blocked until this
+   is hand-edited (`basicly-mmcqg8a`). For calibration only — **do not copy these
+   numbers** — the engine repo measures 41/46 = 89.1% against a floor of 85.0%, and
+   their canary measured an identical rate, which suggests the shipped catalog dominates
+   the figure rather than the consumer's own fragments. The engine session will confirm
+   before the tag whether a scaffold-at-install fix makes `v0.12.1`; if it does, this
+   step disappears.
 8. Inspect the diff before staging anything. Confirm: nothing hand-authored was
    overwritten; `basicly check`, `basicly hooks-check`, `basicly status` all clean.
+
+   **Watch `.pre-commit-config.yaml` specifically.** `hooks-build` writes the managed
+   block *and activates it*, and this repo already has its own config plus its own
+   `install_hooks.py`. The engine session flagged this as the highest-uncertainty
+   interaction of the install and asked for the diff if it is not what we expect.
 9. Merge basicly's VS Code tasks into ours (§3.6).
 
 **Phase 2 — reorganize instructions**
@@ -408,9 +501,18 @@ not verified by them and should not be treated as guarantees.
   `rich`, `ruamel.yaml`. A missing one fails with a bare `ModuleNotFoundError`, so if
   install dies that way, this is why.
 
-### Known defect in this release
+### Known defect — still open, tracked as `basicly-nv5qfl6`
 
 Install overwrites a pre-existing hand-authored `.github/copilot-instructions.md`
 silently — no warning, no backup, no manifest entry to distinguish it from stale
-generated output. Raised upstream, not fixed in v0.12.0. Mitigation is the out-of-repo
-copy in Phase 0b.
+generated output. Unfixed as of 2026-09-11 and **next in the engine's queue**; the
+engine session will confirm here when it lands.
+
+The fix on the record is the one this session proposed: when a build target path already
+exists and carries **no manifest entry**, write the existing bytes to
+`<path>.basicly-bak` before overwriting. That covers `.github/copilot-instructions.md`,
+`AGENTS.md` and `.claude/CLAUDE.md`, and correctly writes no backup on a repeat install,
+where a manifest entry proves the file is basicly's own prior output.
+
+Until it ships, the Phase 0b out-of-repo copy remains the mitigation — and it stays
+worth keeping even afterwards, since `.basicly-bak` lives inside the repo.
