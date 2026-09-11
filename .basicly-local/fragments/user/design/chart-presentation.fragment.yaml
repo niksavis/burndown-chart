@@ -3,8 +3,8 @@ id: chart-presentation
 description: How charts must present actuals, forecasts, and missing data so a reader cannot misread them.
 category: design
 priority: high
-applies_to: [all, review]
-tags: [visualization, plotly, accessibility]
+applies_to: [all]
+tags: [visualization, plotly, accessibility, review]
 status: active
 scope:
   paths:

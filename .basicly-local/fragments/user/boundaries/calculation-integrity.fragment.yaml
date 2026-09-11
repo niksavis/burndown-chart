@@ -3,8 +3,8 @@ id: calculation-integrity
 description: Rules for the numeric layer - never present a fabricated number as a real one.
 category: boundaries
 priority: critical
-applies_to: [all, rules, quality]
-tags: [calculations, correctness, forecasting]
+applies_to: [all]
+tags: [calculations, correctness, forecasting, rules, quality]
 status: active
 scope:
   paths:

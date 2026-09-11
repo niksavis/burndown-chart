@@ -1,0 +1,29 @@
+schema_version: 1
+id: data-architecture
+description: Where this app's data lives - SQLite persistence, the Jira access seam, and user-data boundaries.
+category: project
+priority: high
+applies_to: [all]
+tags: [persistence, sqlite, jira, privacy]
+status: active
+title: Data Architecture
+scope:
+  paths:
+  - data/**
+body: |
+  - **Persistence**: one SQLite database at `profiles/burndown.db`, reached through
+    `data/persistence/`. Everything under `profiles/` is user data and is gitignored -
+    never commit it, never read it into a test fixture, never paste rows into an issue.
+  - **Schema**: 11 active tables plus `app_state` - `profiles`, `queries`,
+    `jira_issues`, `jira_changelog_entries`, `project_statistics`, `project_scope`,
+    `metrics_data_points`, `budget_settings`, `budget_revisions`, `task_progress`. A
+    legacy `jira_cache` may exist in older databases and is dropped by migrations;
+    do not write code that depends on it.
+  - **Jira access goes through `data/jira_query_manager.py`.** Do not open a second
+    client elsewhere - the retry, auth, and field-mapping behavior lives there, and a
+    parallel path is how field-mapping bugs become per-call-site bugs.
+  - **JSON is for export, import, and reports only.** It is never primary storage;
+    treat a JSON file as a rendering of the database, not a second source of truth.
+  - Ad-hoc queries: read-only unless the task is explicitly a write, run through the
+    venv interpreter in a short script file, and never print customer-identifying
+    columns into terminal output or a generated file that could get committed.

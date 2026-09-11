@@ -1,0 +1,30 @@
+schema_version: 1
+id: python-environment
+description: How to invoke Python in this repo - the venv is mandatory and shell state never persists.
+category: commands
+priority: critical
+applies_to: [all]
+tags: [venv, shell, tooling, portability]
+status: active
+title: Python Environment
+body: |
+  There is no committed `.venv`, and the git hooks refuse to run without one. Create it
+  before anything else:
+
+      python -m venv .venv
+      .venv/bin/pip install -r requirements.txt -r requirements-dev.txt
+
+  - **Call the venv interpreter directly** rather than activating: `.venv/bin/python`
+    (`.venv/Scripts/python.exe` on Windows). Each tool invocation is a fresh shell, so
+    an `activate` in one command does not carry into the next - a later bare `python`
+    silently runs the system interpreter against the wrong package set.
+  - Activation, when a human wants it interactively: `source .venv/bin/activate` on
+    Linux/macOS/WSL, `source .venv/Scripts/activate` in Git Bash,
+    `.venv\Scripts\Activate.ps1` in PowerShell. Keep it in the same command as the work.
+  - Applies to every Python entry point here, not just the app: `pytest`, `validate.py`,
+    `release.py`, `regenerate_changelog.py`, `install_hooks.py`, and any ad-hoc script.
+  - Development happens on WSL/Linux; Windows is supported and must keep working. Prefer
+    cross-platform Python over shell built-ins when there is a choice, and never hardcode
+    an absolute path, username, or hostname - they break the other platform silently.
+  - Write a short script file instead of `python -c "..."` for anything with quoting.
+    Inline snippets that survive bash mangle under PowerShell.

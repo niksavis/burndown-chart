@@ -1,0 +1,28 @@
+schema_version: 1
+id: trunk-based-workflow
+description: Branch topology here - main is the only long-lived branch and the hooks are the gate.
+category: commands
+priority: high
+applies_to: [all]
+tags: [git, branching, hooks, gates]
+status: active
+title: Trunk-Based Workflow
+body: |
+  - `main` is the only long-lived branch, and it is the primary protection against
+    broken code reaching another developer. Local feature and bugfix branches are fine
+    and encouraged for work in progress.
+  - Integrate by **rebasing onto `main` locally**, then push `main`. There are **no
+    remote PRs** - review happens locally before the push. A remote PR is a rare
+    exception, not the workflow.
+  - The pre-commit and pre-push hooks are the real gate. `python validate.py` runs the
+    same checks (ruff, djlint, pyright, markdownlint, pytest) in one pass - run it
+    before pushing rather than discovering a failure at push time.
+  - **Never weaken, skip, or bypass a gate to make it pass** - no `--no-verify`, no
+    deleting the failing assertion, no loosening a lint rule to silence it. Fix the
+    cause. If a gate is genuinely wrong, say so and change it deliberately as its own
+    commit.
+  - The pre-push hook runs the full test suite, so a push takes minutes rather than
+    seconds. Let it finish; interrupting it mid-run with another command in the same
+    terminal kills pytest partway and the result is meaningless rather than merely
+    incomplete.
+  - Branch deletions and tag pushes skip the quality gate by design.

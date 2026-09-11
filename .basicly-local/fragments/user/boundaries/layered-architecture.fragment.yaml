@@ -3,8 +3,8 @@ id: layered-architecture
 description: The four-layer boundary between callbacks, data, ui, and visualization, and which way dependencies may point.
 category: boundaries
 priority: critical
-applies_to: [all, rules]
-tags: [architecture, layering]
+applies_to: [all]
+tags: [architecture, layering, rules]
 status: active
 scope:
   paths:

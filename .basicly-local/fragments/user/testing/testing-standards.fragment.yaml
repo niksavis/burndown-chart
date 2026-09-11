@@ -3,8 +3,8 @@ id: testing-standards
 description: How tests are written and run in this repo, and what a test must actually assert.
 category: testing
 priority: high
-applies_to: [all, testing]
-tags: [pytest, isolation]
+applies_to: [all]
+tags: [pytest, isolation, testing]
 status: active
 scope:
   paths:

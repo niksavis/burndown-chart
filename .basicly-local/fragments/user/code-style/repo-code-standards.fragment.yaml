@@ -3,8 +3,8 @@ id: repo-code-standards
 description: Repo-specific size limits, typing, logging, and output conventions for this codebase.
 category: code-style
 priority: high
-applies_to: [all, style]
-tags: [standards, size-limits]
+applies_to: [all]
+tags: [standards, size-limits, style]
 status: active
 enforced_by:
 - ruff

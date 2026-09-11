@@ -3,8 +3,8 @@ id: data-safety
 description: This repo handles real customer delivery data; what must never enter the repository, and the placeholders to use instead.
 category: security
 priority: critical
-applies_to: [all, security]
-tags: [privacy, sql]
+applies_to: [all]
+tags: [privacy, sql, security]
 status: active
 title: Data Safety
 body: |

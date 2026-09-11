@@ -1,0 +1,27 @@
+schema_version: 1
+id: app-release-process
+description: How to cut a release of this application - changelog first, then release.py.
+category: commands
+priority: medium
+applies_to: [all]
+tags: [release, changelog, versioning]
+status: active
+title: Application Release Process
+body: |
+  Order matters here: the changelog is written and committed **before** `release.py`
+  runs, because the release commit and tag are built on top of it.
+
+  1. Draft the changelog from history: `.venv/bin/python regenerate_changelog.py
+     --preview --json`.
+  2. Edit `changelog.md` into release notes by hand. Flat bullet lists only, phrased as
+     user-visible benefits rather than commit subjects, with major features in bold.
+  3. Commit the changelog on its own.
+  4. `.venv/bin/python release.py patch|minor|major` - it bumps the version files,
+     regenerates version info, updates the codebase context metrics artifacts, commits,
+     tags, and pushes.
+
+  - Prefer `release.py` over doing any of those steps by hand; a partially bumped
+    version is worse than an unreleased one.
+  - A release is a push to `main`, so the full gate runs. Do not start one with a red
+    suite or an uncommitted working tree.
+  - Longer form, including packaging specifics: `docs/release_process.md`.
