@@ -1,10 +1,25 @@
 # basicly Migration Plan
 
-**Status**: preparation complete, install **blocked pending `v0.12.1`**.
-**Target version**: **`v0.12.1`** — not yet tagged; the engine session is cutting it
-2026-09-11. **Pin the tag, not `@main`.**
+**Status**: **executed 2026-09-11.** Phases 0, 0b, 1 and 3 are done. Phase 2 (retiring
+the stale instruction files) and Phase 4 (deduping CI) remain.
+**Installed version**: **`v0.12.2`** — installed at `v0.12.1`, upgraded to `v0.12.2` the
+same day for five fixes that came out of this onboarding. **Pin the tag, not `@main`.**
 
-> **Do not install `v0.12.0`.** No-go from the engine session, 2026-09-11, for three
+> **Outcome.** 702 records imported (691 closed / 3 in_progress / 8 open, edges intact),
+> hooks `git 12 / claude 6 / copilot 2` in sync and active, `check` / `hooks-check` /
+> `status` clean, and the test baseline byte-identical either side of the install:
+> `1922 passed, 5 skipped, 3 xfailed`.
+>
+> **The one permanent cost: record ids changed.** The ledger's `RECORD_ID_PATTERN`
+> allows a hyphen only as the prefix/suffix separator, so the `burndown-chart` prefix was
+> structurally unrepresentable and all 702 ids were refused verbatim. The prefix is now
+> `burndownchart`. A `burndown-chart-2rm1` trailer in git history is `burndownchart-2rm1`
+> in the ledger — that one hyphen is the entire mapping. The prefix also appeared in
+> `title`, `description`, `notes` and `close_reason`, and was remapped there too; rewriting
+> only `id` would have produced a ledger that imports clean and is quietly full of dead
+> cross-references.
+
+> **Do not install `v0.12.0`** (kept for the record). No-go from the engine session, 2026-09-11, for three
 > reasons:
 >
 > - Its **release page never published**, so `gh release view v0.12.0` 404s. The tag and
@@ -387,16 +402,22 @@ attributable to the install rather than to pre-existing state.
    `.vscode/tasks.json` is backed up too. Install should only skip it, never touch it —
    the copy costs nothing and makes that assumption falsifiable instead of trusted.
 
-   `CLAUDE.md` was added on 2026-09-10 as the interim agent entry point and is a
-   `build` target, so it is exposed to the same defect. `AGENTS.md` does not exist yet
-   (we have lowercase `agents.md`, a separate file — see §3.2).
+   ~~`CLAUDE.md` ... is a `build` target, so it is exposed to the same defect.~~
+   **Wrong, corrected 2026-09-11.** basicly's Claude target is `.claude/CLAUDE.md`
+   (`.basicly/core/targets/claude.yaml`, `claude_wrapper.path`). Root `CLAUDE.md` is not
+   a projection target, was never at risk, and install left it untouched — no
+   `.basicly-bak` was written for it because none was needed. The real consequence is the
+   opposite of the one predicted: Claude Code loads **both** files, so a consumer with a
+   pre-existing root `CLAUDE.md` silently ends up with two always-on instruction files.
+   `AGENTS.md` did not exist pre-install (we have lowercase `agents.md`, a separate file
+   — see §3.2).
 5. Add `__pycache__/` to `.gitignore` if not already covered. The projected hook scripts
    are Python, and the `.gitignore` entry basicly writes covers only
    `basicly.local.toml`, so the first commit after install otherwise fails on modified
    files. *(Our `.gitignore` already has `__pycache__/` at line 2 — verify it still does,
    then this is a no-op.)*
 
-**Phase 1 — install**
+**Phase 1 — install. Done 2026-09-11.**
 
 6. `uvx --from git+https://github.com/niksavis/basicly@v0.12.1 basicly install
    --technologies python,node`
@@ -422,7 +443,11 @@ attributable to the install rather than to pre-existing state.
    interaction of the install and asked for the diff if it is not what we expect.
 9. Merge basicly's VS Code tasks into ours (§3.6).
 
-**Phase 2 — reorganize instructions**
+**Phase 2 — reorganize instructions. NOT DONE.**
+
+Root `CLAUDE.md` was rewritten on 2026-09-11 to stop duplicating the projection and to
+correct statements the install falsified. The file deletions below are still open, and
+need the maintainer's confirmation before anything is removed.
 
 10. Delete `agents.md` (§3.2).
 11. Reduce `repo_rules.md` to whatever the fragments do not cover; delete if empty.
@@ -431,7 +456,10 @@ attributable to the install rather than to pre-existing state.
     — they index a precedence model that projection replaces.
 13. Rebuild and confirm the generated instruction files read correctly.
 
-**Phase 3 — tracker cutover**
+**Phase 3 — tracker cutover. Done 2026-09-11, except step 15.**
+
+Step 15 (replaying `docs/improvement_backlog.md`'s 77 `IMP-###` items into the ledger) is
+**not done** — that backlog is still a markdown file and is still the audit queue.
 
 14. `basicly tracker import .beads/issues.jsonl --source beads --dry-run`, read the
     report, then run it for real (§3.3). Check the exit code.
