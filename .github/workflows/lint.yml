@@ -21,6 +21,13 @@ jobs:
           python-version: '3.14'
           cache: 'pip'
 
+      # 12 of the hooks in .pre-commit-config.yaml are basicly's and their entry is
+      # `uv run --no-project python .basicly/core/hooks/...`, so uv has to be on PATH
+      # for the pre-commit step below. Pinned rather than relying on whatever the
+      # runner image happens to ship.
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
       - name: Install pre-commit
         run: pip install pre-commit
 

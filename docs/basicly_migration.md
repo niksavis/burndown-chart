@@ -474,7 +474,36 @@ for, and each record's description points back to it.
     prompts.
 17. Freeze `.beads/`.
 
-**Phase 4 — dedupe CI** (§3.7). Note our own `lint.yml` now runs tests (as of
+**Phase 4 — dedupe CI. Done 2026-09-11 — reconciled, not merged.**
+
+The premise was wrong: the two workflows barely overlap. `lint.yml` gates the **product**
+(ruff, bandit, djlint, prettier, detect-secrets, pyright, unit and integration suites);
+`basicly-gates.yml` gates the **harness** (commit-message validity, projection / skill /
+hook drift, catalog lint). The only true duplicate is `catalog-lint`, which runs once
+inside `pre-commit run --all-files` and once as its own step, and costs seconds. Merging
+them would also lose `basicly-gates.yml`'s `paths-ignore: .basicly/ledger/**`, which is
+what keeps tracker-only commits from triggering a full run. So they stay separate.
+
+Three real problems were found and fixed instead, none of them duplication:
+
+1. **CI was red.** `pre-commit run --all-files` — what `lint.yml` actually runs — had
+   prettier rewriting 7 of the 13 overlay fragments, and pre-commit fails when a hook
+   modifies a file. Commit-time hooks never saw it because they only run on staged files.
+   *A per-file hook run is evidence about the diff, not about the repo.*
+2. **`basicly verify --mode full` was a vacuous PASS** — no checks are declared under
+   `[verify]`, so it printed "No verify checks configured" and passed. Removed from CI
+   rather than configured: `lint.yml` already runs every real gate, so declaring them
+   again under `[verify]` would duplicate rather than add. A green step that asserts
+   nothing is worse than an absent one, because its name implies coverage.
+3. **`lint.yml` had no `uv`.** 12 of the hooks in `.pre-commit-config.yaml` are basicly's
+   and shell out to `uv run --no-project python`; only `basicly-gates.yml` installed uv.
+   Added `astral-sh/setup-uv@v5` rather than relying on the runner image.
+
+Left alone deliberately: the two markdown linters. Ours (`markdownlint-cli`) is the real
+gate; basicly's needs `node_modules`, which CI does not install, so it skips. Removing
+ours would leave markdown ungated entirely. Revisit only if `npm ci` reaches CI.
+
+Historical note (§3.7): our own `lint.yml` runs tests (as of
 `dfa76aca`), so the overlap with `basicly-gates.yml` is larger than when this plan was
 written — reconcile rather than run both.
 

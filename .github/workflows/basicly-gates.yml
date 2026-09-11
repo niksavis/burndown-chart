@@ -66,5 +66,11 @@ jobs:
         run: uvx --from git+https://github.com/niksavis/basicly@v0.12.2 basicly skills-check
       - name: Hook wiring drift check
         run: uvx --from git+https://github.com/niksavis/basicly@v0.12.2 basicly hooks-check
-      - name: Configured verify checks
-        run: uvx --from git+https://github.com/niksavis/basicly@v0.12.2 basicly verify --mode full
+      # `basicly verify` is deliberately not a step here. No checks are declared under
+      # [verify] in basicly.toml, so `--mode full` passes vacuously -- it printed
+      # "No verify checks configured for mode 'full'" and then PASS. A green step that
+      # asserts nothing is worse than an absent one, because the name implies coverage.
+      # The real gates are in lint.yml (ruff, bandit, djlint, prettier, detect-secrets,
+      # pyright, unit and integration suites); declaring them again under [verify] would
+      # duplicate them rather than add anything. Add the step back if [verify] ever gains
+      # a check lint.yml does not already run.
