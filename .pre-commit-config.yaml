@@ -33,10 +33,13 @@ repos:
     - prettier@3.6.2
     files: \.(js|css|json|yml|yaml)$
     # basicly writes these and flattens YAML list indentation; prettier re-indents
-    # it, so each would undo the other on every commit.
+    # it, so each would undo the other on every commit. `.basicly-local/` is the
+    # overlay: our own fragments, but basicly's format, scaffolded by `catalog new
+    # fragment` in the same flat style and re-read by its loader.
     exclude: |
       (?x)^(
         \.basicly/.*|
+        \.basicly-local/.*|
         \.pre-commit-config\.yaml|
         \.github/workflows/basicly-gates\.yml
       )$
