@@ -40,7 +40,7 @@ Use the **context routing map** to guide file selection:
 - **Tests**: Load test file + source being tested + fixtures
 - **Docs**: Load doc + related code for accuracy
 
-Refer to `.github/context-routing-map.md` for detailed file paths.
+Refer to the projected `.github/copilot-instructions.md` for the current rule set.
 
 ## Folder-specific guidance
 
@@ -121,6 +121,6 @@ Refer to `.github/context-routing-map.md` for detailed file paths.
 - Prefer minimal file set and targeted changes
 - Respect architecture layers (callbacks → data, ui, visualization)
 - Include `get_errors` in validation checks
-- Reference `.github/context-routing-map.md` for detailed routing
+- Reference the projected `.github/copilot-instructions.md` for the current rule set
 - Use codebase context metrics for strategy (strict-chunking recommended)
 - Load <500 lines per file when possible

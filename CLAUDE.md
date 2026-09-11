@@ -34,7 +34,7 @@ must exist in the ledger. The `conventional-commits` skill has the full rules.
 
 | Document | What it is |
 | --- | --- |
-| **`docs/improvement_backlog.md`** | **The audit queue.** 77 items in 5 waves from four specialist audits (2026-09-10), with a measured baseline and a per-package change-safety map. **Not yet in the ledger** — it is still a markdown backlog, and replaying it is an open task. |
+| **`docs/improvement_backlog.md`** | **The audit evidence.** 77 items in 5 waves from four specialist audits (2026-09-10), with a measured baseline and a per-package change-safety map. The items are now ledger records (`burndownchart-impNNN`); this document keeps the reasoning and the evidence the ledger has no field for. |
 | `docs/basicly_migration.md` | The migration record. Phases 0-1 and 3 are executed; Phase 2 (retiring the stale instruction files) and Phase 4 (deduping CI) are not. |
 | `docs/architecture/` | Architecture standards and per-language guidelines. |
 | `docs/metrics_index.md` | What each metric means and how it is calculated. |
@@ -56,9 +56,6 @@ fixing one turns CI red until you remove the marker — that is intended.
    red — correctly).
 2. **Wave 2** — first-run configuration blockers. The setup checklist a novice needs is
    already fully written in `ui/config_status_panel.py` and simply never mounted.
-3. **Phase 2 of the migration** — `agents.md`, `repo_rules.md` and the three
-   `.github/copilot_*.md` index files still describe the retired `bd` workflow and a
-   precedence model that projection replaced. They are stale and scheduled for deletion.
 
 ## Where the risk is
 

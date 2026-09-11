@@ -1058,7 +1058,7 @@ create_help_icon("tooltip-id")
 - [CSS Guidelines](architecture/css_guidelines.md)
 - [HTML Guidelines](architecture/html_guidelines.md)
 - [JavaScript Guidelines](architecture/javascript_guidelines.md)
-- [Repository Rules](../repo_rules.md)
+- [Overlay fragments](../.basicly-local/fragments/user/) — repo-specific rules in source form
 - [Copilot Instructions](../.github/copilot-instructions.md)
 
 ### Related Files

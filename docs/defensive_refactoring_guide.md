@@ -207,7 +207,7 @@ git push origin refactor/remove-unused-20251112
 For comprehensive guidance, see:
 
 - **Core axioms**: `.github/copilot-instructions.md` → Core Axioms (Zero Errors, Layering, Test Isolation, etc.)
-- **Repository rules**: `repo_rules.md` → Architecture and Layering, Code Standards, Testing
+- **Repository rules**: the `layered-architecture`, `repo-code-standards` and `testing-standards` overlay fragments
 
 ## 🔄 Rollback Plan
 
@@ -294,7 +294,7 @@ Write-Host "Refactoring impact: $linesRemoved lines removed, $functionsRemoved f
 ## 🔗 Related Documentation
 
 - **Core axioms**: `.github/copilot-instructions.md` → Core Axioms (Zero Errors, Layering, Test Isolation)
-- **Repository rules**: `repo_rules.md` → Architecture and Layering, Code Standards, Testing
+- **Repository rules**: the `layered-architecture`, `repo-code-standards` and `testing-standards` overlay fragments
 - **Architecture guidelines**: `docs/architecture/` → Language-specific guidelines and best practices
 
 ---

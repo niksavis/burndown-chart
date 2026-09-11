@@ -456,10 +456,14 @@ need the maintainer's confirmation before anything is removed.
     — they index a precedence model that projection replaces.
 13. Rebuild and confirm the generated instruction files read correctly.
 
-**Phase 3 — tracker cutover. Done 2026-09-11, except step 15.**
+**Phase 3 — tracker cutover. Done 2026-09-11.**
 
-Step 15 (replaying `docs/improvement_backlog.md`'s 77 `IMP-###` items into the ledger) is
-**not done** — that backlog is still a markdown file and is still the audit queue.
+Step 15 is done: 76 of the 77 `IMP-###` items are in the ledger as `burndownchart-impNNN`
+(`IMP-004` is withdrawn in the document and was deliberately skipped). The 7 Wave 0 items
+the document records as landed were imported closed, and the one explicit dependency the
+text states (`IMP-009` blocked on `IMP-006`) is an edge. The markdown keeps the evidence -
+measured baselines, change-safety ratings, bisection notes - which the ledger has no field
+for, and each record's description points back to it.
 
 14. `basicly tracker import .beads/issues.jsonl --source beads --dry-run`, read the
     report, then run it for real (§3.3). Check the exit code.

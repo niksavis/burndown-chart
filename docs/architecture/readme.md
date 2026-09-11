@@ -31,7 +31,7 @@ When language in older examples is less explicit (for example "recommended" or "
 
 ## Scope and Applicability
 
-These guidelines are repository-agnostic. Project-specific rules (naming, tooling, branching, CI, environment setup) must live in repository instructions such as copilot-instructions.md or a dedicated repo_rules.md.
+These guidelines are repository-agnostic. Project-specific rules (naming, tooling, branching, CI, environment setup) live in the basicly overlay fragments under `.basicly-local/fragments/user/`, which are projected into `CLAUDE.md`, `AGENTS.md` and `.github/copilot-instructions.md`. Edit the fragment, never the projection.
 
 ## External Documentation Refresh Policy
 
@@ -352,8 +352,8 @@ if __name__ == '__main__':
 ### Internal Documentation
 
 - [Repository instructions](../../.github/copilot-instructions.md)
-- [Repository rules](../../repo_rules.md)
-- [Agent Instructions](../../agents.md)
+- [Overlay fragments](../../.basicly-local/fragments/user/) — the repo-specific rules, in source form
+- [Agent guide](../../CLAUDE.md) — current state of the work and where it is tracked
 - [Defensive Refactoring Guide](../defensive_refactoring_guide.md)
 - [Logging Standards](../LOGGING_STANDARDS.md)
 

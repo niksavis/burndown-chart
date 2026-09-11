@@ -1,5 +1,16 @@
 # Improvement Backlog
 
+> **The items are ledger records now.** Imported 2026-09-11 as `burndownchart-impNNN` —
+> `IMP-011` is `burndownchart-imp011`. Use `basicly tracker ready` to pick work up, and
+> claim it with `update <id> --status in_progress`; the commit gate needs the id.
+>
+> **This document is still the evidence**, and is the reason to read before acting: the
+> measured baselines, the per-package safe/caution/danger ratings, the bisection notes,
+> and the "tried and insufficient" records the ledger has no field for. A record's
+> description points back here.
+>
+> `IMP-004` is withdrawn (its premise was wrong) and was deliberately not imported.
+
 Compiled 2026-09-10 from four specialist audits (calculations, visualization, first-run
 configuration, engineering health). Findings are merged and de-duplicated across audits —
 where several audits hit the same root cause, there is one item here, not three.
