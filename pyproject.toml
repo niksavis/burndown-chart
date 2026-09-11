@@ -15,6 +15,17 @@ extend-exclude = [
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "PLC"]
 
+# E501 tolerates basicly's line length, the formatter keeps ours.
+#
+# `.basicly/core/` is vendored, upstream-managed Python authored against basicly's own
+# `.ruff.toml` (line-length = 100). Linted at our 88 it produced 1192 E501 violations and
+# blocked every commit after install. Raising the global `line-length` to 100 instead would
+# fix that and then reflow 368 of our own files, which is a codebase-wide reformat we have
+# no reason to take. So E501 is measured at 100 while `[tool.ruff] line-length` stays 88 for
+# the formatter. At 100 the vendored tree passes our rule set clean.
+[tool.ruff.lint.pycodestyle]
+max-line-length = 100
+
 [tool.ruff.lint.per-file-ignores]
 # PLC0415: Tests legitimately use lazy imports inside test functions for isolation.
 "tests/**/*.py" = ["PLC0415"]

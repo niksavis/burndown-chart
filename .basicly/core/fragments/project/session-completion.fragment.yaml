@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=../../schemas/fragment.schema.json
+schema_version: 1
+token_cost:
+  claude: 54
+  codex: 54
+  copilot: 54
+id: session-completion
+description: What "done" requires before ending a turn or session.
+category: project
+priority: medium
+applies_to:
+- all
+tags:
+- completion
+- handoff
+status: active
+body: |
+  - Before ending, close out per the `session-finish` skill: leave the repo pickup-clean (no partial edits or stray output) and summarize what changed, what was verified, and what remains open.

@@ -1,280 +1,221 @@
-﻿# Burndown - AI Agent Guide
-
-**Stack**: Python 3.14, Dash, Plotly, Waitress | **DB**: SQLite | **Platform**: Windows, WSL/Linux
-
-> **Read `CLAUDE.md` first** for current project state and where to continue.
-> The **Beads Workflow** section below and the `(bd-XXX)` / `(burndown-chart-XXXX)`
-> commit trailer are **retired** — the tracker has been inert since 2026-05-05 and `bd`
-> may not be installed. Track work in `docs/improvement_backlog.md` until the migration
-> in `docs/basicly_migration.md` runs. This file is scheduled for replacement in that
-> migration's Phase 2.
-
-## Copilot Customization Precedence (Canonical)
-
-Apply Copilot customization artifacts in this order:
-
-1. Always-on instructions (`.github/copilot-instructions.md`)
-2. Conditional instructions (`.github/instructions/*.instructions.md`)
-3. Skills (`.github/skills/**/SKILL.md`)
-4. Prompts (`.github/prompts/*.prompt.md`)
-
-When guidance conflicts, higher-precedence artifacts win.
-
-## Canonical Source Policy
-
-- This file is the canonical source for always-on Copilot behavior in this repository.
-- `agents.md` is a lightweight cross-tool compatibility shim for environments that do not auto-load this file.
-- To avoid context overload, keep policy details here and keep `agents.md` concise with links and operational bootstrap only.
-- If behavior changes here, update `agents.md` only when compatibility bootstrap behavior must change.
-
-## Customization Inventory
-
-- Index and usage map: `.github/copilot_customization.md`
-
-## Discoverability (Required)
-
-- All agents, skills, and instructions must be discoverable in both:
-  - `.github/copilot_customization.md`
-  - `.github/copilot_capability_map.md`
-- Any add/remove/rename of customization artifacts must update both discoverability files in the same change.
-
-## Context Metrics Source
-
-- Machine-readable: `.github/codebase_context_metrics.json`
-- Human-readable: `docs/codebase_context_metrics.md`
-- Use these artifacts to choose context strategy (`single-pass`, `targeted-chunking`, `strict-chunking`) before broad file reads.
-
-## Core Axioms (Non-Negotiable)
-
-1. **VENV**: Before any Python command, activate the virtual environment in the same shell.
-2. **ZERO ERRORS**: `get_errors` must be clean after every change and before commit.
-3. **ARCH GUIDES FIRST**: Consult docs/architecture before any code edit.
-4. **CONTEXT7**: For any code generation, library/API question, setup, or configuration task — auto-invoke `resolve-library-id` then `get-library-docs` before implementation. Do not answer from memory. Route to `Context7 Expert` for version migration, deprecation, or upgrade-impact analysis.
-5. **LAYERING**: callbacks/ routes only; data/ holds logic; ui/ renders; visualization/ charts.
-6. **NO CUSTOMER DATA**: Never commit real names, domains, IDs, or credentials.
-7. **TEST ISOLATION**: Use tempfile.TemporaryDirectory() in tests.
-8. **NO EMOJI**: Avoid emoji in code/logs/comments. Exception: emoji are allowed in documentation files (`.md`) only.
-9. **TERMINAL STATE**: Each terminal run is isolated; activation does not persist.
-10. **SELF-HEALING DOC**: If this file is wrong, inform → propose → update.
-11. **COMMITS**: Conventional commit + bead ID required.
-
-## Venv Rule (Formal)
-
-If running any Python command, activate the venv first using the platform-appropriate pattern:
-
-| Platform | Activation pattern |
-|---|---|
-| Windows (Git Bash) | `source .venv/Scripts/activate && <python command>` |
-| Windows (PowerShell) | `.venv\Scripts\Activate.ps1; <python command>` |
-| macOS / Linux / WSL | `source .venv/bin/activate && <python command>` |
-
-Alternatively, call the venv interpreter directly (no activation needed):
-
-| Platform | Direct call |
-|---|---|
-| Windows | `.venv/Scripts/python.exe <args>` (Git Bash) or `.venv\Scripts\python.exe <args>` (PowerShell) |
-| macOS / Linux / WSL | `.venv/bin/python <args>` |
-
-Applies to: python scripts, pytest, pip install, release.py, regenerate_changelog.py, all .py.
-
-## Architecture Guides (Required)
-
-**Check before any code change**: `docs/architecture/*_guidelines.md`
-
-| Language   | Max File       | Max Function | Key Document                                                              |
-| ---------- | -------------- | ------------ | ------------------------------------------------------------------------- |
-| Python     | 500 lines      | 50 lines     | `docs/architecture/python_guidelines.md`         |
-| JavaScript | 400 lines      | 40 lines     | `docs/architecture/javascript_guidelines.md` |
-| HTML       | 300 lines      | N/A          | `docs/architecture/html_guidelines.md`             |
-| CSS        | 500 lines      | N/A          | `docs/architecture/css_guidelines.md`               |
-| SQL        | 50 lines/query | N/A          | `docs/architecture/sql_guidelines.md`               |
-
-**Discoverability**:
-
-- Repository rules: `repo_rules.md`
-- Architecture index: `docs/architecture/readme.md`
-- Release process: `docs/release_process.md`
-
-**Enforcement**: If file > 80% of limit → create a new file; do not append.
-
-## Layered Architecture (Required)
-
-- callbacks/ → event handling only; delegate to data/
-- data/ → business logic, API calls, calculations, persistence orchestration
-- ui/ → component builders and layout assembly
-- visualization/ → plotting logic
-
-## Code Standards (Required)
-
-- **Type hints**: all functions must have annotations (except Dash callbacks and test fixtures).
-- **Naming**: snake_case.py, PascalCase, snake_case(), UPPER_CASE.
-- **Logging**: follow docs/LOGGING_STANDARDS.md; never log sensitive data.
-- **Performance**: page < 2s, charts < 500ms, interactions < 100ms.
-- **Platform awareness**: Detect the OS and active shell before issuing terminal commands. Windows default is Git Bash (`grep`, `find`, `rg`, `ls`); PowerShell is the fallback (`Get-ChildItem`, `Select-String`, `Copy-Item -Force`). macOS/Linux/WSL use bash/zsh natively. `validate.py` works on all platforms.
-- **Windows local dev**: Git Bash is the primary shell. PowerShell is the fallback when Git Bash is unavailable. WSL is supported for Linux-native workflows.
-- **Simplicity**: Keep implementations simple (KISS). Avoid over-engineering.
-- **Reusability**: Extract shared logic to reusable functions (DRY). No duplication.
-- **Boy Scout Rule**: Leave touched code and customization artifacts clearer than you found them.
-
-## File Naming (Required)
-
-- Do not use uppercase letters in repository filenames.
-- For customization docs under `.github/`, use lowercase names.
-
-## Customization Self-Healing (Required)
-
-When important, reusable guidance is discovered during implementation or review:
-
-1. Update the most specific artifact first (`instructions`/`skills`/`prompts`/`agents`/`hooks`).
-2. If guidance affects global behavior, also update this file.
-3. Reflect additions/changes in `.github/copilot_customization.md` and `.github/copilot_capability_map.md`.
-4. Keep changes minimal and avoid duplicating policy text across files.
-
-## Orchestration Workflow (Required for Non-Trivial Tasks)
-
-For non-trivial implementation tasks (multi-file, refactor, migration, release, cross-layer changes), use an orchestrated workflow instead of ad-hoc execution.
-
-1. **Route first**: Choose specialized agents/skills/instructions before editing.
-2. **Parallel phase (read-only only)**: Run independent analysis/research in parallel when safe.
-3. **Sequence phase (edits/validation)**: Execute code-editing and validation steps in strict sequence.
-4. **Quality gate**: End with repository quality checks (`get_errors`, targeted tests when applicable).
-
-### Parallel vs Sequence Rules
-
-- **Parallel allowed** only for read-only discovery/research (context mapping, doc retrieval, architecture checks).
-- **Sequence required** for edits, refactors, tests, and release changes.
-- If any parallel branch returns conflicting guidance, resolve conflict in sequence before editing.
-
-### Default Subagent Routing
-
-- Orchestrator for complex tasks: `Beast Mode Agnostic`.
-- External API/version-sensitive tasks: `Context7 Expert`.
-- Layer boundary risks: `Layering Enforcer`.
-- Behavior-preserving structure work: `Refactor Execution`.
-- Test planning/updates: `Test Strategy`.
-- Final completion gate: `Repo Quality Guardian`.
-- Release readiness: `Release Readiness`.
-- Architecture/decision trade-offs: `Critical Thinking`.
-- Creating/updating agent files: `Custom Agent Foundry`.
-
-### Subagent Skill and Handback Contract
-
-- Subagents must load applicable `.github/skills/**/SKILL.md` files before implementation.
-- Subagents must return a handback packet with: skills loaded, actions taken, validation evidence, blockers, and next step.
-- Orchestrator agents should treat missing handback evidence as incomplete and request a corrected pass.
-
-## Self-Evolving Specialization Loop (Required)
-
-When implementation reveals recurring or novel specialized task patterns, evolve the customization set in-session:
-
-1. Detect specialization candidate (repeated workflow, recurring edge cases, repeated manual steps).
-2. Decide artifact type:
-
-- New/updated **agent** for workflow orchestration or role behavior.
-- New/updated **skill** for reusable domain procedure/resources.
-- New/updated **instruction** for scoped policy enforcement.
-
-3. Use `Custom Agent Foundry` to create/update specialized subagents.
-4. Use `agent-skills.instructions.md` and `make-skill-template` to create/update skills.
-5. Wire discoverability updates in `.github/copilot_customization.md` and `.github/copilot_capability_map.md`.
-6. Validate with `get_errors` and report what was added and why.
-
-## Security and Data Safety
-
-- Parameterized SQL only.
-- Validate user input and external API responses.
-- Use safe placeholders: Acme Corp, example.com, customfield_10001.
-
-## Terminal Behavior (Critical)
-
-- Each terminal run is a new shell; activation does not persist.
-- Never queue a follow-up terminal command while a previous command is still running.
-- Never send readiness probe commands (for example `echo`, `Write-Output`, `pwd`) while a long-running command is active.
-- Never use `python -c "..."` inline snippets in PowerShell for complex quoting scenarios; write temporary `.py` files instead.
-- In Git Bash, use Unix utilities (`grep`, `find`, `cat`, `rg`, `fd`) and `source .venv/Scripts/activate` for venv activation.
-- **`git push` MUST run as a background process** (`isBackground=true`) — the pre-push hook
-  runs the full validate.py suite including pytest (~2-3 min). Running any other terminal
-  command before push completes sends KeyboardInterrupt to pytest, corrupting the run.
-  Poll with `get_terminal_output` until `"To github.com"` appears before proceeding.
-- Branch deletions and tag pushes do NOT trigger the quality gate (hook skips them automatically).
-- `git branch -d` is policy-blocked on this machine. Use `git update-ref -d refs/heads/<name>` instead.
-- Run `python validate.py` before pushing to catch ruff, djlint, pyright, markdownlint, and test failures in one pass.
-
-## Dependency Onboarding (Required)
-
-- Treat new packages as explicit onboarding work.
-- Runtime package workflow:
-  1. Add to `requirements.in`
-  2. Regenerate `requirements.txt`
-  3. Install with `pip install -r requirements.txt`
-- Development package workflow:
-  1. Add to `requirements-dev.in`
-  2. Regenerate `requirements-dev.txt`
-  3. Install with `pip install -r requirements-dev.txt`
-- Never edit compiled `requirements.txt` or `requirements-dev.txt` by hand.
-
-## Commit Rules (Mandatory)
-
-- Format: type(scope): description (bd-XXX)
-- Types: feat | fix | docs | style | refactor | perf | test | build | ci | chore
-- Bead ID is required and must be at end of first line.
-
-## Branch Strategy
-
-This project uses **trunk-based development** — `main` is the only long-lived branch
-and the primary protection against broken code reaching other developers.
-
-- Local feature or bugfix branches are fine and encouraged for in-progress work.
-- Feature branches may be pushed to remote for collaboration.
-- Integrate by rebasing onto `main` locally, then push `main` to remote.
-- **No remote PRs** between branches — all code review happens locally before push.
-- Remote PRs are extremely rare exceptions, not the normal workflow.
-- The pre-commit and pre-push git hooks are the primary quality gate before code
-  reaches `main` on the remote.
-
-## Release Process (Required)
-
-1. Activate venv.
-2. Generate changelog draft: python regenerate_changelog.py --preview --json
-3. Update changelog.md with release notes (flat bullets, user benefits, bold major features).
-4. Commit changelog before release.py.
-5. Run release.py patch|minor|major (preferred).
-
-release.py updates version files, regenerates version info, updates codebase context metrics artifacts, commits, tags, and pushes.
-
-## Beads Workflow (Required)
-
-- **ALWAYS** include `--description` when creating beads (issues without descriptions lack context).
-- **NEVER** use `bd edit` (opens interactive editor that agents cannot use).
-- **Lifecycle order** (do not skip or reorder):
-  1. `bd update <id> --claim --json` — claim BEFORE starting any work
-  2. Do the work (edit, test, validate)
-  3. `bd close <id> --reason "..." --json` — close BEFORE committing
-  4. Commit with bead ID in message, then push
-- Team sync uses git via `beads-backup` branch (no DoltHub). Publish: `bd backup export-git`. Fresh clone restore: `bd backup fetch-git`.
-
-## Priority System
-
-- `0` - Critical (security, data loss, broken builds)
-- `1` - High (major features, important bugs)
-- `2` - Medium (default, nice-to-have)
-- `3` - Low (polish, optimization)
-- `4` - Backlog (future ideas)
-
-## Testing
-
-- Unit tests during implementation.
-- Use Playwright, not Selenium.
-- Run: pytest tests/unit/ -v
-- Coverage: pytest --cov=data --cov=ui --cov-report=html
-
-## Documentation Index
-
-- Metrics: docs/dashboard_metrics.md, docs/dora_metrics.md, docs/flow_metrics.md
-- Architecture: docs/caching_system.md, docs/namespace_syntax.md
-- Guides: docs/defensive_refactoring_guide.md, docs/LOGGING_STANDARDS.md
-- Index: docs/readme.md, docs/metrics_index.md
-
-## Version
-
-**Version**: 2.4.0 | **Condensed**: 2026-02-04 | Target: <1200 tokens
+<!-- Generated by basicly v0.12.1. Do not edit manually. -->
+## Require Explicit Confirmation
+
+- Force-push, history rewrite, destructive resets, `rm -rf`, and `.env*` reads/writes. The projected deny-list covers only some of these and varies by agent: it is a backstop, not the source of the rule, so a command that runs unblocked still needs confirmation.
+- A destructive reset includes `git checkout -- <path>`, `git restore`, `git stash` and `git clean`: each discards uncommitted work irreversibly, and nothing blocks most of them. To undo your own edit to a file, restore it from a copy you made first.
+- Deleting files/branches/data beyond explicit task scope.
+- Editing CI/CD, deployment, infra-as-code, or ignore/secrets files.
+- Adding/removing/upgrading dependencies.
+- New network calls outside task scope.
+- IMPORTANT: never defeat a gate to force success — skipping or weakening tests, lint, or type checks, or bypassing hooks (`--no-verify`, `--no-gpg-sign`). Fix the failing gate instead.
+
+## Python Environment
+
+There is no committed `.venv`, and the git hooks refuse to run without one. Create it
+before anything else:
+
+    python -m venv .venv
+    .venv/bin/pip install -r requirements.txt -r requirements-dev.txt
+
+- **Call the venv interpreter directly** rather than activating: `.venv/bin/python`
+  (`.venv/Scripts/python.exe` on Windows). Each tool invocation is a fresh shell, so
+  an `activate` in one command does not carry into the next - a later bare `python`
+  silently runs the system interpreter against the wrong package set.
+- Activation, when a human wants it interactively: `source .venv/bin/activate` on
+  Linux/macOS/WSL, `source .venv/Scripts/activate` in Git Bash,
+  `.venv\Scripts\Activate.ps1` in PowerShell. Keep it in the same command as the work.
+- Applies to every Python entry point here, not just the app: `pytest`, `validate.py`,
+  `release.py`, `regenerate_changelog.py`, `install_hooks.py`, and any ad-hoc script.
+- Development happens on WSL/Linux; Windows is supported and must keep working. Prefer
+  cross-platform Python over shell built-ins when there is a choice, and never hardcode
+  an absolute path, username, or hostname - they break the other platform silently.
+- Write a short script file instead of `python -c "..."` for anything with quoting.
+  Inline snippets that survive bash mangle under PowerShell.
+
+## Knowledge Priming
+
+- Before non-trivial work, load repo-specific context (README, architecture docs, local overlay); when it conflicts with general best practice, repo evidence wins — flag the conflict, don't silently override.
+- If no repo context covers a decision, say so and proceed on stated assumptions; don't block on missing priming alone.
+
+## Project Overview
+
+- Purpose: an agile delivery dashboard - burndown and burnup charts, velocity and
+  completion forecasting, DORA metrics, flow metrics, and bug analytics - rendered
+  from Jira or imported tabular data.
+- Stack: Python 3.14+, Dash 4 + Plotly 6 on Waitress, pandas 3 / numpy 2 / scipy for
+  the numeric layer, SQLite for persistence, Pydantic for validation.
+- Entry point: `app.py`. Production server config in `configuration/server.py`.
+- Packages: `data/` business logic and calculations, `visualization/` Plotly figure
+  construction, `ui/` component builders and layout, `callbacks/` Dash event wiring,
+  `configuration/` settings and in-product help text, `utils/` shared helpers,
+  `updater/` self-update, `tests/` pytest suite.
+- Architecture references live in `docs/architecture/`; the metrics each chart shows
+  are specified in `docs/dashboard_metrics.md`, `docs/dora_metrics.md`,
+  `docs/flow_metrics.md`, and indexed by `docs/metrics_index.md`.
+
+## Data Safety
+
+This application is pointed at real Jira instances, so test fixtures, docs,
+screenshots and commit messages are all places customer data can leak in.
+
+- Never commit real customer names, email addresses, domains, Jira URLs, issue
+  keys, custom field IDs, API tokens, or exported issue data.
+- Use the established placeholders so they stay greppable: `Acme Corp`,
+  `example.com`, `customfield_10001`.
+- SQL is parameterized, always. No string interpolation into a query, including in
+  tests and one-off scripts.
+- Validate external API responses before use - a Jira instance can return a shape
+  the code does not expect, and an unvalidated field becomes a wrong number on a
+  chart.
+- `detect-secrets` runs at commit time against `.secrets.baseline`. A new finding
+  is resolved by removing the secret, not by re-baselining it.
+
+## Secure Coding
+
+- Validate and sanitize external input at trust boundaries before it reaches business logic.
+- Parameterize shell commands and queries; never concatenate untrusted input into them.
+- Never commit secrets; use env vars or a secret manager and keep them out of logs.
+- Don't leak internal detail (stack traces, paths) in user-facing errors; log it, return a generic message.
+- Never commit user- or machine-specific paths, usernames, or hostnames; keep defaults portable.
+
+## Repo Code Standards
+
+- Size limits, enforced by review rather than by a linter: Python files 500 lines
+  and functions 50 lines; JavaScript 400 and 40; HTML 300 lines; CSS 500 lines; a
+  single SQL query 50 lines. At 80% of a limit, split into a new module rather than
+  appending - but split along a responsibility, never merely by line count. Several
+  existing `*_core` / `*_comparison` style splits were made by size alone and are
+  harder to follow than the file they came from; do not add more of those.
+- Type annotations on every function, except Dash callbacks and test fixtures.
+- Naming: `snake_case.py` modules, `PascalCase` classes, `snake_case()` functions,
+  `UPPER_CASE` constants. Repository filenames are lowercase (`AGENTS.md`,
+  `CLAUDE.md`, `LICENSE` and other tool-mandated names are the exception).
+- Logging follows `docs/LOGGING_STANDARDS.md`. Never log credentials, tokens, Jira
+  URLs with embedded auth, or customer-identifying values.
+- No emoji in code, log output, or comments. Markdown documentation may use them.
+- Performance budgets: page load under 2s, chart render under 500ms, interaction
+  response under 100ms.
+- `python validate.py` runs ruff, djlint, pyright, markdownlint and pytest in one
+  pass. Run it before pushing.
+
+## Git Discipline
+
+- Run `git commit` as its own command; never chain follow-ups (tracker updates, tagging, `git push`) after it — a hook rejection leaves the chain half-run.
+- Commits are gated by `commit-msg` hooks (Conventional Commits + a trailing record id) — the `conventional-commits` skill formats one, the `work-tracker` skill claims the record first.
+- When a hook rejects a commit, fix the reported cause and re-commit.
+
+## Trunk-Based Workflow
+
+- `main` is the only long-lived branch, and it is the primary protection against
+  broken code reaching another developer. Local feature and bugfix branches are fine
+  and encouraged for work in progress.
+- Integrate by **rebasing onto `main` locally**, then push `main`. There are **no
+  remote PRs** - review happens locally before the push. A remote PR is a rare
+  exception, not the workflow.
+- The pre-commit and pre-push hooks are the real gate. `python validate.py` runs the
+  same checks (ruff, djlint, pyright, markdownlint, pytest) in one pass - run it
+  before pushing rather than discovering a failure at push time.
+- **Never weaken, skip, or bypass a gate to make it pass** - no `--no-verify`, no
+  deleting the failing assertion, no loosening a lint rule to silence it. Fix the
+  cause. If a gate is genuinely wrong, say so and change it deliberately as its own
+  commit.
+- The pre-push hook runs the full test suite, so a push takes minutes rather than
+  seconds. Let it finish; interrupting it mid-run with another command in the same
+  terminal kills pytest partway and the result is meaningless rather than merely
+  incomplete.
+- Branch deletions and tag pushes skip the quality gate by design.
+
+## Decision Protocol
+
+- Decide yourself when grounded in inspected code/docs and the choice is low-impact, reversible, and not on the confirmation list.
+- Stop and ask when a needed fact can't be found, sources conflict, or an unverifiable assumption would change the outcome.
+- State exactly what's missing and what answer would unblock you — don't present options just to look thorough.
+- If rules conflict, prefer safety/security boundaries.
+- If repeated attempts at one approach fail, report the pattern and propose a different approach instead of retrying.
+
+## External Facts
+
+- **Your training data has a cutoff and third-party interfaces move.** A flag, field,
+  model id, price, limit or version may have changed. Never answer from recall: grep
+  our own adapter, then the vendor's live docs. `interface-facts` is the long form.
+- **An empty probe is not evidence of absence.** A search returning nothing is
+  ambiguous between "absent" and "wrong probe", and the second is the common case.
+  Run a **positive control** that must return something before you report a zero; if
+  the control is empty too, the zero belongs to the probe.
+- **A number in a claim is derived twice, by paths sharing no step.** One green test
+  on one path is still one path; treat a disagreement as an instrument fault first.
+
+## Core Rules
+
+- Minimal diffs; no unrelated refactors.
+- Solve the stated requirement only — no speculative abstractions, no unrequested config.
+- Reuse > reinvent: prove a capability absent before building it; the authority is the code that reads it, not the docs or `--help`.
+- Root cause, not symptom: check other call sites before calling a single-site patch complete.
+- Back claims with evidence: files read · commands run · tests.
+- No dead code, debug prints, or silent error swallowing.
+- Match the style + naming of touched files.
+- Deterministic tests; a bug fix ships a regression test.
+
+## Harness Loop
+
+- Open a session with `basicly session start`; end it with a `[session handover <date>]` note on the root record. The ledger is the source of truth. Drive non-trivial work through the harness loop; the `harness-loop` skill is the runbook: the phases, `basicly loop status/run`, multi-lane `loop preflight`/`loop supervise`, engine-enforced checkpoints, bounded rework, and the block-don't-guess `needs-input.json` protocol.
+
+## Quality Gate
+
+- Review the diff, then exercise the change as it will really be used — run it, read the output. Tests passing ≠ feature working.
+- Run the repo's checks on anything touched, re-run after the final edit — a later change breaks what passed. Point at gates, don't restate them.
+- Confirm success from the explicit pass/fail summary line; truncated output hides failures.
+- State only the scope actually exercised. Say what you did not run. Never "expected to work" → "works".
+- In a plan awaiting approval, mark parts resting on unread code as assumptions, not design — an approval spent on a false premise costs the checkpoint + the rework budget behind it.
+- Same for a capability claim on a consumer surface (README · release notes · repo description): exercise before publishing — `docs-claims` catches only an invented command.
+
+## Use
+
+- Read this file before acting; re-read after context resets or long tool chains.
+- User instructions in the current task override this file.
+- More specific path-scoped instructions override this file for matching files.
+
+## Application Release Process
+
+Order matters here: the changelog is written and committed **before** `release.py`
+runs, because the release commit and tag are built on top of it.
+
+1. Draft the changelog from history: `.venv/bin/python regenerate_changelog.py
+   --preview --json`.
+2. Edit `changelog.md` into release notes by hand. Flat bullet lists only, phrased as
+   user-visible benefits rather than commit subjects, with major features in bold.
+3. Commit the changelog on its own.
+4. `.venv/bin/python release.py patch|minor|major` - it bumps the version files,
+   regenerates version info, updates the codebase context metrics artifacts, commits,
+   tags, and pushes.
+
+- Prefer `release.py` over doing any of those steps by hand; a partially bumped
+  version is worse than an unreleased one.
+- A release is a push to `main`, so the full gate runs. Do not start one with a red
+  suite or an uncommitted working tree.
+- Longer form, including packaging specifics: `docs/release_process.md`.
+
+## Catalog Authoring
+
+- Author catalog content as YAML sources, never a discoverable `.md`; scaffold with `basicly catalog new skill`/`catalog new fragment` and follow the `catalog-authoring` skill — `basicly catalog lint` enforces the format.
+
+## Copilot-specific notes
+
+- Author skills and rules at `.basicly/core/` (or `.basicly-local/`); `.claude/skills/` and `.claude/rules/*.md` are projected output; no `.github/instructions/` twins (double-load).
+- Prefer skills over prompt files — VS Code is migrating `*.prompt.md` to skills.
+- Put custom agents in `.github/agents/*.agent.md`.
+
+## Self Improvement Retro
+
+- When a session hits a real rejection or user-corrected mistake, run the retro from the `session-finish` skill: find the root cause and propose the exact fragment/skill/hook change that would have prevented it — never a vague "be careful", never self-applied. Skip it when nothing concrete surfaced.
+
+## Session Completion
+
+- Before ending, close out per the `session-finish` skill: leave the repo pickup-clean (no partial edits or stray output) and summarize what changed, what was verified, and what remains open.
+
+## Non Interactive Shell
+
+- Prefer cross-platform implementations over shell-specific behavior when a choice exists.
+- Use non-interactive flags (`cp -f`, `mv -f`, `rm -f`, package-manager `-y`, `ssh -o BatchMode=yes`) for ops that can hang on a prompt — some shells alias these to interactive mode.
+- Never loop over an unquoted variable (`for x in $LIST`): zsh does not word-split, so it runs once with the whole string and the silent no-op looks like success. Use an inline list, an array (`for x in "${arr[@]}"`), or one batch command — then check the count actually changed.
+- Name the expected site count before a scripted multi-site replace, and reconcile after. More sites than named means it also matched the definition the replacement refers to, rewriting it into a call to itself; a count delta is a stop, not a footnote.
