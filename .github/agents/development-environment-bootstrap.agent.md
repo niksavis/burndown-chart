@@ -46,8 +46,7 @@ All must be true before completion:
 ## Skill Invocation and Handback
 
 1. Load `.github/skills/dev-tools-setup/SKILL.md` when setup blockers are caused by missing CLI tools.
-2. Load `.github/skills/beads-schema-repair/SKILL.md` when `bd backup fetch-git` restore fails with schema mismatch signals.
-3. Return a handback packet with:
+2. Return a handback packet with:
 - environment state before/after
 - setup/recovery commands executed
 - gate results

@@ -1,5 +1,20 @@
 # Beads - Issue Tracking for burndown-chart
 
+> **FROZEN ARCHIVE — do not use, do not write here.** Superseded 2026-09-11 by
+> `basicly tracker` over the append-only ledger in `.basicly/ledger/`. All 702 records
+> were imported; `issues.jsonl` is kept as the source snapshot the import was taken from
+> and as the only record of the original ids.
+>
+> **Ids changed in the import.** The ledger's grammar allows a hyphen only as the
+> prefix/suffix separator, so `burndown-chart` was unrepresentable: `burndown-chart-2rm1`
+> here is `burndownchart-2rm1` in the ledger. That one hyphen is the whole mapping.
+>
+> `.beads/hooks/` is **inert** — those hooks are not installed. Git's hooks are owned by
+> `basicly hooks-build` via the pre-commit framework. Do not install these.
+>
+> Everything below describes the retired system and is kept for historical context only.
+
+
 This repository uses [Beads (bd)](https://github.com/steveyegge/beads) for issue tracking.
 Issues live in a local Dolt database at `.beads/dolt/` and are synced between developers
 via the `beads-backup` git branch (no DoltHub or external server required).

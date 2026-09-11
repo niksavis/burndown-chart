@@ -458,6 +458,17 @@ need the maintainer's confirmation before anything is removed.
 
 **Phase 3 — tracker cutover. Done 2026-09-11.**
 
+> Steps 16 and 17 were **initially missed** and this section wrongly said "Done" without
+> them. Finished the same day: the beads skills, instructions and prompt are deleted, the
+> surviving `bd` references in `release-management`, `review.instructions.md` and the
+> bootstrap agent now name `basicly tracker`, `.vscode/tasks.json` (which held nothing but
+> two dead `bd` tasks) was dropped so install could scaffold its own, and `.beads/` carries
+> a freeze notice naming the id mapping and marking `.beads/hooks/` inert.
+>
+> **`install_hooks.py` is the remaining item** — it still writes its own `pre-commit`,
+> `commit-msg` and `pre-push` into `.git/hooks`, the same three names the pre-commit
+> framework now owns, so running it silently replaces the managed gate set.
+
 Step 15 is done: 76 of the 77 `IMP-###` items are in the ledger as `burndownchart-impNNN`
 (`IMP-004` is withdrawn in the document and was deliberately skipped). The 7 Wave 0 items
 the document records as landed were imported closed, and the one explicit dependency the

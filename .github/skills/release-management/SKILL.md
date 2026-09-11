@@ -19,7 +19,7 @@ Use for release prep, changelog updates, and version workflow.
    `source .venv/Scripts/activate && python regenerate_changelog.py --preview --json`
 2. Update `changelog.md` with flat user-benefit bullets (bold major features).
 3. Validate release prerequisites and pending blockers:
-   `bd ready --json` — confirm no open blockers; `bd stats` for summary.
+   `basicly tracker ready` — confirm no open blockers; `basicly tracker stats` for summary.
 4. Commit changelog updates before running release.py.
 5. Run release script with semantic bump:
    `source .venv/Scripts/activate && python release.py patch|minor|major`

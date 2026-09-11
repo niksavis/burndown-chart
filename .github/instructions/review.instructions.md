@@ -27,7 +27,7 @@ description: 'Comprehensive code review standards for burndown-chart'
 
 - Format: `type(scope): description (bd-XXX)`
 - Types: feat|fix|docs|refactor|test|chore|perf|style|build|ci
-- Enables `bd doctor` orphan detection
+- Enables tracker orphan detection (`basicly tracker stats`, `blocked`)
 
 ### Rule 4: No Customer Data
 
