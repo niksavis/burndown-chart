@@ -1,8 +1,3 @@
-"""DORA metrics calculations package.
-
-Exposes all four DORA metric calculators and shared utilities from submodules.
-"""
-
 from ._change_fail_rate import calculate_change_failure_rate
 from ._common import (
     CHANGE_FAILURE_RATE_TIERS,

@@ -1,8 +1,3 @@
-"""Metrics export functionality for DORA and Flow metrics.
-
-Provides CSV and JSON export capabilities for metrics data.
-"""
-
 import csv
 import json
 from datetime import datetime
@@ -11,15 +6,7 @@ from typing import Any
 
 
 def export_dora_to_csv(metrics: dict[str, Any], time_period: str) -> str:
-    """Export DORA metrics to CSV format.
 
-    Args:
-        metrics: Dictionary of DORA metric data
-        time_period: Time period for the metrics (e.g., "30 days")
-
-    Returns:
-        CSV content as string
-    """
     output = StringIO()
     fieldnames = [
         "Metric",
@@ -50,15 +37,7 @@ def export_dora_to_csv(metrics: dict[str, Any], time_period: str) -> str:
 
 
 def export_dora_to_json(metrics: dict[str, Any], time_period: str) -> str:
-    """Export DORA metrics to JSON format.
 
-    Args:
-        metrics: Dictionary of DORA metric data
-        time_period: Time period for the metrics
-
-    Returns:
-        JSON content as string
-    """
     export_data = {
         "export_date": datetime.now().isoformat(),
         "metric_type": "DORA",
@@ -70,15 +49,7 @@ def export_dora_to_json(metrics: dict[str, Any], time_period: str) -> str:
 
 
 def export_flow_to_csv(metrics: dict[str, Any], time_period: str) -> str:
-    """Export Flow metrics to CSV format.
 
-    Args:
-        metrics: Dictionary of Flow metric data
-        time_period: Time period for the metrics
-
-    Returns:
-        CSV content as string
-    """
     output = StringIO()
     fieldnames = [
         "Metric",
@@ -95,7 +66,6 @@ def export_flow_to_csv(metrics: dict[str, Any], time_period: str) -> str:
     for metric_key, metric_data in metrics.items():
         value = metric_data.get("value")
 
-        # Special handling for distribution (nested dict)
         if isinstance(value, dict):
             value_str = ", ".join([f"{k}: {v}" for k, v in value.items()])
         else:
@@ -115,15 +85,7 @@ def export_flow_to_csv(metrics: dict[str, Any], time_period: str) -> str:
 
 
 def export_flow_to_json(metrics: dict[str, Any], time_period: str) -> str:
-    """Export Flow metrics to JSON format.
 
-    Args:
-        metrics: Dictionary of Flow metric data
-        time_period: Time period for the metrics
-
-    Returns:
-        JSON content as string
-    """
     export_data = {
         "export_date": datetime.now().isoformat(),
         "metric_type": "Flow",
@@ -135,15 +97,7 @@ def export_flow_to_json(metrics: dict[str, Any], time_period: str) -> str:
 
 
 def _format_metric_name(metric_key: str) -> str:
-    """Format metric key for display.
 
-    Args:
-        metric_key: Internal metric key (e.g., "deployment_frequency")
-
-    Returns:
-        Formatted display name (e.g., "Deployment Frequency")
-    """
-    # Handle special cases with exact formatting
     special_cases = {
         "mean_time_to_recovery": "Mean Time to Recovery",
         "change_failure_rate": "Change Failure Rate",
@@ -154,30 +108,21 @@ def _format_metric_name(metric_key: str) -> str:
         "flow_efficiency": "Flow Efficiency",
         "flow_load": "Flow Load",
         "flow_distribution": "Flow Distribution",
-        "velocity": "Flow Velocity",  # Map velocity to Flow Velocity for consistency
+        "velocity": "Flow Velocity",
     }
 
     if metric_key in special_cases:
         return special_cases[metric_key]
 
-    # Default: Title case with spaces
     return metric_key.replace("_", " ").title()
 
 
 def _format_value_for_csv(value: Any) -> str:
-    """Format value for CSV output.
 
-    Args:
-        value: Metric value (can be number, None, or dict)
-
-    Returns:
-        Formatted string for CSV
-    """
     if value is None:
         return "Error"
 
     if isinstance(value, dict):
-        # For nested dicts (like distribution)
         return ", ".join([f"{k}: {v}" for k, v in value.items()])
 
     return str(value)

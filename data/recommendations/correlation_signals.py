@@ -1,23 +1,3 @@
-"""Cross-domain correlation signals for actionable insights.
-
-Provides compound rules that combine signals from multiple metric domains
-(velocity, budget, scope, bugs, flow, DORA) into high-value insights.
-
-These signals are shared between the in-app Actionable Insights panel
-(ui/dashboard/insights_engine.py) and the report recommendations section
-(data/report/generator.py). Business logic lives here; each surface renders
-the returned signal dicts in its own way.
-
-Rules:
-    H1  unstable_delivery_scope_creep   velocity CV > 40% + scope growing
-    H2  budget_forecast_uncertainty     runway < 6w + PERT spread > 4w
-    H3  performance_surplus             velocity accel. + budget headroom > 3w
-    H4  high_wip_long_lead_time         flow WIP > 20 + median lead time > 7d
-    H5  bug_velocity_drain              bug investment > 25% + velocity declining
-    H6  quality_scope_pressure          resolution rate < 50% + scope growing
-    H7  dora_velocity_divergence        DORA Low/Medium tier + velocity accelerating
-"""
-
 from __future__ import annotations
 
 import logging
@@ -38,26 +18,7 @@ def build_correlation_signals(
     flow_metrics: dict[str, Any] | None = None,
     dora_metrics: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
-    """Build cross-domain correlation signals from multi-metric input.
 
-    All parameters except statistics_df are optional. Signals that require a
-    missing parameter are silently skipped, so callers can pass only what they
-    have without producing errors.
-
-    Args:
-        statistics_df: Weekly project statistics (completed_items, created_items).
-        budget_data: Budget metrics dict (runway_weeks, utilization_pct, ...).
-        pert_data: PERT forecast dict (pert_time_items, pert_optimistic_days,
-            pert_pessimistic_days).
-        deadline: Project deadline date string (YYYY-MM-DD or similar).
-        bug_metrics: Bug domain metrics (resolution_rate, bug_investment_pct, ...).
-        flow_metrics: Flow domain metrics (median_flow_time, avg_wip, ...).
-        dora_metrics: DORA metrics dict (overall_tier, ...).
-
-    Returns:
-        List of signal dicts, each with keys: id, severity, message, recommendation.
-        Severity values: "danger", "warning", "info", "success".
-    """
     if statistics_df.empty:
         return []
 
@@ -93,13 +54,7 @@ def build_correlation_signals(
     return signals
 
 
-# ---------------------------------------------------------------------------
-# Private helpers — one function per signal group
-# ---------------------------------------------------------------------------
-
-
 def _velocity_cv(statistics_df: pd.DataFrame) -> float:
-    """Return velocity coefficient of variation (%) or 0."""
     mean = statistics_df["completed_items"].mean()
     if mean <= 0:
         return 0.0
@@ -109,7 +64,6 @@ def _velocity_cv(statistics_df: pd.DataFrame) -> float:
 def _velocity_split(
     statistics_df: pd.DataFrame,
 ) -> tuple[float, float]:
-    """Return (recent_velocity, historical_velocity) split at midpoint."""
     mid = len(statistics_df) // 2
     if mid <= 0:
         return 0.0, 0.0
@@ -124,13 +78,11 @@ def _add_h1_h2_h3(
     budget_data: dict[str, Any] | None,
     pert_data: dict[str, Any] | None,
 ) -> None:
-    """H1/H2/H3 — compound budget + velocity + scope signals."""
     if not budget_data:
         return
 
     cv = _velocity_cv(statistics_df)
 
-    # H1: High Variance + Scope Growth (CRITICAL)
     if (
         cv > 40
         and "created_items" in statistics_df.columns
@@ -157,7 +109,6 @@ def _add_h1_h2_h3(
             }
         )
 
-    # H2: Low Runway + High Forecast Uncertainty (CRITICAL)
     if pert_data:
         runway_weeks = budget_data.get("runway_weeks", 0)
         pert_opt = pert_data.get("pert_optimistic_days", 0)
@@ -190,7 +141,6 @@ def _add_h1_h2_h3(
                 }
             )
 
-    # H3: Accelerating Velocity + Budget Surplus (OPPORTUNITY)
     if pert_data and len(statistics_df) >= 4:
         recent_v, hist_v = _velocity_split(statistics_df)
         runway_weeks = budget_data.get("runway_weeks", 0)
@@ -235,7 +185,6 @@ def _add_h4_wip_lead_time(
     signals: list[dict[str, Any]],
     flow_metrics: dict[str, Any] | None,
 ) -> None:
-    """H4 — High WIP combined with long lead time flags systemic bottleneck."""
     if not flow_metrics or not flow_metrics.get("has_data"):
         return
     wip = flow_metrics.get("avg_wip", 0) or 0
@@ -267,7 +216,6 @@ def _add_h5_bug_velocity_drain(
     statistics_df: pd.DataFrame,
     bug_metrics: dict[str, Any] | None,
 ) -> None:
-    """H5 — High bug investment paired with declining velocity."""
     if not bug_metrics or not bug_metrics.get("has_data"):
         return
     bug_pct = bug_metrics.get("bug_investment_pct", 0) or 0
@@ -303,7 +251,6 @@ def _add_h6_quality_scope_pressure(
     statistics_df: pd.DataFrame,
     bug_metrics: dict[str, Any] | None,
 ) -> None:
-    """H6 — Low bug resolution rate while scope is growing."""
     if not bug_metrics or not bug_metrics.get("has_data"):
         return
     resolution_rate = bug_metrics.get("resolution_rate", 100) or 100
@@ -342,7 +289,6 @@ def _add_h7_dora_velocity_divergence(
     statistics_df: pd.DataFrame,
     dora_metrics: dict[str, Any] | None,
 ) -> None:
-    """H7 — DORA process quality lagging behind accelerating delivery speed."""
     if not dora_metrics or not dora_metrics.get("has_data", True):
         return
     tier = (dora_metrics.get("overall_tier") or "").lower()

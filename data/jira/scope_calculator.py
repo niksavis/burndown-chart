@@ -1,10 +1,3 @@
-"""
-JIRA Scope Calculator Module
-
-This module calculates project scope based on JIRA issue statuses using
-status categories and configurable status name mapping.
-"""
-
 import logging
 from datetime import datetime
 from typing import Any
@@ -17,37 +10,12 @@ def calculate_jira_project_scope(
     points_field: str = "votes",
     status_config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """
-    Calculate project scope based on JIRA issue statuses.
 
-    Args:
-        issues_data: List of JIRA issues from API response
-        points_field: Field name for story points (e.g., 'votes', 'customfield_10002')
-        status_config: Configuration for status mapping (optional)
-
-    Returns:
-        Dict containing:
-        - total_items: Total number of issues
-        - total_points: Total story points
-        - completed_items: Number of completed issues
-        - completed_points: Story points for completed issues
-        - remaining_items: Number of remaining issues (all non-completed)
-        - remaining_points: Story points for remaining issues (sum of all remaining)
-        - estimated_items: Number of remaining issues WITH point values
-        - estimated_points: Story points only from issues WITH point values
-                - remaining_total_points: Calculated total remaining points (estimated
-                    + extrapolated)
-        - status_breakdown: Detailed breakdown by status
-        - points_field_available: Whether meaningful point data was found
-    """
-
-    # Initialize counters
     completed_items = completed_points = 0
     remaining_items = remaining_points = 0
-    estimated_items = estimated_points = 0  # Items/points with actual point values
+    estimated_items = estimated_points = 0
     status_breakdown = {}
 
-    # Points tracking is enabled if user has configured a points_field (not empty)
     points_field_available = bool(points_field and points_field.strip())
     field_stats = {
         "total_issues": len(issues_data),
@@ -65,41 +33,32 @@ def calculate_jira_project_scope(
 
     for issue in issues_data:
         try:
-            # Extract issue data - handle both nested (JIRA API) and flat
-            # (database) formats
             if "fields" in issue and isinstance(issue.get("fields"), dict):
-                # Nested format (JIRA API)
                 status_name = issue["fields"]["status"]["name"]
                 status_category = issue["fields"]["status"]["statusCategory"]["key"]
                 points = _extract_story_points(issue["fields"], points_field)
                 has_real_points = _issue_has_real_points(issue["fields"], points_field)
             else:
-                # Flat format (database) - fields at root level
                 status_name = issue.get("status", "")
-                # Database stores status_category as string, not nested object
                 status_category = issue.get("status_category", "")
                 points = _extract_story_points(issue, points_field)
                 has_real_points = _issue_has_real_points(issue, points_field)
 
-            # Classify status
             classification = _classify_issue_status(
                 status_name, status_category, status_config
             )
 
-            # Update counters based on classification
             if classification == "COMPLETED":
                 completed_items += 1
                 completed_points += points
-            else:  # IN_PROGRESS or TODO both count as remaining
+            else:
                 remaining_items += 1
                 remaining_points += points
 
-                # Count as "estimated" if it has real point values (regardless of flag)
                 if has_real_points:
                     estimated_items += 1
                     estimated_points += points
 
-            # Track status breakdown for reporting
             if status_name not in status_breakdown:
                 status_breakdown[status_name] = {
                     "items": 0,
@@ -126,8 +85,6 @@ def calculate_jira_project_scope(
         f"Remaining: {remaining_points}"
     )
 
-    # Calculate remaining_total_points using the specified formula
-    # Only calculate if points field is available, otherwise return 0
     if points_field_available:
         remaining_total_points = _calculate_remaining_total_points(
             estimated_items,
@@ -144,13 +101,12 @@ def calculate_jira_project_scope(
         "total_points": total_points,
         "completed_items": completed_items,
         "completed_points": completed_points,
-        "remaining_items": remaining_items,  # All non-completed items
-        "remaining_points": remaining_points,  # Sum of all remaining item points
-        "estimated_items": estimated_items,  # Items with actual point values
-        "estimated_points": estimated_points,  # Sum of points from estimated items
-        "remaining_total_points": remaining_total_points,  # Calculated total
-        # remaining points
-        "points_field_available": points_field_available,  # Flag for UI
+        "remaining_items": remaining_items,
+        "remaining_points": remaining_points,
+        "estimated_items": estimated_items,
+        "estimated_points": estimated_points,
+        "remaining_total_points": remaining_total_points,
+        "points_field_available": points_field_available,
         "status_breakdown": status_breakdown,
         "calculation_metadata": {
             "method": status_config.get("method", "status_category")
@@ -176,19 +132,7 @@ def calculate_jira_project_scope(
 def _classify_issue_status(
     status_name: str, status_category: str, status_config: dict[str, Any] | None
 ) -> str:
-    """
-    Classify issue status as COMPLETED, IN_PROGRESS, or TODO.
 
-    Args:
-        status_name: JIRA status name (e.g., "Done", "In Progress")
-        status_category: JIRA status category key (e.g., "done", "indeterminate", "new")
-        status_config: Configuration for status mapping
-
-    Returns:
-        str: 'COMPLETED', 'IN_PROGRESS', or 'TODO'
-    """
-
-    # Method 1: Use configuration overrides if available
     if status_config and status_config.get("method") == "status_names":
         completed_statuses = status_config.get("completed_statuses", [])
         in_progress_statuses = status_config.get("in_progress_statuses", [])
@@ -200,49 +144,33 @@ def _classify_issue_status(
         else:
             return "TODO"
 
-    # Method 2: Check for specific status name overrides
     if status_config and "status_name_overrides" in status_config:
         override = status_config["status_name_overrides"].get(status_name)
         if override:
             return override
 
-    # Method 3: Default to status category (recommended)
     if status_category == "done":
         return "COMPLETED"
     elif status_category == "indeterminate":
         return "IN_PROGRESS"
-    else:  # 'new'
+    else:
         return "TODO"
 
 
 def _extract_story_points(fields: dict[str, Any], points_field: str) -> int:
-    """
-    Extract story points from issue fields.
 
-    Args:
-        fields: JIRA issue fields dictionary
-        points_field: Field name to extract points from
-
-    Returns:
-        int: Story points value (returns 0 if field is missing/empty/invalid)
-    """
     try:
-        # First check if points field is valid (not empty/whitespace)
         if not points_field or points_field.strip() == "":
-            return 0  # No points field configured
+            return 0
 
         if points_field == "votes":
-            # votes field returns dict: {"votes": 5, "hasVoted": false}
             votes_data = fields.get("votes")
             if votes_data is None:
-                return 0  # No votes data = no estimate
+                return 0
             vote_count = votes_data.get("votes", 0)
-            # votes can be 0 (valid), so return actual value
             return int(vote_count) if vote_count is not None else 0
 
         elif points_field.startswith("customfield_"):
-            # Custom field - check custom_fields dict first (flat format), then
-            # root level (nested format)
             value = None
             if "custom_fields" in fields and isinstance(
                 fields.get("custom_fields"), dict
@@ -251,51 +179,40 @@ def _extract_story_points(fields: dict[str, Any], points_field: str) -> int:
             if value is None:
                 value = fields.get(points_field)
             if value is None:
-                return 0  # No value = no estimate
+                return 0
 
-            # Handle different data types for custom fields
             if isinstance(value, dict):
-                # Complex object - try common keys
                 point_val = value.get("value", value.get("count", value.get("total")))
                 return int(point_val) if point_val is not None else 0
             elif isinstance(value, str):
-                # String representation
                 try:
-                    return int(float(value))  # Handle "8.0" -> 8
+                    return int(float(value))
                 except ValueError, TypeError:
                     return 0
             elif isinstance(value, (int, float)):
-                # Direct numeric value
                 return int(value)
             else:
-                # Unknown type
                 return 0
 
         else:
-            # Handle standard JIRA fields (timeoriginalestimate, timespent, etc.)
             value = fields.get(points_field)
 
-            # If field doesn't exist or is None, return 0 (no estimate)
             if value is None:
                 return 0
 
-            # Time fields return integer seconds or None
             if isinstance(value, (int, float)):
                 return int(value)
 
-            # Handle dict format (shouldn't happen for time fields, but be safe)
             if isinstance(value, dict):
                 point_val = value.get("value", value.get("count", value.get("total")))
                 return int(point_val) if point_val is not None else 0
 
-            # Handle string representations
             if isinstance(value, str):
                 try:
                     return int(float(value))
                 except ValueError, TypeError:
                     return 0
 
-            # Unknown type
             return 0
 
     except (ValueError, TypeError, KeyError) as e:
@@ -303,43 +220,19 @@ def _extract_story_points(fields: dict[str, Any], points_field: str) -> int:
         return 0
 
 
-# Validation functions removed (2026-01-26)
-# Points tracking is now controlled by user configuration - if points_field is
-# configured (non-empty), tracking is enabled; if empty, tracking is disabled.
-# This eliminates false negatives from sampling in large queries.
-
-
 def _issue_has_real_points(fields: dict[str, Any], points_field: str) -> bool:
-    """
-    Check if a specific issue has real point values (non-null story points).
 
-    Business Logic: An item is "estimated" ONLY if the story points field has a
-    non-null value. Items with null story points are considered "not estimated"
-    even if they get default points in calculations for extrapolation purposes.
-
-    Args:
-        fields: JIRA issue fields dictionary
-        points_field: Field name to check
-
-    Returns:
-        bool: True if issue has non-null story points (estimated), False otherwise
-    """
     try:
-        # First check if points field is valid (not empty/whitespace)
         if not points_field or points_field.strip() == "":
-            return False  # No points field configured
+            return False
 
         if points_field == "votes":
-            # votes are engagement metrics, not estimates
-            # Only treat as "estimated" if votes > 0
             votes_data = fields.get(points_field)
             if votes_data is None:
-                return False  # No votes data
+                return False
             vote_count = votes_data.get("votes", 0)
-            return vote_count > 0  # Only positive votes count as "estimated"
+            return vote_count > 0
         elif points_field.startswith("customfield_"):
-            # Check custom_fields dict first (flat format), then root level
-            # (nested format)
             value = None
             if "custom_fields" in fields and isinstance(
                 fields.get("custom_fields"), dict
@@ -347,9 +240,8 @@ def _issue_has_real_points(fields: dict[str, Any], points_field: str) -> bool:
                 value = fields["custom_fields"].get(points_field)
             if value is None:
                 value = fields.get(points_field)
-            # CORRECT LOGIC: Only non-null values are considered "estimated"
             if value is None:
-                return False  # Null values are NOT estimated
+                return False
 
             if isinstance(value, dict):
                 point_val = value.get(
@@ -361,19 +253,16 @@ def _issue_has_real_points(fields: dict[str, Any], points_field: str) -> bool:
                 try:
                     point_val = float(value)
                 except ValueError:
-                    return False  # Invalid string is NOT estimated
+                    return False
             else:
-                return False  # Unknown type is NOT estimated
+                return False
 
-            return point_val >= 0  # 0 and positive values are meaningful
+            return point_val >= 0
         else:
-            # CORRECT LOGIC: Only non-null values are estimated
             value = fields.get(points_field)
-            return (
-                value is not None and value >= 0
-            )  # Only non-null, non-negative values are estimated
+            return value is not None and value >= 0
     except Exception:
-        return False  # On error, consider as NOT estimated
+        return False
 
 
 def _calculate_remaining_total_points(
@@ -383,22 +272,7 @@ def _calculate_remaining_total_points(
     completed_items: int = 0,
     completed_points: int = 0,
 ) -> float:
-    """
-    Calculate remaining total points using the formula:
-    Remaining Total Points = Remaining Estimated Points +
-    (avg_points_per_item × (Remaining Total Items - Remaining Estimated Items))
 
-    Args:
-        estimated_items: Number of remaining items with point values
-        estimated_points: Sum of points from estimated items
-        remaining_total_items: Total number of remaining items
-        completed_items: Number of completed items (for historical average)
-        completed_points: Points from completed items (for historical average)
-
-    Returns:
-        float: Calculated remaining total points
-    """
-    # If no estimated items, use historical data only when points exist
     if estimated_items <= 0:
         if completed_items > 0 and completed_points > 0:
             avg_points_per_item = completed_points / completed_items
@@ -406,10 +280,8 @@ def _calculate_remaining_total_points(
 
         return 0
 
-    # Calculate average points per item from estimated items
     avg_points_per_item = estimated_points / estimated_items
 
-    # Apply the formula: estimated points + (avg × unestimated items)
     unestimated_items = max(0, remaining_total_items - estimated_items)
     remaining_total_points = estimated_points + (
         avg_points_per_item * unestimated_items
@@ -419,15 +291,7 @@ def _calculate_remaining_total_points(
 
 
 def get_status_breakdown_summary(status_breakdown: dict[str, Any]) -> dict[str, Any]:
-    """
-    Create a summary of status breakdown for display.
 
-    Args:
-        status_breakdown: Status breakdown from calculate_jira_project_scope
-
-    Returns:
-        Dict: Summary with totals by classification
-    """
     summary = {
         "COMPLETED": {"items": 0, "points": 0, "statuses": []},
         "IN_PROGRESS": {"items": 0, "points": 0, "statuses": []},
@@ -444,15 +308,7 @@ def get_status_breakdown_summary(status_breakdown: dict[str, Any]) -> dict[str, 
 
 
 def validate_status_config(status_config: dict[str, Any]) -> bool:
-    """
-    Validate status configuration structure.
 
-    Args:
-        status_config: Status configuration dictionary
-
-    Returns:
-        bool: True if configuration is valid
-    """
     if not isinstance(status_config, dict):
         return False
 

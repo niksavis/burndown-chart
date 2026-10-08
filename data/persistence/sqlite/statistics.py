@@ -1,5 +1,3 @@
-"""Statistics and scope operations mixin for SQLiteBackend."""
-
 from __future__ import annotations
 
 import json
@@ -14,9 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class StatisticsMixin:
-    """Mixin for project statistics and scope operations."""
-
-    db_path: Path  # Set by composition class (SQLiteBackend)
+    db_path: Path
 
     def get_statistics(
         self,
@@ -26,7 +22,6 @@ class StatisticsMixin:
         end_date: str | None = None,
         limit: int | None = None,
     ) -> list[dict]:
-        """Query normalized weekly statistics."""
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -67,12 +62,10 @@ class StatisticsMixin:
         query_id: str,
         stats: list[dict],
     ) -> None:
-        """Batch save weekly statistics (replaces all existing data for query)."""
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
 
-                # Delete all existing statistics for this query first
                 cursor.execute(
                     "DELETE FROM project_statistics "
                     "WHERE profile_id = ? AND query_id = ?",
@@ -140,7 +133,6 @@ class StatisticsMixin:
             raise
 
     def get_scope(self, profile_id: str, query_id: str) -> dict | None:
-        """Get project scope data."""
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -168,7 +160,6 @@ class StatisticsMixin:
         query_id: str,
         scope_data: dict,
     ) -> None:
-        """Save project scope data."""
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -199,7 +190,6 @@ class StatisticsMixin:
             raise
 
     def get_project_data(self, profile_id: str, query_id: str) -> dict | None:
-        """LEGACY: Get project data - aggregates normalized statistics and scope."""
         stats = self.get_statistics(profile_id, query_id)
         scope = self.get_scope(profile_id, query_id)
         if not stats and not scope:
@@ -207,7 +197,6 @@ class StatisticsMixin:
         return {"statistics": stats, "scope": scope}
 
     def save_project_data(self, profile_id: str, query_id: str, data: dict) -> None:
-        """LEGACY: Save project data - splits to statistics and scope."""
         if "statistics" in data:
             self.save_statistics_batch(profile_id, query_id, data["statistics"])
         if "scope" in data:

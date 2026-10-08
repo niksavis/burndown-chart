@@ -1,5 +1,3 @@
-"""Scope changes chart generator."""
-
 import json
 from typing import Any
 
@@ -7,15 +5,7 @@ import pandas as pd
 
 
 def generate_scope_changes_chart(metrics: dict[str, Any]) -> str:
-    """Generate Chart.js script for scope changes over time chart.
 
-    Displays three datasets per week:
-    - Items Created bar (red)
-    - Items Completed bar (green)
-    - Net Scope Change line (red when positive/growing, green when negative/shrinking)
-
-    The net line immediately highlights which weeks drove scope growth.
-    """
     statistics = metrics.get("statistics", [])
     if not statistics:
         return ""
@@ -32,14 +22,13 @@ def generate_scope_changes_chart(metrics: dict[str, Any]) -> str:
         df.groupby("week_label")
         .agg({"created_items": "sum", "completed_items": "sum"})
         .reset_index()
-        .sort_values("week_label")  # Ensure chronological order
+        .sort_values("week_label")
     )
 
     created = weekly_df["created_items"].tolist()
     completed = weekly_df["completed_items"].tolist()
     net_change = [c - d for c, d in zip(created, completed, strict=True)]
 
-    # Colour each net point: red if scope grew (> 0), green if shrank (<= 0)
     net_colors = [
         "rgba(220, 53, 69, 0.9)" if n > 0 else "rgba(25, 135, 84, 0.9)"
         for n in net_change

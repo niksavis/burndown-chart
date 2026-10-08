@@ -1,13 +1,3 @@
-"""
-JIRA Metadata Fetching and Auto-Detection
-
-This module provides functions to fetch JIRA metadata
-(projects, issue types, statuses, field options)
-and auto-detect optimal configuration based on the JIRA instance setup.
-
-Designed for the comprehensive mappings configuration UI to enable generic JIRA support.
-"""
-
 import logging
 
 import requests
@@ -18,25 +8,15 @@ logger = logging.getLogger(__name__)
 
 
 class JiraMetadataFetcher:
-    """Fetch and cache JIRA metadata for configuration UI."""
-
     def __init__(self, jira_url: str, jira_token: str, api_version: str = "v2"):
-        """
-        Initialize metadata fetcher with JIRA credentials.
 
-        Args:
-            jira_url: JIRA instance URL (e.g., https://your-domain.atlassian.net)
-            jira_token: JIRA API token or password
-            api_version: JIRA API version to use ("v2" or "v3", default: "v2")
-        """
         self.jira_url = jira_url.rstrip("/")
-        self.api_version = api_version.replace("v", "")  # Normalize "v2" or "2" to "2"
+        self.api_version = api_version.replace("v", "")
         self.jira_token = jira_token
         self.headers = {"Accept": "application/json"}
         if jira_token:
             self.headers["Authorization"] = f"Bearer {jira_token}"
 
-        # Session-level cache
         self._fields_cache: list[dict] | None = None
         self._projects_cache: list[dict] | None = None
         self._issue_types_cache: list[dict] | None = None
@@ -44,15 +24,7 @@ class JiraMetadataFetcher:
         self._field_options_cache: dict[str, list[str]] = {}
 
     def fetch_fields(self, force_refresh: bool = False) -> list[dict]:
-        """
-        Fetch all available JIRA fields (standard and custom).
 
-        Args:
-            force_refresh: Force API call even if cached
-
-        Returns:
-            List of field dictionaries with id, name, type, custom flag
-        """
         if self._fields_cache is not None and not force_refresh:
             return self._fields_cache
 
@@ -62,7 +34,6 @@ class JiraMetadataFetcher:
             response.raise_for_status()
 
             fields = response.json()
-            # Normalize field data
             normalized = []
             for field in fields:
                 normalized.append(
@@ -83,15 +54,7 @@ class JiraMetadataFetcher:
             return []
 
     def fetch_projects(self, force_refresh: bool = False) -> list[dict]:
-        """
-        Fetch all accessible JIRA projects.
 
-        Args:
-            force_refresh: Force API call even if cached
-
-        Returns:
-            List of project dictionaries with key, name, and issue type info
-        """
         if self._projects_cache is not None and not force_refresh:
             return self._projects_cache
 
@@ -101,7 +64,6 @@ class JiraMetadataFetcher:
             response.raise_for_status()
 
             projects = response.json()
-            # Normalize project data
             normalized = []
             for project in projects:
                 normalized.append(
@@ -121,15 +83,7 @@ class JiraMetadataFetcher:
             return []
 
     def fetch_issue_types(self, force_refresh: bool = False) -> list[dict]:
-        """
-        Fetch all available JIRA issue types.
 
-        Args:
-            force_refresh: Force API call even if cached
-
-        Returns:
-            List of issue type dictionaries with id, name, description
-        """
         if self._issue_types_cache is not None and not force_refresh:
             return self._issue_types_cache
 
@@ -139,7 +93,6 @@ class JiraMetadataFetcher:
             response.raise_for_status()
 
             issue_types = response.json()
-            # Normalize issue type data
             normalized = []
             for issue_type in issue_types:
                 normalized.append(
@@ -160,15 +113,7 @@ class JiraMetadataFetcher:
             return []
 
     def fetch_statuses(self, force_refresh: bool = False) -> list[dict]:
-        """
-        Fetch all available JIRA workflow statuses.
 
-        Args:
-            force_refresh: Force API call even if cached
-
-        Returns:
-            List of status dictionaries with id, name, and category
-        """
         if self._statuses_cache is not None and not force_refresh:
             return self._statuses_cache
 
@@ -178,7 +123,6 @@ class JiraMetadataFetcher:
             response.raise_for_status()
 
             statuses = response.json()
-            # Normalize status data
             normalized = []
             for status in statuses:
                 category = status.get("statusCategory", {})
@@ -203,29 +147,11 @@ class JiraMetadataFetcher:
     def fetch_field_options(
         self, field_id: str, force_refresh: bool = False
     ) -> list[str]:
-        """
-        Fetch possible values for a select list field.
 
-        Tries multiple strategies:
-        1. Field configuration API (for predefined options)
-        2. Extract unique values from actual issues (fallback)
-
-        Args:
-            field_id: JIRA field ID (e.g., customfield_11309)
-            force_refresh: Force API call even if cached
-
-        Returns:
-            List of possible values for the field
-        """
         if field_id in self._field_options_cache and not force_refresh:
             return self._field_options_cache[field_id]
 
-        # Try field configuration endpoints first
-        # Strategy: Try multiple JIRA REST API endpoints to get ALL possible field
-        # values
         try:
-            # Try 1: Get field configuration contexts and their options (with
-            # pagination)
             url = (
                 f"{self.jira_url}/rest/api/{self.api_version}/field/{field_id}/context"
             )
@@ -246,7 +172,6 @@ class JiraMetadataFetcher:
                     )
 
                     if context_id:
-                        # Fetch ALL options for this context with pagination
                         start_at = 0
                         max_results = 100
                         has_more = True
@@ -281,10 +206,6 @@ class JiraMetadataFetcher:
                                     is_disabled = option.get("disabled", False)
 
                                     if option_value:
-                                        # Include ALL options
-                                        # (both enabled and disabled)
-                                        # Users may want to map to disabled values if
-                                        # they exist in historical data
                                         all_options.add(option_value)
                                         if is_disabled:
                                             logger.info(
@@ -292,7 +213,6 @@ class JiraMetadataFetcher:
                                                 f"{option_value}"
                                             )
 
-                                # Check if there are more results
                                 if is_last or len(options) < max_results:
                                     has_more = False
                                 else:
@@ -313,18 +233,14 @@ class JiraMetadataFetcher:
                     )
                     return values
 
-            # Try 2: Get field details (contains schema with allowedValues)
-            # This should work for select/multi-select custom fields
             url = f"{self.jira_url}/rest/api/{self.api_version}/field/{field_id}"
             response = requests.get(url, headers=self.headers, timeout=10)
 
             if response.status_code == 200:
                 field_data = response.json()
-                # Check if field has allowedValues in schema
                 schema = field_data.get("schema", {})
                 custom_data = schema.get("custom", "")
 
-                # For select fields, allowedValues might be in different places
                 allowed_values = field_data.get("allowedValues", [])
                 if not allowed_values:
                     allowed_values = schema.get("allowedValues", [])
@@ -335,7 +251,6 @@ class JiraMetadataFetcher:
                         if isinstance(val, str):
                             values.append(val)
                         elif isinstance(val, dict):
-                            # Try different keys where value might be stored
                             value = (
                                 val.get("value") or val.get("name") or val.get("label")
                             )
@@ -355,7 +270,6 @@ class JiraMetadataFetcher:
                         f"(type: {custom_data})"
                     )
 
-            # Try 3: Legacy customFieldOption endpoint (for older JIRA versions)
             url = (
                 f"{self.jira_url}/rest/api/{self.api_version}/"
                 f"customFieldOption/{field_id}"
@@ -364,7 +278,6 @@ class JiraMetadataFetcher:
 
             if response.status_code == 200:
                 data = response.json()
-                # Extract values based on response structure
                 if isinstance(data, dict):
                     values = [opt.get("value", "") for opt in data.get("values", [])]
                 elif isinstance(data, list):
@@ -383,7 +296,6 @@ class JiraMetadataFetcher:
         except requests.exceptions.RequestException as e:
             logger.debug(f"[JIRA] Field config API failed for {field_id}: {e}")
 
-        # Fallback 1: Try to extract from cached JIRA data (FAST - no API calls)
         logger.info(f"[JIRA] Trying to extract {field_id} values from jira_cache.json")
         try:
             import json  # noqa: PLC0415
@@ -407,17 +319,14 @@ class JiraMetadataFetcher:
                     if field_value is None:
                         continue
 
-                    # Handle different field types
                     if isinstance(field_value, str):
                         unique_values.add(field_value)
                     elif isinstance(field_value, dict):
-                        # For select/option fields
                         if "value" in field_value:
                             unique_values.add(field_value["value"])
                         elif "name" in field_value:
                             unique_values.add(field_value["name"])
                     elif isinstance(field_value, list):
-                        # For multi-select fields
                         for item in field_value:
                             if isinstance(item, str):
                                 unique_values.add(item)
@@ -443,7 +352,6 @@ class JiraMetadataFetcher:
         except (OSError, TypeError, ValueError) as e:
             logger.warning(f"[JIRA] Failed to extract from cache: {e}")
 
-        # Fallback 2: Extract from live issues via JQL (scoped to development projects)
         logger.info(
             f"[JIRA] Fetching {field_id} values via JQL query "
             "(sampling up to 1000 issues from development projects)"
@@ -471,27 +379,13 @@ class JiraMetadataFetcher:
     def _fetch_field_values_from_issues(
         self, field_id: str, max_results: int = 1000, scoped: bool = True
     ) -> list[str]:
-        """
-        Extract unique values for a field from actual JIRA issues.
 
-        This is a fallback method when field configuration API doesn't work.
-
-        Args:
-            field_id: JIRA field ID (e.g., customfield_11309)
-            max_results: Maximum issues to query (default: 1000)
-            scoped: Whether to scope query to configured projects (default: True)
-
-        Returns:
-            List of unique values found in issues
-        """
         try:
             logger.info(
                 f"[JIRA] Attempting to fetch field values from issues: "
                 f"{field_id} (scoped={scoped})"
             )
 
-            # Get field name for JQL query (some JIRA instances require field name,
-            # not ID)
             field_name = None
             if self._fields_cache:
                 for field in self._fields_cache:
@@ -499,10 +393,7 @@ class JiraMetadataFetcher:
                         field_name = field.get("name")
                         break
 
-            # Build JQL query with optional project scope
             if scoped:
-                # Load configured development projects to scope the query
-                # circular import guard
                 from data.persistence import load_app_settings  # noqa: PLC0415
 
                 settings = load_app_settings()
@@ -515,19 +406,16 @@ class JiraMetadataFetcher:
                     else:
                         jql = f"{project_clause}{field_id} IS NOT EMPTY"
                 else:
-                    # No projects configured, search all
                     if field_name:
                         jql = f'"{field_name}" IS NOT EMPTY'
                     else:
                         jql = f"{field_id} IS NOT EMPTY"
             else:
-                # Unscoped - search ALL projects
                 if field_name:
                     jql = f'"{field_name}" IS NOT EMPTY'
                 else:
                     jql = f"{field_id} IS NOT EMPTY"
 
-            # Limit to recent issues and order by creation date for faster query
             jql_with_order = f"{jql} ORDER BY created DESC"
             logger.info(
                 f"[JIRA] Executing JQL: {jql_with_order} (max {max_results} - SAMPLING)"
@@ -537,29 +425,21 @@ class JiraMetadataFetcher:
             params = {
                 "jql": jql_with_order,
                 "fields": field_id,
-                "maxResults": min(
-                    max_results, 1000
-                ),  # Cap at 1000 for field value extraction
+                "maxResults": min(max_results, 1000),
             }
 
             response = requests.get(
                 url, headers=self.headers, params=params, timeout=30
             )
 
-            # If JQL with IS NOT EMPTY fails, try simpler query (just fetch recent
-            # issues)
             if response.status_code != 200:
                 logger.warning(
                     f"[JIRA] JQL with IS NOT EMPTY failed ({response.status_code}), "
                     f"trying simpler query"
                 )
-                # Fallback: get recent issues from development projects if configured
-                # circular import guard
                 from data.persistence import load_app_settings  # noqa: PLC0415
 
                 settings = load_app_settings()
-                # development_projects can be at root level or under
-                # project_classification
                 dev_projects = settings.get("development_projects", [])
                 if not dev_projects:
                     dev_projects = settings.get("project_classification", {}).get(
@@ -571,7 +451,6 @@ class JiraMetadataFetcher:
                     )
                     logger.info(f"[JIRA] Fallback JQL with projects: {simple_jql}")
                 else:
-                    # No projects configured - try unscoped query (all recent issues)
                     simple_jql = "ORDER BY created DESC"
                     logger.info(
                         "[JIRA] No development projects configured, "
@@ -598,7 +477,6 @@ class JiraMetadataFetcher:
                 logger.warning(f"[JIRA] No issues found with {field_id}")
                 return []
 
-            # Extract unique values
             unique_values = set()
             for issue in issues:
                 if issue is None:
@@ -611,17 +489,14 @@ class JiraMetadataFetcher:
                 if field_value is None:
                     continue
 
-                # Handle different field types
                 if isinstance(field_value, str):
                     unique_values.add(field_value)
                 elif isinstance(field_value, dict):
-                    # For select/option fields
                     if "value" in field_value:
                         unique_values.add(field_value["value"])
                     elif "name" in field_value:
                         unique_values.add(field_value["name"])
                 elif isinstance(field_value, list):
-                    # For multi-select fields
                     for item in field_value:
                         if isinstance(item, str):
                             unique_values.add(item)
@@ -631,7 +506,6 @@ class JiraMetadataFetcher:
                             elif "name" in item:
                                 unique_values.add(item["name"])
 
-            # Sort and return as list
             sorted_values = sorted(unique_values)
             logger.info(
                 f"[JIRA] Found {len(sorted_values)} unique values for {field_id}: "
@@ -651,21 +525,9 @@ class JiraMetadataFetcher:
     def auto_detect_devops_projects(
         self, projects: list[dict], issue_types: list[dict]
     ) -> list[str]:
-        """
-        Auto-detect projects that likely contain DevOps tasks.
 
-        Strategy: Check for projects with issue types matching common DevOps patterns.
-
-        Args:
-            projects: List of project dictionaries
-            issue_types: List of issue type dictionaries
-
-        Returns:
-            List of project keys likely to contain DevOps tasks
-        """
         devops_patterns = ["operational", "deployment", "release", "devops", "ops"]
 
-        # Find issue types matching DevOps patterns
         devops_type_names = set()
         for issue_type in issue_types:
             name_lower = issue_type["name"].lower()
@@ -676,21 +538,11 @@ class JiraMetadataFetcher:
             logger.info("[JIRA] No DevOps-related issue types found")
             return []
 
-        # For simplicity, return empty list since we'd need to query each project
-        # This would require expensive API calls per project
         logger.info(f"[JIRA] Found potential DevOps issue types: {devops_type_names}")
         return []
 
     def auto_detect_issue_types(self, issue_types: list[dict]) -> dict[str, list[str]]:
-        """
-        Auto-detect and categorize issue types based on common patterns.
 
-        Args:
-            issue_types: List of issue type dictionaries
-
-        Returns:
-            Dictionary with categorized issue type names
-        """
         categories = {
             "devops_task_types": [],
             "bug_types": [],
@@ -707,7 +559,6 @@ class JiraMetadataFetcher:
             name = issue_type["name"]
             name_lower = name.lower()
 
-            # Categorize based on patterns
             if any(pattern in name_lower for pattern in devops_patterns):
                 categories["devops_task_types"].append(name)
             elif any(pattern in name_lower for pattern in bug_patterns):
@@ -721,15 +572,7 @@ class JiraMetadataFetcher:
         return categories
 
     def auto_detect_statuses(self, statuses: list[dict]) -> dict[str, list[str]]:
-        """
-        Auto-detect and categorize statuses based on status categories.
 
-        Args:
-            statuses: List of status dictionaries with category info
-
-        Returns:
-            Dictionary with categorized status names
-        """
         categories = {
             "flow_end_statuses": [],
             "active_statuses": [],
@@ -741,29 +584,20 @@ class JiraMetadataFetcher:
             name = status["name"]
             category_key = status.get("category_key", "undefined")
 
-            # Map JIRA status categories to our categories
             if category_key == "done":
                 categories["flow_end_statuses"].append(name)
-            elif category_key == "indeterminate":  # In Progress category
+            elif category_key == "indeterminate":
                 categories["active_statuses"].append(name)
                 categories["flow_start_statuses"].append(name)
                 categories["wip_statuses"].append(name)
-            elif category_key == "new":  # To Do category
+            elif category_key == "new":
                 categories["wip_statuses"].append(name)
 
         logger.info(f"[JIRA] Auto-detected status categories: {categories}")
         return categories
 
     def auto_detect_production_identifiers(self, field_options: list[str]) -> list[str]:
-        """
-        Auto-detect production environment identifiers from field values.
 
-        Args:
-            field_options: List of environment field values
-
-        Returns:
-            List of values likely representing production
-        """
         prod_patterns = ["prod", "production", "live", "prd"]
 
         production_values = []
@@ -776,7 +610,6 @@ class JiraMetadataFetcher:
         return production_values
 
     def clear_cache(self):
-        """Clear all cached metadata."""
         self._fields_cache = None
         self._projects_cache = None
         self._issue_types_cache = None
@@ -788,15 +621,5 @@ class JiraMetadataFetcher:
 def create_metadata_fetcher(
     jira_url: str, jira_token: str, api_version: str = "v2"
 ) -> JiraMetadataFetcher:
-    """
-    Factory function to create a metadata fetcher instance.
 
-    Args:
-        jira_url: JIRA instance URL
-        jira_token: JIRA API token
-        api_version: JIRA API version ("v2" or "v3", default: "v2")
-
-    Returns:
-        Configured JiraMetadataFetcher instance
-    """
     return JiraMetadataFetcher(jira_url, jira_token, api_version)

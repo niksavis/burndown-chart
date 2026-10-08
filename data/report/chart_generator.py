@@ -1,5 +1,3 @@
-"""Chart generation orchestration for HTML reports."""
-
 import logging
 from datetime import datetime
 from typing import Any
@@ -18,19 +16,6 @@ logger = logging.getLogger(__name__)
 
 
 def _load_remaining_work(deadline: str | None) -> tuple[float, float, float, float]:
-    """Load remaining items/points and required velocities from project scope.
-
-    Uses the exact same approach as the app's burndown tab callback:
-    - Loading remaining_items and remaining_total_points from project_scope
-    - Computing required velocity with midnight-today as current_date
-
-    Args:
-        deadline: Deadline date string (YYYY-MM-DD)
-
-    Returns:
-        Tuple of (remaining_items, remaining_points,
-                  required_velocity_items, required_velocity_points)
-    """
 
     project_data = load_unified_project_data()
     project_scope = project_data.get("project_scope", {})
@@ -43,7 +28,6 @@ def _load_remaining_work(deadline: str | None) -> tuple[float, float, float, flo
     if deadline:
         try:
             deadline_date = datetime.strptime(deadline, "%Y-%m-%d")
-            # Use midnight today - matches app's burndown tab callback exactly
             current_date = datetime.combine(datetime.now().date(), datetime.min.time())
             if remaining_items > 0:
                 raw = calculate_required_velocity(
@@ -75,16 +59,7 @@ def _load_remaining_work(deadline: str | None) -> tuple[float, float, float, flo
 
 
 def generate_chart_scripts(metrics: dict[str, Any], sections: list[str]) -> list[str]:
-    """
-    Generate Chart.js initialization scripts for visualizations.
 
-    Args:
-        metrics: Calculated metrics dictionary
-        sections: List of sections to generate charts for
-
-    Returns:
-        List of JavaScript code strings
-    """
     scripts: list[str] = []
 
     if "burndown" in sections and metrics.get("burndown", {}).get("has_data"):

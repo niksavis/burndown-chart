@@ -1,15 +1,7 @@
-"""Quality insights engine for bug analysis.
-
-Provides rule-based insights generation for actionable quality recommendations
-based on bug patterns and trends.
-"""
-
 from enum import Enum
 
 
 class InsightType(Enum):
-    """Type of quality insight."""
-
     RESOLUTION_RATE = "resolution_rate"
     BUG_TREND = "bug_trend"
     POSITIVE_TREND = "positive_trend"
@@ -20,73 +12,41 @@ class InsightType(Enum):
 
 
 class InsightSeverity(Enum):
-    """Severity level of quality insight (T066)."""
-
-    CRITICAL = "critical"  # Immediate action needed
-    HIGH = "high"  # Address soon
-    MEDIUM = "medium"  # Monitor
-    LOW = "low"  # Informational/positive feedback
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
 
 
-# Default thresholds for quality insights (T067)
 DEFAULT_THRESHOLDS = {
-    "resolution_rate_warning": 0.70,  # Below this triggers warning
-    "resolution_rate_critical": 0.50,  # Below this triggers critical
-    "capacity_warning": 0.30,  # Above this triggers warning
-    "capacity_critical": 0.40,  # Above this triggers critical
-    "avg_resolution_days_warning": 14,  # Above this triggers warning
-    "avg_resolution_days_critical": 30,  # Above this triggers critical
-    "trend_window_weeks": 4,  # Number of weeks for trend analysis
-    "trend_ratio_increasing": 1.2,  # bugs_created / bugs_resolved
-    "trend_ratio_stable": 0.9,  # Lower bound for stable
-    "positive_resolution_rate": 0.80,  # Above this is positive
-    "consecutive_increasing_weeks": 3,  # 3+ weeks of creation > closure
-    "stable_variance_threshold": 0.2,  # ±20% variation considered stable
+    "resolution_rate_warning": 0.70,
+    "resolution_rate_critical": 0.50,
+    "capacity_warning": 0.30,
+    "capacity_critical": 0.40,
+    "avg_resolution_days_warning": 14,
+    "avg_resolution_days_critical": 30,
+    "trend_window_weeks": 4,
+    "trend_ratio_increasing": 1.2,
+    "trend_ratio_stable": 0.9,
+    "positive_resolution_rate": 0.80,
+    "consecutive_increasing_weeks": 3,
+    "stable_variance_threshold": 0.2,
 }
 
 
 def generate_quality_insights(
     metrics: dict, statistics: list[dict], thresholds: dict | None = None
 ) -> list[dict]:
-    """Generate actionable quality insights from bug data.
 
-    Analyzes bug patterns and generates actionable recommendations with severity
-    levels. Insights are prioritized by severity and limited to top 10.
-
-    Args:
-        metrics: Bug metrics summary
-            (total_bugs, open_bugs, closed_bugs, resolution_rate)
-        statistics: Weekly bug statistics (bugs_created, bugs_resolved per week)
-        thresholds: Optional custom thresholds for insight rules
-
-    Returns:
-        List of quality insight dictionaries, sorted by severity
-        (critical → warning → info)
-        Each insight has: type, severity, message, actionable_recommendation
-
-    Example:
-        >>> metrics = {
-        ...     "total_bugs": 50,
-        ...     "open_bugs": 10,
-        ...     "closed_bugs": 40,
-        ...     "resolution_rate": 0.80,
-        ... }
-        >>> statistics = [
-        ...     {"week_start": "2025-01-01", "bugs_created": 5, "bugs_resolved": 7}
-        ... ]
-        >>> insights = generate_quality_insights(metrics, statistics)
-    """
     if thresholds is None:
         thresholds = DEFAULT_THRESHOLDS.copy()
     else:
-        # Merge with defaults
         merged = DEFAULT_THRESHOLDS.copy()
         merged.update(thresholds)
         thresholds = merged
 
     insights = []
 
-    # Run all insight rules
     insight_checks = [
         check_low_resolution_rate(metrics, thresholds),
         check_increasing_bug_trend(statistics, thresholds),
@@ -97,12 +57,10 @@ def generate_quality_insights(
         check_long_resolution_time(metrics, thresholds),
     ]
 
-    # Collect non-None insights
     for insight in insight_checks:
         if insight is not None:
             insights.append(insight)
 
-    # Sort by severity (critical → high → medium → low) - T076
     severity_order = {
         InsightSeverity.CRITICAL: 0,
         InsightSeverity.HIGH: 1,
@@ -111,22 +69,11 @@ def generate_quality_insights(
     }
     insights.sort(key=lambda x: severity_order.get(x["severity"], 999))
 
-    # Cap at 10 insights
     return insights[:10]
 
 
 def check_low_resolution_rate(metrics: dict, thresholds: dict) -> dict | None:
-    """Check if bug resolution rate is below threshold.
 
-    Implements T068 - low resolution rate check.
-
-    Args:
-        metrics: Bug metrics summary with resolution_rate
-        thresholds: Custom thresholds
-
-    Returns:
-        Insight dict if triggered, None otherwise
-    """
     resolution_rate = metrics.get("resolution_rate", 0.0)
     min_threshold = thresholds.get("resolution_rate_warning", 0.70)
     critical_threshold = thresholds.get("resolution_rate_critical", 0.50)
@@ -165,15 +112,7 @@ def check_low_resolution_rate(metrics: dict, thresholds: dict) -> dict | None:
 
 
 def check_increasing_bug_trend(statistics: list[dict], thresholds: dict) -> dict | None:
-    """Check if bug creation exceeds closure for consecutive weeks.
 
-    Args:
-        statistics: Weekly bug statistics
-        thresholds: Custom thresholds
-
-    Returns:
-        Insight dict if triggered, None otherwise
-    """
     if len(statistics) < 3:
         return None
 
@@ -183,7 +122,7 @@ def check_increasing_bug_trend(statistics: list[dict], thresholds: dict) -> dict
     )
     consecutive_count = 0
 
-    for week in statistics[-8:]:  # Check last 8 weeks
+    for week in statistics[-8:]:
         created = week.get("bugs_created", 0)
         resolved = week.get("bugs_resolved", 0)
 
@@ -210,25 +149,18 @@ def check_increasing_bug_trend(statistics: list[dict], thresholds: dict) -> dict
 
 
 def check_positive_trend(statistics: list[dict]) -> dict | None:
-    """Check for positive quality trends.
 
-    Args:
-        statistics: Weekly bug statistics
-
-    Returns:
-        Positive insight dict if conditions met, None otherwise
-    """
     if len(statistics) < 3:
         return None
 
-    recent_weeks = statistics[-4:]  # Check last 4 weeks
+    recent_weeks = statistics[-4:]
     positive_weeks = sum(
         1
         for week in recent_weeks
         if week.get("bugs_resolved", 0) > week.get("bugs_created", 0)
     )
 
-    if positive_weeks >= 3:  # 3+ out of 4 weeks positive
+    if positive_weeks >= 3:
         return {
             "type": InsightType.POSITIVE_TREND,
             "severity": InsightSeverity.LOW,
@@ -242,15 +174,7 @@ def check_positive_trend(statistics: list[dict]) -> dict | None:
 
 
 def check_stable_quality(statistics: list[dict], thresholds: dict) -> dict | None:
-    """Check for stable quality (consistent closure rate).
 
-    Args:
-        statistics: Weekly bug statistics
-        thresholds: Custom thresholds
-
-    Returns:
-        Positive insight dict if conditions met, None otherwise
-    """
     if len(statistics) < 4:
         return None
 
@@ -260,11 +184,9 @@ def check_stable_quality(statistics: list[dict], thresholds: dict) -> dict | Non
         for week in recent_weeks
     ]
 
-    # Calculate variance in net change
     avg_net_change = sum(net_changes) / len(net_changes)
     variance = sum((x - avg_net_change) ** 2 for x in net_changes) / len(net_changes)
 
-    # Stable if low variance and net change near zero
     if variance < 10 and abs(avg_net_change) < 2:
         return {
             "type": InsightType.STABLE_QUALITY,
@@ -279,14 +201,7 @@ def check_stable_quality(statistics: list[dict], thresholds: dict) -> dict | Non
 
 
 def check_no_open_bugs(metrics: dict) -> dict | None:
-    """Check if there are no open bugs.
 
-    Args:
-        metrics: Bug metrics summary with open_bugs count
-
-    Returns:
-        Positive insight dict if no open bugs, None otherwise
-    """
     open_bugs = metrics.get("open_bugs", 0)
 
     if open_bugs == 0 and metrics.get("total_bugs", 0) > 0:
@@ -303,20 +218,9 @@ def check_no_open_bugs(metrics: dict) -> dict | None:
 
 
 def check_high_bug_capacity(metrics: dict, thresholds: dict) -> dict | None:
-    """Check if bugs are consuming high percentage of capacity.
 
-    Implements T070 - high bug capacity warning.
-
-    Args:
-        metrics: Bug metrics summary with capacity_consumed_by_bugs
-        thresholds: Custom thresholds
-
-    Returns:
-        Insight dict if triggered, None otherwise
-    """
     capacity = metrics.get("capacity_consumed_by_bugs", 0.0)
 
-    # Default thresholds from contract: 30% warning, 40% critical
     warning_threshold = thresholds.get("capacity_warning", 0.30)
     critical_threshold = thresholds.get("capacity_critical", 0.40)
 
@@ -345,20 +249,9 @@ def check_high_bug_capacity(metrics: dict, thresholds: dict) -> dict | None:
 
 
 def check_long_resolution_time(metrics: dict, thresholds: dict) -> dict | None:
-    """Check if average bug resolution time is too long.
 
-    Implements T071 - long resolution time warning.
-
-    Args:
-        metrics: Bug metrics summary with avg_resolution_time_days
-        thresholds: Custom thresholds
-
-    Returns:
-        Insight dict if triggered, None otherwise
-    """
     avg_days = metrics.get("avg_resolution_time_days", 0.0)
 
-    # Default thresholds from contract: 14 days warning, 30 days critical
     warning_threshold = thresholds.get("avg_resolution_days_warning", 14)
     critical_threshold = thresholds.get("avg_resolution_days_critical", 30)
 

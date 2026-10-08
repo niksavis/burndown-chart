@@ -1,20 +1,3 @@
-"""
-Metrics Calculator for Flow and DORA Metrics
-
-[DEPRECATED - Use data.metrics package instead]
-
-This module is maintained for backward compatibility only.
-All functionality has been moved to the data.metrics package:
-- data.metrics.helpers: Utility functions
-- data.metrics.forecast_calculator: Forecast and trend analysis
-- data.metrics.weekly_calculator: Main weekly metrics calculation
-- data.metrics.historical_calculator: Multi-week calculation
-
-Created: October 31, 2025
-Refactored: February 1, 2026 - Split into modular package
-"""
-
-# Re-export all functions for backward compatibility
 from data.metrics import (
     calculate_and_save_weekly_metrics,
     calculate_ewma_forecast,

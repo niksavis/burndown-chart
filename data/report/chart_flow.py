@@ -1,11 +1,8 @@
-"""Work distribution chart generator."""
-
 import json
 from typing import Any
 
 
 def generate_work_distribution_chart(flow_metrics: dict[str, Any]) -> str:
-    """Generate Chart.js script for work distribution stacked bar chart over time."""
     distribution_history = flow_metrics.get("distribution_history", [])
 
     if not distribution_history:

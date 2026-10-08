@@ -1,31 +1,3 @@
-"""
-Database schema initialization for SQLite persistence.
-
-This module defines the 12-table normalized schema per data-model.md.
-Implements all CREATE TABLE statements, indexes, and foreign key constraints.
-
-Tables:
-1. profiles - Profile configurations
-2. queries - Saved JQL queries
-3. app_state - Application state (key-value)
-4. jira_issues - Normalized JIRA issues (replaces jira_cache JSON blob)
-5. jira_changelog_entries - Normalized changelog (replaces jira_changelog_cache JSON
-blob)
-6. project_statistics - Normalized weekly stats (replaces project_data.statistics array)
-7. project_scope - Project scope data (small JSON)
-8. metrics_data_points - Normalized metrics (replaces metrics_snapshots JSON blob)
-9. budget_settings - Profile-level budget configuration
-10. budget_revisions - Budget change event log
-11. task_progress - Runtime task progress
-12. (future tables can be added here)
-
-Usage:
-    from data.migration.schema import create_schema
-
-    with get_db_connection() as conn:
-        create_schema(conn)
-"""
-
 import logging
 import sqlite3
 
@@ -33,28 +5,11 @@ logger = logging.getLogger(__name__)
 
 
 def create_schema(conn: sqlite3.Connection) -> None:
-    """
-    Create all database tables and indexes.
 
-    Implements 10-table normalized schema from data-model.md.
-    Safe to call multiple times (uses IF NOT EXISTS).
-
-    Args:
-        conn: Active database connection
-
-    Raises:
-        sqlite3.Error: If table creation fails
-
-    Example:
-        >>> from data.database import get_db_connection
-        >>> with get_db_connection() as conn:
-        ...     create_schema(conn)
-    """
     cursor = conn.cursor()
 
     logger.info("Creating database schema (12 normalized tables)")
 
-    # Table 1: app_state (key-value for application settings)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS app_state (
             key TEXT PRIMARY KEY,
@@ -62,7 +17,6 @@ def create_schema(conn: sqlite3.Connection) -> None:
         )
     """)
 
-    # Table 2: profiles
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS profiles (
             id TEXT PRIMARY KEY,
@@ -81,13 +35,11 @@ def create_schema(conn: sqlite3.Connection) -> None:
         )
     """)
 
-    # Indexes for profiles
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_profiles_last_used ON profiles(last_used DESC)"
     )
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_profiles_name ON profiles(name)")
 
-    # Table 3: queries
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS queries (
             id TEXT NOT NULL,
@@ -101,7 +53,6 @@ def create_schema(conn: sqlite3.Connection) -> None:
         )
     """)
 
-    # Indexes for queries
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_queries_profile "
         "ON queries(profile_id, last_used DESC)"
@@ -110,7 +61,6 @@ def create_schema(conn: sqlite3.Connection) -> None:
         "CREATE INDEX IF NOT EXISTS idx_queries_name ON queries(profile_id, name)"
     )
 
-    # Table 4: jira_issues (normalized - replaces jira_cache JSON blob)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS jira_issues (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -142,7 +92,6 @@ def create_schema(conn: sqlite3.Connection) -> None:
         )
     """)
 
-    # Indexes for jira_issues (9 indexes per data-model.md)
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_jira_issues_query "
         "ON jira_issues(profile_id, query_id)"
@@ -177,8 +126,6 @@ def create_schema(conn: sqlite3.Connection) -> None:
         "CREATE INDEX IF NOT EXISTS idx_jira_issues_cache ON jira_issues(cache_key)"
     )
 
-    # Table 5: jira_changelog_entries (normalized - replaces
-    # jira_changelog_cache JSON blob)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS jira_changelog_entries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -199,7 +146,6 @@ def create_schema(conn: sqlite3.Connection) -> None:
         )
     """)
 
-    # Indexes for jira_changelog_entries (6 indexes per data-model.md)
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_changelog_query "
         "ON jira_changelog_entries(profile_id, query_id)"
@@ -226,8 +172,6 @@ def create_schema(conn: sqlite3.Connection) -> None:
         "ON jira_changelog_entries(expires_at)"
     )
 
-    # Table 6: project_statistics (normalized - replaces
-    # project_data.statistics array)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS project_statistics (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -252,7 +196,6 @@ def create_schema(conn: sqlite3.Connection) -> None:
         )
     """)
 
-    # Indexes for project_statistics (3 indexes per data-model.md)
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_project_stats_query "
         "ON project_statistics(profile_id, query_id)"
@@ -266,7 +209,6 @@ def create_schema(conn: sqlite3.Connection) -> None:
         "ON project_statistics(week_label)"
     )
 
-    # Table 7: project_scope (small JSON aggregate data)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS project_scope (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -285,8 +227,6 @@ def create_schema(conn: sqlite3.Connection) -> None:
         "ON project_scope(profile_id, query_id)"
     )
 
-    # Table 8: metrics_data_points (normalized - replaces metrics_snapshots
-    # JSON blob)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS metrics_data_points (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -309,7 +249,6 @@ def create_schema(conn: sqlite3.Connection) -> None:
         )
     """)
 
-    # Indexes for metrics_data_points (5 indexes per data-model.md)
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_metrics_query "
         "ON metrics_data_points(profile_id, query_id)"
@@ -331,7 +270,6 @@ def create_schema(conn: sqlite3.Connection) -> None:
         "ON metrics_data_points(metric_name, metric_value)"
     )
 
-    # Table 9: budget_settings (query-level budget configuration)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS budget_settings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -357,7 +295,6 @@ def create_schema(conn: sqlite3.Connection) -> None:
         "ON budget_settings(profile_id, query_id)"
     )
 
-    # Table 10: budget_revisions (budget change event log)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS budget_revisions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -376,7 +313,6 @@ def create_schema(conn: sqlite3.Connection) -> None:
         )
     """)
 
-    # Indexes for budget_revisions
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_budget_revisions_profile_query "
         "ON budget_revisions(profile_id, query_id)"
@@ -386,7 +322,6 @@ def create_schema(conn: sqlite3.Connection) -> None:
         "ON budget_revisions(profile_id, query_id, week_label)"
     )
 
-    # Table 11: task_progress (runtime state)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS task_progress (
             task_name TEXT PRIMARY KEY,
@@ -403,33 +338,18 @@ def create_schema(conn: sqlite3.Connection) -> None:
 
 
 def get_schema_version(conn: sqlite3.Connection) -> str:
-    """
-    Get current schema version from app_state table.
 
-    Args:
-        conn: Active database connection
-
-    Returns:
-        str: Schema version (e.g., "1.0"), or "0.0" if not set
-    """
     cursor = conn.cursor()
     try:
         cursor.execute("SELECT value FROM app_state WHERE key = 'schema_version'")
         result = cursor.fetchone()
         return result[0] if result else "0.0"
     except sqlite3.OperationalError:
-        # Table doesn't exist yet
         return "0.0"
 
 
 def set_schema_version(conn: sqlite3.Connection, version: str) -> None:
-    """
-    Set schema version in app_state table.
 
-    Args:
-        conn: Active database connection
-        version: Version string (e.g., "1.0")
-    """
     cursor = conn.cursor()
     cursor.execute(
         """
@@ -442,25 +362,9 @@ def set_schema_version(conn: sqlite3.Connection, version: str) -> None:
 
 
 def drop_jira_cache_table(conn: sqlite3.Connection) -> None:
-    """
-    Drop jira_cache table if it exists.
 
-    The jira_cache table stored metadata (timestamp, config_hash, issue_count)
-    that is now derived from jira_issues table on demand. This table is no
-    longer needed and can be safely dropped.
-
-    Safe to call multiple times (idempotent).
-
-    Args:
-        conn: SQLite connection
-
-    Example:
-        >>> with get_db_connection() as conn:
-        ...     drop_jira_cache_table(conn)
-    """
     cursor = conn.cursor()
 
-    # Check if jira_cache table exists
     cursor.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='jira_cache'"
     )
@@ -476,22 +380,12 @@ def drop_jira_cache_table(conn: sqlite3.Connection) -> None:
 
 
 def ensure_budget_velocity_columns(conn: sqlite3.Connection) -> None:
-    """
-    Ensure budget_settings table has baseline velocity columns.
 
-    Adds baseline_velocity_items, baseline_velocity_points, and updated_at
-    columns if they don't exist. Safe to call multiple times (idempotent).
-
-    Args:
-        conn: Active database connection
-    """
     cursor = conn.cursor()
 
-    # Get existing columns
     cursor.execute("PRAGMA table_info(budget_settings)")
     existing_columns = {row[1] for row in cursor.fetchall()}
 
-    # Add missing columns
     if "baseline_velocity_items" not in existing_columns:
         logger.info("Adding baseline_velocity_items column to budget_settings")
         cursor.execute(
@@ -507,7 +401,6 @@ def ensure_budget_velocity_columns(conn: sqlite3.Connection) -> None:
     if "updated_at" not in existing_columns:
         logger.info("Adding updated_at column to budget_settings")
         cursor.execute("ALTER TABLE budget_settings ADD COLUMN updated_at TEXT")
-        # Backfill updated_at with created_at for existing rows
         cursor.execute(
             "UPDATE budget_settings "
             "SET updated_at = created_at "

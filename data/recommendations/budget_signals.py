@@ -1,5 +1,3 @@
-"""Shared budget recommendation signals."""
-
 from __future__ import annotations
 
 import math
@@ -11,14 +9,7 @@ from data.types import MetricsResult
 def build_budget_health_signals(
     budget_data: dict[str, Any] | None,
 ) -> list[dict[str, Any]]:
-    """Build budget health signals from budget data.
 
-    Args:
-        budget_data: Budget metrics dictionary.
-
-    Returns:
-        List of signal dictionaries with severity and metrics.
-    """
     if not budget_data:
         return []
 
@@ -105,16 +96,7 @@ def build_budget_forecast_signals(
     pert_forecast_weeks: float,
     pert_pessimistic_weeks: float,
 ) -> list[dict[str, Any]]:
-    """Build budget vs forecast signals from weeks-based inputs.
 
-    Args:
-        runway_weeks: Budget runway in weeks.
-        pert_forecast_weeks: Forecast duration in weeks.
-        pert_pessimistic_weeks: Pessimistic duration in weeks.
-
-    Returns:
-        List of signal dictionaries with severity and metrics.
-    """
     signals: list[dict[str, Any]] = []
 
     if math.isinf(runway_weeks) or pert_forecast_weeks <= 0:
@@ -156,7 +138,6 @@ def build_budget_forecast_signals_from_pert(
     budget_data: dict[str, Any] | None,
     pert_data: dict[str, Any] | None,
 ) -> list[dict[str, Any]]:
-    """Build budget vs forecast signals using PERT data."""
     if not budget_data or not pert_data:
         return []
 
@@ -181,7 +162,6 @@ def build_budget_forecast_signals_from_dashboard(
     budget_data: dict[str, Any] | None,
     dashboard_metrics: MetricsResult,
 ) -> list[dict[str, Any]]:
-    """Build budget vs forecast signals using dashboard metrics."""
     if not budget_data:
         return []
 

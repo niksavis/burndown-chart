@@ -1,10 +1,3 @@
-"""Profile CRUD operations.
-
-Extracted from profile_manager.py to respect file-size limits.
-Functions that need module-level limits (MAX_PROFILES) lazy-import
-data.profile_manager so test patches propagate correctly.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -20,31 +13,9 @@ logger = logging.getLogger(__name__)
 
 
 def create_profile(name: str, settings: dict) -> str:
-    """
-    Create a new profile with initial settings.
 
-    Args:
-        name: Human-readable profile name (e.g., "Apache Kafka")
-        settings: Profile configuration (pert_factor, deadline, data_points_count, etc.)
-
-    Returns:
-        str: Generated profile_id (UUID format: p_a1b2c3d4e5f6)
-
-    Raises:
-        ValueError: If name invalid, duplicate, or max profiles reached
-        OSError: If directory creation fails
-
-    Example:
-        >>> profile_id = create_profile("Apache Kafka", {
-        ...     "pert_factor": 1.2,
-        ...     "deadline": "2025-12-31",
-        ...     "data_points_count": 20
-        ... })
-        >>> assert profile_id.startswith("p_") and len(profile_id) == 14
-    """
     import data.profile_manager as _pm  # noqa: PLC0415
 
-    # Validate inputs
     if not name or not name.strip():
         raise ValueError("Profile name cannot be empty")
 
@@ -54,13 +25,11 @@ def create_profile(name: str, settings: dict) -> str:
 
     backend = get_backend()
 
-    # Check for duplicate names (case-insensitive)
     all_profiles = backend.list_profiles()
     existing_names = [p["name"].lower() for p in all_profiles]
     if name.lower() in existing_names:
         raise ValueError(f"Profile name '{name}' already exists")
 
-    # Check max profiles limit
     if len(all_profiles) >= _pm.MAX_PROFILES:
         raise ValueError(f"Maximum {_pm.MAX_PROFILES} profiles allowed")
 
@@ -99,19 +68,6 @@ def create_profile(name: str, settings: dict) -> str:
 
 
 def switch_profile(profile_id: str) -> None:
-    """
-    Switch to a different profile.
-
-    Args:
-        profile_id: Target profile identifier
-
-    Raises:
-        ValueError: If profile doesn't exist
-
-    Example:
-        >>> switch_profile("kafka")
-        >>> # App now uses kafka profile settings and queries
-    """
 
     backend = get_backend()
 
@@ -119,13 +75,11 @@ def switch_profile(profile_id: str) -> None:
     if not profile:
         raise ValueError(f"Profile '{profile_id}' does not exist")
 
-    # Update last_used timestamp
     profile["last_used"] = datetime.now(UTC).isoformat()
     backend.save_profile(profile)
 
     backend.set_app_state("active_profile_id", profile_id)
 
-    # Find most recently used query in this profile
     queries = backend.list_queries(profile_id)
     if queries:
         most_recent_query = max(
@@ -142,24 +96,6 @@ def switch_profile(profile_id: str) -> None:
 
 
 def delete_profile(profile_id: str) -> None:
-    """
-    Delete a profile and all its queries with cascade deletion.
-
-    This performs cascade deletion:
-    1. Deletes all queries in the profile (using allow_cascade=True)
-    2. Removes profile from database
-
-    Args:
-        profile_id: Profile to delete
-
-    Raises:
-        ValueError: If profile doesn't exist
-        OSError: If deletion fails
-
-    Example:
-        >>> delete_profile("old-project")
-        >>> # Removes profile and all associated queries from database
-    """
 
     backend = get_backend()
 
@@ -169,7 +105,6 @@ def delete_profile(profile_id: str) -> None:
 
     profile_name = profile.get("name", profile_id)
 
-    # If deleting active profile, switch to another one first
     active_profile_id = backend.get_app_state("active_profile_id")
     if profile_id == active_profile_id:
         all_profiles = backend.list_profiles()
@@ -187,31 +122,12 @@ def delete_profile(profile_id: str) -> None:
             )
             backend.set_app_state("active_profile_id", "")
 
-    # CASCADE DELETE: Database backend automatically handles query deletion
     backend.delete_profile(profile_id)
     logger.info(f"[Profiles] Deleted profile: {profile_name} ({profile_id})")
 
 
 def rename_profile(profile_id: str, new_name: str) -> None:
-    """
-    Rename an existing profile (updates name in metadata only).
 
-    This is a lightweight operation that only updates the profile name
-    in profile.json and the profiles registry. The profile ID remains
-    unchanged, so all queries and data files stay in place.
-
-    Args:
-        profile_id: ID of profile to rename
-        new_name: New name for the profile
-
-    Raises:
-        ValueError: If profile doesn't exist, name is empty/invalid, or duplicate
-        OSError: If metadata update fails
-
-    Example:
-        >>> rename_profile("p_abc123", "Production Environment")
-        >>> # Updates name in both profile.json and profiles registry
-    """
     if not new_name or not new_name.strip():
         raise ValueError("Profile name cannot be empty")
 
@@ -233,7 +149,6 @@ def rename_profile(profile_id: str, new_name: str) -> None:
         )
         return
 
-    # Check for duplicate names (case-insensitive)
     all_profiles = backend.list_profiles()
     for p in all_profiles:
         if p["id"] != profile_id and p["name"].lower() == new_name.lower():
@@ -249,33 +164,7 @@ def rename_profile(profile_id: str, new_name: str) -> None:
 def duplicate_profile(
     source_profile_id: str, new_name: str, description: str = ""
 ) -> str:
-    """
-    Duplicate a profile with all its settings and queries from database.
 
-    Creates a complete copy of the source profile including:
-    - All profile settings (JIRA config, field mappings, forecast settings, etc.)
-    - All queries with their metadata and JQL strings
-    - All query data (JIRA cache, statistics, metrics snapshots, etc.)
-
-    Args:
-        source_profile_id: Profile ID to duplicate
-        new_name: Name for the new profile
-        description: Optional description for the new profile
-
-    Returns:
-        str: New profile ID
-
-    Raises:
-        ValueError: If source profile doesn't exist,
-            name is invalid/duplicate, or max profiles reached
-        OSError: If database operations fail
-
-    Example:
-        >>> new_id = duplicate_profile(
-        ...     "p_abc123", "Production Copy", "Backup of production"
-        ... )
-        >>> # Creates complete copy with new ID and timestamps
-    """
     import data.profile_manager as _pm  # noqa: PLC0415
 
     if not new_name or not new_name.strip():
@@ -291,7 +180,6 @@ def duplicate_profile(
     if not source_profile:
         raise ValueError(f"Source profile '{source_profile_id}' does not exist")
 
-    # Check for duplicate names (case-insensitive)
     all_profiles = backend.list_profiles()
     existing_names = [p["name"].lower() for p in all_profiles]
     if new_name.lower() in existing_names:
@@ -313,7 +201,6 @@ def duplicate_profile(
 
         backend.save_profile(new_profile_data)
 
-        # Duplicate all queries from source profile
         source_queries = backend.list_queries(source_profile_id)
         new_query_ids = []
 
@@ -348,17 +235,6 @@ def duplicate_profile(
 
 
 def list_profiles() -> list[dict]:
-    """
-    List all available profiles from database.
-
-    Returns:
-        List[Dict]: Profile summaries with id, name, query_count, created_at
-
-    Example:
-        >>> profiles = list_profiles()
-        >>> for p in profiles:
-        ...     print(f"{p['name']} ({p['query_count']} queries)")
-    """
 
     backend = get_backend()
     profiles = backend.list_profiles()
@@ -373,22 +249,6 @@ def list_profiles() -> list[dict]:
 
 
 def get_profile(profile_id: str) -> dict:
-    """
-    Load profile configuration.
-
-    Args:
-        profile_id: Profile identifier
-
-    Returns:
-        Dict: Profile config (forecast_settings, jira_config, field_mappings, etc.)
-
-    Raises:
-        FileNotFoundError: If profile doesn't exist
-
-    Example:
-        >>> config = get_profile("kafka")
-        >>> print(config["forecast_settings"]["pert_factor"])
-    """
 
     metadata = load_profiles_metadata()
 

@@ -1,13 +1,3 @@
-"""Completed Items Manager for Active Work Tab.
-
-This module provides functions for displaying recently completed items in the
-Active Work tab, grouped by ISO calendar weeks (Monday-Sunday).
-
-Key Functions:
-    get_completed_items_by_week() -> Dict: Get completed issues bucketed by week
-    _format_week_label() -> str: Format week label for display
-"""
-
 import logging
 from collections import OrderedDict
 
@@ -23,39 +13,7 @@ def get_completed_items_by_week(
     flow_end_statuses: list[str] | None = None,
     parent_field: str | None = None,
 ) -> dict[str, dict]:
-    """Bucket completed issues into current week and last week.
 
-    Filters issues by completion status and resolutiondate, then groups them
-    into ISO calendar weeks. Returns current week first, then last week.
-
-    Args:
-        issues: List of JIRA issue dictionaries
-        n_weeks: Number of weeks to include (default: 2 for current + last week)
-        flow_end_statuses: List of statuses indicating completion
-            (default: ["Done", "Closed", "Resolved"])
-        parent_field: Field name for parent/epic grouping (e.g., "parent")
-
-    Returns:
-        OrderedDict mapping week_label -> dict with:
-        {
-            "display_label": "Current Week (Feb 3-9)",
-            "issues": [issue1, issue2, ...],
-            "is_current": True/False,
-            "total_issues": 5,
-            "total_epics_closed": 1,
-            "total_epics_linked": 2,
-            "total_points": 12.0
-        }
-
-    Example:
-        >>> issues = [...]  # Issues from database
-        >>> result = get_completed_items_by_week(issues, n_weeks=2)
-        >>> result["2026-W06"]["display_label"]
-        "Current Week (Feb 3-9)"
-        >>> len(result["2026-W06"]["issues"])
-        5
-    """
-    # Default completion statuses
     if flow_end_statuses is None:
         flow_end_statuses = ["Done", "Closed", "Resolved"]
 
@@ -64,24 +22,19 @@ def get_completed_items_by_week(
         f"using flow_end_statuses={flow_end_statuses}, parent_field={parent_field}"
     )
 
-    # Filter to only completed issues with resolutiondate
     completed_issues = []
     sampled_debug_logs = 0
     for issue in issues:
-        # Access status - try flat format first (database), then JIRA nested format
         status = issue.get("status")
         if not status:
             status = issue.get("fields", {}).get("status", {}).get("name", "")
 
-        # Access resolutiondate - try flat format first (database),
-        # then JIRA nested format
         resolutiondate = issue.get("resolutiondate")
         if not resolutiondate:
             resolutiondate = issue.get("resolved")
         if not resolutiondate:
             resolutiondate = issue.get("fields", {}).get("resolutiondate")
 
-        # Debug sample (limited) to aid troubleshooting without log spam
         if sampled_debug_logs < 3:
             issue_key = issue.get("key", issue.get("issue_key", "unknown"))
             logger.debug(
@@ -100,13 +53,11 @@ def get_completed_items_by_week(
     )
 
     if not completed_issues:
-        # Return empty structure for consistency
         logger.warning(
             "[COMPLETED ITEMS] No completed issues found - returning empty structure"
         )
         return _create_empty_week_structure(n_weeks)
 
-    # Bucket issues by week using resolutiondate
     logger.info(
         f"[COMPLETED ITEMS] Bucketing {len(completed_issues)} completed issues by week"
     )
@@ -114,20 +65,15 @@ def get_completed_items_by_week(
         issues=completed_issues, date_field="resolutiondate", n_weeks=n_weeks
     )
 
-    # Log bucket results
     for week_label, week_issues in buckets.items():
         logger.info(f"[COMPLETED ITEMS] Week {week_label}: {len(week_issues)} issues")
 
-    # Get week definitions for formatting
     weeks = get_last_n_weeks(n_weeks)
 
-    # Determine which week is current (last one in the list)
     current_week_label = weeks[-1][0] if weeks else None
 
-    # Format result with ordered dict (current week first)
     result = OrderedDict()
 
-    # Sort weeks in reverse order (current week first)
     for week_label, monday, sunday in reversed(weeks):
         week_issues = buckets.get(week_label, [])
 
@@ -136,12 +82,7 @@ def get_completed_items_by_week(
         display_issues = week_issues
         epic_groups = []
         if parent_field:
-            # Use ALL issues to identify parent keys so that epics completed
-            # this week whose children were completed in prior weeks are still
-            # recognised as parents and excluded from the issue count.
             all_parent_keys = extract_parent_keys(issues, parent_field)
-            # Week-scoped parent keys are kept for total_epics_linked (epics that
-            # have at least one child completed this week).
             parent_keys = extract_parent_keys(week_issues, parent_field)
             closed_epic_keys = _get_closed_epic_keys(week_issues, all_parent_keys)
             display_issues = [
@@ -149,13 +90,11 @@ def get_completed_items_by_week(
             ]
             epic_groups = _group_issues_by_epic(display_issues, parent_field, issues)
 
-        # Calculate totals
         total_issues = len(display_issues)
         total_epics_linked = len(parent_keys)
         total_epics_closed = len(closed_epic_keys)
         total_points = sum(issue.get("points", 0.0) or 0.0 for issue in display_issues)
 
-        # Format display label
         display_label = _format_week_label(
             week_label=week_label,
             monday=monday,
@@ -186,48 +125,22 @@ def get_completed_items_by_week(
 def _format_week_label(
     week_label: str, monday, sunday, is_current: bool = False
 ) -> str:
-    """Format week label for display.
 
-    Args:
-        week_label: ISO week label (e.g., "2026-W06")
-        monday: Monday date object for the week
-        sunday: Sunday date object for the week
-        is_current: Whether this is the current week
-
-    Returns:
-        Formatted label like "Current Week (Feb 3-9)" or "Last Week (Jan 27 - Feb 2)"
-
-    Examples:
-        >>> _format_week_label("2026-W06", date(2026, 2, 3), date(2026, 2, 9), True)
-        "Current Week (Feb 3-9)"
-        >>> _format_week_label("2026-W05", date(2026, 1, 27), date(2026, 2, 2), False)
-        "Last Week (Jan 27 - Feb 2)"
-    """
-    # Format dates - strip leading zeros from day
     monday_str = f"{monday.strftime('%b')} {monday.day}"
     sunday_str = f"{sunday.strftime('%b')} {sunday.day}"
 
-    # Handle month boundary
     if monday.month == sunday.month:
         date_range = f"{monday.strftime('%b')} {monday.day}-{sunday.day}"
     else:
         date_range = f"{monday_str} - {sunday_str}"
 
-    # Add prefix
     prefix = "Current Week" if is_current else "Last Week"
 
     return f"{prefix} ({date_range})"
 
 
 def _create_empty_week_structure(n_weeks: int = 2) -> dict[str, dict]:
-    """Create empty week structure when no completed items exist.
 
-    Args:
-        n_weeks: Number of weeks to include
-
-    Returns:
-        OrderedDict with empty week data
-    """
     weeks = get_last_n_weeks(n_weeks)
     current_week_label = weeks[-1][0] if weeks else None
 
@@ -256,15 +169,7 @@ def _create_empty_week_structure(n_weeks: int = 2) -> dict[str, dict]:
 
 
 def _get_closed_epic_keys(issues: list[dict], parent_keys: set[str]) -> set[str]:
-    """Get parent keys that are also completed issues.
 
-    Args:
-        issues: Completed issues in the week
-        parent_keys: Parent keys extracted from child issues
-
-    Returns:
-        Set of epic keys that are explicitly completed in this week
-    """
     closed_epics = set()
     for issue in issues:
         issue_key = issue.get("issue_key", issue.get("key"))
@@ -276,23 +181,13 @@ def _get_closed_epic_keys(issues: list[dict], parent_keys: set[str]) -> set[str]
 def _group_issues_by_epic(
     issues: list[dict], parent_field: str, all_issues: list[dict]
 ) -> list[dict]:
-    """Group issues by parent epic for display.
 
-    Args:
-        issues: Issues to group (parents already filtered out)
-        parent_field: Field name for parent/epic
-        all_issues: All issues for epic summary lookup
-
-    Returns:
-        List of groups with epic_key, epic_summary, and issues
-    """
     grouped = OrderedDict()
 
     for issue in issues:
         issue_type = issue.get("issue_type", "").lower()
         issue_key = issue.get("issue_key") or issue.get("key")
 
-        # If this issue is an epic itself, create a group for it with 0 child items
         if "epic" in issue_type and issue_key:
             if issue_key not in grouped:
                 grouped[issue_key] = {
@@ -300,10 +195,8 @@ def _group_issues_by_epic(
                     "epic_summary": issue.get("summary", issue_key),
                     "issues": [],
                 }
-            # Don't add the epic to its own issues list
             continue
 
-        # Regular issue - group by parent
         epic_key, epic_summary = _get_parent_info(issue, parent_field, all_issues)
         if not epic_key:
             epic_key = "No Parent"
@@ -324,15 +217,7 @@ def _group_issues_by_epic(
 def _get_parent_info(
     issue: dict, parent_field: str, all_issues: list[dict]
 ) -> tuple[str | None, str | None]:
-    """Extract parent epic key and summary from an issue.
 
-    Args:
-        issue: Issue dict
-        parent_field: Parent field name
-
-    Returns:
-        Tuple of (parent_key, parent_summary)
-    """
     parent = issue.get(parent_field)
     if not parent and parent_field.startswith("customfield_"):
         custom_fields = issue.get("custom_fields", {})

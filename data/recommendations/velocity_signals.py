@@ -1,5 +1,3 @@
-"""Shared velocity and throughput recommendation signals."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -8,14 +6,7 @@ import pandas as pd
 
 
 def build_velocity_trend_signals(statistics_df: pd.DataFrame) -> list[dict[str, Any]]:
-    """Build velocity trend signals from statistics data.
 
-    Args:
-        statistics_df: Project statistics with completed items.
-
-    Returns:
-        List of signal dictionaries with severity and metrics.
-    """
     if statistics_df.empty:
         return []
 
@@ -61,14 +52,7 @@ def build_velocity_trend_signals(statistics_df: pd.DataFrame) -> list[dict[str, 
 
 
 def build_throughput_signals(statistics_df: pd.DataFrame) -> list[dict[str, Any]]:
-    """Build throughput efficiency signals from statistics data.
 
-    Args:
-        statistics_df: Project statistics with completed items.
-
-    Returns:
-        List of signal dictionaries with severity and metrics.
-    """
     if statistics_df.empty:
         return []
 
@@ -101,14 +85,7 @@ def build_throughput_signals(statistics_df: pd.DataFrame) -> list[dict[str, Any]
 def build_velocity_consistency_signals(
     statistics_df: pd.DataFrame,
 ) -> list[dict[str, Any]]:
-    """Build velocity consistency signals from statistics data.
 
-    Args:
-        statistics_df: Project statistics with completed items.
-
-    Returns:
-        List of signal dictionaries with severity and metrics.
-    """
     if statistics_df.empty:
         return []
 

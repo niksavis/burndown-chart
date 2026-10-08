@@ -1,10 +1,7 @@
-"""Lazy-loading backend proxy and adapter resolver for data.persistence."""
-
 _backend_instance = None
 
 
 def _get_backend_instance():
-    """Get or create the backend instance (lazy initialization)."""
     global _backend_instance
     if _backend_instance is None:
         from data.persistence.factory import get_backend  # noqa: PLC0415
@@ -14,8 +11,6 @@ def _get_backend_instance():
 
 
 class _BackendProxy:
-    """Proxy object that lazy-loads the backend on first attribute access."""
-
     def __getattr__(self, name: str):
         return getattr(_get_backend_instance(), name)
 
@@ -49,7 +44,6 @@ _ADAPTER_FUNCTIONS = {
 
 
 def lazy_getattr(name: str):
-    """Resolve adapter or factory function by name for data.persistence.__getattr__."""
     if name in _ADAPTER_FUNCTIONS:
         from data.persistence import adapters  # noqa: PLC0415
 

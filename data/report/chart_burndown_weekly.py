@@ -1,9 +1,3 @@
-"""Weekly breakdown chart generator.
-
-Generates the Chart.js weekly breakdown bar chart with PERT/EWMA forecasts.
-Part of data/report/chart_burndown.py split.
-"""
-
 import json
 from datetime import datetime
 
@@ -21,35 +15,12 @@ def generate_weekly_breakdown_chart(
     remaining_items: float | None = None,
     remaining_points: float | None = None,
 ) -> str:
-    """
-    Generate Chart.js script for weekly breakdown showing completed
-    items/points with forecasts and targets.
-
-    Shows:
-    - Weekly completed bars (items and optionally points)
-    - PERT forecast bars for next week (semi-transparent)
-    - EWMA forecast markers (triangles)
-    - Required velocity reference lines (if deadline provided)
-
-    Args:
-        weekly_data: List of weekly breakdown dictionaries
-        show_points: Whether to include points data
-        statistics: Full statistics data for forecast calculations
-        pert_factor: PERT factor for forecast calculations
-        deadline: Deadline date string (YYYY-MM-DD) for required velocity
-        remaining_items: Remaining items for required velocity calculation
-        remaining_points: Remaining points for required velocity calculation
-
-    Returns:
-        Chart.js initialization script
-    """
 
     dates = [week["date"] for week in weekly_data]
     dates_js = json.dumps(dates)
     items_completed = [week["completed_items"] for week in weekly_data]
     points_completed = [week.get("completed_points", 0) for week in weekly_data]
 
-    # Generate forecasts if statistics data available
     forecast_items = None
     forecast_points = None
     ewma_items = None
@@ -57,7 +28,6 @@ def generate_weekly_breakdown_chart(
 
     if statistics and len(statistics) > 0:
         try:
-            # Check if statistics has required columns for forecast
             has_required_data = all(
                 key in statistics[0] for key in ["date", "completed_items"]
             )
@@ -66,12 +36,10 @@ def generate_weekly_breakdown_chart(
             )
 
             if has_required_data:
-                # Generate PERT forecast
                 forecast_data = generate_weekly_forecast(
                     statistics, pert_factor=pert_factor
                 )
                 if forecast_data["items"]["dates"]:
-                    # Convert forecast date to week format to match historical data
                     next_date = forecast_data["items"].get("next_date")
                     if next_date and hasattr(next_date, "isocalendar"):
                         year, week, _ = next_date.isocalendar()
@@ -87,7 +55,6 @@ def generate_weekly_breakdown_chart(
                     }
 
                 if show_points and has_points_data and forecast_data["points"]["dates"]:
-                    # Convert forecast date to week format to match historical data
                     next_date = forecast_data["points"].get("next_date")
                     if next_date and hasattr(next_date, "isocalendar"):
                         year, week, _ = next_date.isocalendar()
@@ -102,7 +69,6 @@ def generate_weekly_breakdown_chart(
                         ),
                     }
 
-                # Generate EWMA forecast
                 ewma_data = calculate_ewma_forecast(items_completed, alpha=0.3)
                 if ewma_data:
                     ewma_items = round(ewma_data["forecast_value"], 1)
@@ -114,10 +80,8 @@ def generate_weekly_breakdown_chart(
                     if ewma_data_points:
                         ewma_points = round(ewma_data_points["forecast_value"], 1)
         except KeyError, ValueError, IndexError:
-            # If forecast generation fails, continue without forecasts
             pass
 
-    # Calculate required velocity using midnight-today (matches app calculation exactly)
     required_items = None
     required_points = None
     if deadline and remaining_items is not None and remaining_items > 0:
@@ -141,23 +105,12 @@ def generate_weekly_breakdown_chart(
                 )
                 required_points = round(raw_pts, 1) if raw_pts != float("inf") else None
         except ValueError, ZeroDivisionError:
-            pass  # Skip if date parsing fails
+            pass
 
-    # Extend dates to include forecast week before building datasets
     if forecast_items:
         forecast_dates = dates + [forecast_items["date"]]
         dates_js = json.dumps(forecast_dates)
 
-    # Build datasets in legend display order:
-    # 1. Actual bars (Items Completed, Points Completed)
-    # 2. EWMA forecast markers
-    # 3. PERT forecast bars
-    # 4. Required velocity reference lines
-    # Chart.js render order: lower order value = rendered on top
-    # order values control both legend sequence and tooltip ordering in Chart.js.
-    # Lower order = earlier in legend. Assign 1-8 in desired display sequence:
-    #   1=Items Completed, 2=Points Completed, 3=EWMA Items, 4=EWMA Points,
-    #   5=PERT Items, 6=PERT Points, 7=Required Items, 8=Required Points
     datasets = [
         {
             "type": "bar",
@@ -181,7 +134,6 @@ def generate_weekly_breakdown_chart(
             }
         )
 
-    # EWMA forecast markers (value embedded in label)
     if ewma_items and forecast_items:
         ewma_items_data = [None] * len(items_completed) + [ewma_items]
         datasets.append(
@@ -212,7 +164,6 @@ def generate_weekly_breakdown_chart(
             }
         )
 
-    # PERT forecast bars (value embedded in label)
     if forecast_items:
         forecast_items_data = [None] * len(items_completed) + [
             forecast_items["most_likely"]
@@ -249,8 +200,6 @@ def generate_weekly_breakdown_chart(
             }
         )
 
-    # Required velocity reference lines (last in legend)
-    # Use distinct colors: violet for items, red for points
     if required_items:
         required_items_data = [required_items] * len(items_completed)
         if forecast_items:
@@ -291,7 +240,6 @@ def generate_weekly_breakdown_chart(
 
     datasets_js = json.dumps(datasets)
 
-    # Configure scales
     scales_config = {
         "x": {
             "grid": {"display": False},

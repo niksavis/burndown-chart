@@ -1,18 +1,3 @@
-"""Sprint data manager for Sprint Tracker feature.
-
-This module provides functions to construct sprint snapshots from changelog history,
-track sprint changes (add/remove/move), and calculate sprint progress metrics.
-
-Uses existing changelog infrastructure - no new JIRA API calls needed.
-Sprint field changes are tracked via jira_changelog_entries table.
-
-Key Functions:
-    get_sprint_snapshots() -> Dict: Build sprint snapshots from changelog
-    detect_sprint_changes() -> Dict: Detect add/remove/move events
-    calculate_sprint_progress() -> Dict: Calculate sprint completion metrics
-    filter_sprint_issues() -> List: Filter issues to Story/Task/Bug only
-"""
-
 import logging
 from collections import defaultdict
 from datetime import UTC, datetime
@@ -23,7 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 def _extract_issue_state(issue: dict) -> dict:
-    """Extract normalized issue state payload for sprint UI and metrics."""
     status = issue.get("status", "Unknown")
 
     story_points = issue.get("points")
@@ -51,7 +35,6 @@ def _extract_issue_state(issue: dict) -> dict:
 
 
 def build_issue_state_lookup(issues: list[dict]) -> dict[str, dict]:
-    """Build issue-key lookup used by scope and progress presentation."""
     return {
         issue_key: _extract_issue_state(issue)
         for issue in issues
@@ -62,21 +45,8 @@ def build_issue_state_lookup(issues: list[dict]) -> dict[str, dict]:
 def get_active_sprint_from_issues(
     issues: list[dict], sprint_field: str = "customfield_10005"
 ) -> dict | None:
-    """Determine the active sprint from current issue sprint field data.
 
-    JIRA stores full sprint objects with state in issue fields.
-    This function finds the sprint with state="ACTIVE" which is
-    more reliable than using changelog timestamps.
-
-    Args:
-        issues: List of JIRA issues (from backend.get_issues())
-        sprint_field: Sprint custom field ID (default: customfield_10005)
-
-    Returns:
-        Dict with {"name": str, "start_date": str, "end_date": str} or None
-        Dates are ISO strings from JIRA sprint object
-    """
-    sprint_counts = {}  # sprint_name -> {count, state, start_date, end_date}
+    sprint_counts = {}
 
     for issue in issues:
         custom_fields = issue.get("custom_fields", {})
@@ -85,14 +55,12 @@ def get_active_sprint_from_issues(
         if not sprint_value:
             continue
 
-        # Sprint field is typically a list of sprint objects
         sprint_list = sprint_value if isinstance(sprint_value, list) else [sprint_value]
 
         for sprint_str in sprint_list:
             if not isinstance(sprint_str, str):
                 continue
 
-            # Parse serialized JIRA sprint object
             sprint_obj = _parse_sprint_object(sprint_str)
             if sprint_obj:
                 name = sprint_obj["name"]
@@ -100,7 +68,6 @@ def get_active_sprint_from_issues(
                 start_date = sprint_obj.get("start_date")
                 end_date = sprint_obj.get("end_date")
 
-                # Track sprint counts and their states
                 if name not in sprint_counts:
                     sprint_counts[name] = {
                         "count": 0,
@@ -110,7 +77,6 @@ def get_active_sprint_from_issues(
                     }
                 sprint_counts[name]["count"] += 1
 
-    # Prefer ACTIVE, then FUTURE (nearest start), then CLOSED (most recent end).
     def _parse_or_default(iso_date: str | None, fallback: float) -> float:
         if not iso_date:
             return fallback
@@ -151,7 +117,6 @@ def get_active_sprint_from_issues(
             future_candidates,
             key=lambda item: (
                 _parse_or_default(item[1].get("start_date"), float("inf")),
-                # Earlier future start should win.
                 -item[1].get("count", 0),
             ),
         )
@@ -188,19 +153,7 @@ def get_active_sprint_from_issues(
 def get_sprint_dates(
     sprint_name: str, issues: list[dict], sprint_field: str = "customfield_10005"
 ) -> dict | None:
-    """Get start and end dates for a specific sprint from issue data.
 
-    Args:
-        sprint_name: Name of the sprint (e.g., "Sprint 256", "Gravity Sprint 256")
-        issues: List of JIRA issues (from backend.get_issues())
-        sprint_field: Sprint custom field ID
-
-    Returns:
-        Dict with {"start_date": str, "end_date": str, "state": str}
-            or None if sprint not found
-        Dates are ISO strings from JIRA sprint object
-        State is "ACTIVE", "CLOSED", or "FUTURE"
-    """
     for issue in issues:
         custom_fields = issue.get("custom_fields", {})
         sprint_value = custom_fields.get(sprint_field)
@@ -208,14 +161,12 @@ def get_sprint_dates(
         if not sprint_value:
             continue
 
-        # Sprint field is typically a list of sprint objects
         sprint_list = sprint_value if isinstance(sprint_value, list) else [sprint_value]
 
         for sprint_str in sprint_list:
             if not isinstance(sprint_str, str):
                 continue
 
-            # Parse serialized JIRA sprint object
             sprint_obj = _parse_sprint_object(sprint_str)
             if sprint_obj and sprint_obj["name"] == sprint_name:
                 start_date = sprint_obj.get("start_date")
@@ -240,10 +191,7 @@ def get_sprint_dates(
 def sort_sprint_ids_by_recency(
     sprint_snapshots: dict[str, dict], sprint_metadata: dict[str, dict] | None = None
 ) -> list[str]:
-    """Sort sprint IDs with date-aware recency fallback.
 
-    Prefers end_date, then start_date, then lexical sprint name.
-    """
     sprint_metadata = sprint_metadata or {}
 
     def _parse_date(value: str | None) -> float:
@@ -270,15 +218,7 @@ def select_preferred_sprint(
     sprint_metadata: dict[str, dict] | None = None,
     preferred_sprint: str | None = None,
 ) -> dict | None:
-    """Select sprint for display using explicit and state-aware priority.
 
-    Priority:
-    1) preferred sprint if provided and present
-    2) ACTIVE sprint
-    3) FUTURE sprint with nearest start date
-    4) most recent CLOSED sprint
-    5) newest by recency sort
-    """
     if not sprint_snapshots:
         return None
 
@@ -342,49 +282,19 @@ def get_sprint_snapshots(
     changelog_entries: list[dict],
     sprint_field: str = "customfield_10020",
 ) -> dict[str, dict]:
-    """Build sprint snapshots from changelog history.
 
-    Reconstructs current and historical sprint composition by analyzing
-    sprint field changes in changelog entries.
-
-    Args:
-        issues: List of JIRA issues (from backend.get_issues())
-        changelog_entries: Changelog entries filtered to sprint field changes
-        sprint_field: Sprint custom field ID (default: customfield_10020)
-
-    Returns:
-        Dict of sprint_id -> snapshot:
-        {
-            "Sprint 23": {
-                "name": "Sprint 23",
-                "current_issues": ["PROJ-1", "PROJ-3"],
-                "added_issues": [
-                    {"issue_key": "PROJ-1", "timestamp": "2025-01-10T10:00:00Z"}
-                ],
-                "removed_issues": [
-                    {"issue_key": "PROJ-2", "timestamp": "2025-01-15T14:00:00Z"}
-                ],
-                "issue_states": {
-                    "PROJ-1": {"status": "Done", "story_points": 5}
-                }
-            }
-        }
-    """
     logger.info(
         f"Building sprint snapshots from {len(changelog_entries)} changelog entries"
     )
 
-    # Sort changelog by date to process in chronological order
     sorted_entries = sorted(changelog_entries, key=lambda x: x.get("change_date", ""))
 
-    # Track sprint events and current state
     sprint_snapshots: dict[str, dict] = {}
-    issue_current_sprint = {}  # issue_key -> current sprint_id
+    issue_current_sprint = {}
     changelog_processed_pairs: set[tuple[str, str]] = set()
     issues_with_sprint_changelog: set[str] = set()
 
     def _get_or_create_snapshot(sprint_id: str) -> dict:
-        """Helper to create sprint snapshot structure if not exists."""
         if sprint_id not in sprint_snapshots:
             sprint_snapshots[sprint_id] = {
                 "added_issues": [],
@@ -394,10 +304,8 @@ def get_sprint_snapshots(
             }
         return sprint_snapshots[sprint_id]
 
-    # Create set of issue keys from filtered issues (for O(1) lookup)
     filtered_issue_keys = {issue.get("issue_key") for issue in issues}
 
-    # Process changelog to detect sprint changes
     for entry in sorted_entries:
         issue_key = entry.get("issue_key")
         old_value = entry.get("old_value")
@@ -408,19 +316,12 @@ def get_sprint_snapshots(
             continue
         issues_with_sprint_changelog.add(issue_key)
 
-        # CRITICAL: Only process changelog entries for issues in the filtered list
-        # This ensures issue type filtering works correctly
         if issue_key not in filtered_issue_keys:
             continue
 
-        # Parse sprint name from JIRA sprint format
-        # Format:
-        # "com.atlassian.greenhopper.service.sprint."
-        # "Sprint@14b3c[id=23,name=Sprint 23,...]"
         old_sprint = _parse_sprint_name(old_value)
         new_sprint = _parse_sprint_name(new_value)
 
-        # Case 1: Issue added to sprint (null -> Sprint X)
         if not old_sprint and new_sprint:
             snapshot = _get_or_create_snapshot(new_sprint)
             snapshot["added_issues"].append(
@@ -430,7 +331,6 @@ def get_sprint_snapshots(
             issue_current_sprint[issue_key] = new_sprint
             changelog_processed_pairs.add((issue_key, new_sprint))
 
-        # Case 2: Issue removed from sprint (Sprint X -> null)
         elif old_sprint and not new_sprint:
             snapshot = _get_or_create_snapshot(old_sprint)
             snapshot["removed_issues"].append(
@@ -440,7 +340,6 @@ def get_sprint_snapshots(
             issue_current_sprint[issue_key] = None
             changelog_processed_pairs.add((issue_key, old_sprint))
 
-        # Case 3: Issue moved between sprints (Sprint X -> Sprint Y)
         elif old_sprint and new_sprint and old_sprint != new_sprint:
             old_snapshot = _get_or_create_snapshot(old_sprint)
             old_snapshot["removed_issues"].append(
@@ -458,9 +357,6 @@ def get_sprint_snapshots(
 
             issue_current_sprint[issue_key] = new_sprint
 
-    # CRITICAL FIX: Add issues that are currently in sprint but have no changelog
-    # This handles cases where issues were created directly in a sprint or bulk-added
-    # without generating changelog entries
     logger.info(f"Checking {len(issues)} issues for missing sprint assignments")
     added_count = 0
     for issue in issues:
@@ -468,11 +364,9 @@ def get_sprint_snapshots(
         if not isinstance(issue_key, str) or not issue_key:
             continue
 
-        # Trust changelog-derived membership whenever available for this issue.
         if issue_key in issues_with_sprint_changelog:
             continue
 
-        # Get current sprint value from issue
         custom_fields = issue.get("custom_fields", {})
         sprint_value = custom_fields.get(sprint_field)
 
@@ -496,15 +390,12 @@ def get_sprint_snapshots(
 
     logger.info(f"Added {added_count} issues with no changelog to sprint snapshots")
 
-    # Enrich snapshots with current issue states from issues list
     all_issue_states = build_issue_state_lookup(issues)
 
     for sprint_id, snapshot in sprint_snapshots.items():
-        # Convert set to list for JSON serialization
         snapshot["current_issues"] = list(snapshot["current_issues"])
         snapshot["name"] = sprint_id
 
-        # Add current state for each issue in sprint
         for issue_key in snapshot["current_issues"]:
             issue_state = all_issue_states.get(issue_key)
             if issue_state is not None:
@@ -516,35 +407,16 @@ def get_sprint_snapshots(
 
 
 def _parse_sprint_name(sprint_value: str | None) -> str | None:
-    """Parse sprint name from JIRA sprint field value.
 
-    JIRA returns sprint in different formats:
-     1. Serialized object:
-        "com.atlassian.greenhopper.service.sprint."
-        "Sprint@14b3c[id=23,name=Sprint 23,...]"
-    2. Simple name: "Gravity Sprint 256"
-    3. Multiple sprints: "Gravity Sprint 254, Gravity Sprint 255, Gravity Sprint 256"
-
-    For multiple sprints, returns the LAST sprint (typically the active/current one).
-
-    Args:
-        sprint_value: Raw sprint value from JIRA
-
-    Returns:
-        Sprint name (e.g., "Sprint 23") or None
-    """
     if not sprint_value:
         return None
 
-    # Handle JIRA sprint object format
     if "name=" in sprint_value:
-        # Extract name value between "name=" and next comma
         try:
             name_start = sprint_value.index("name=") + 5
             name_end = sprint_value.index(",", name_start)
             return sprint_value[name_start:name_end]
         except ValueError:
-            # Fallback: try to extract until closing bracket
             try:
                 name_start = sprint_value.index("name=") + 5
                 name_end = sprint_value.index("]", name_start)
@@ -552,29 +424,14 @@ def _parse_sprint_name(sprint_value: str | None) -> str | None:
             except ValueError:
                 pass
 
-    # Handle comma-separated multiple sprints
-    # (e.g., "Sprint 254, Sprint 255, Sprint 256")
-    # Return the LAST sprint as it's typically the active/current one
     if "," in sprint_value:
         sprints = [s.strip() for s in sprint_value.split(",")]
         return sprints[-1] if sprints else None
 
-    # Fallback: return as-is if simple string
     return sprint_value.strip()
 
 
 def _infer_current_sprints_from_field(sprint_value: str | list[str]) -> list[str]:
-    """Infer current sprint membership from issue sprint field value.
-
-    This is a no-changelog fallback only. Prefer ACTIVE/FUTURE sprint objects,
-    otherwise fall back to the last sprint token from the field value.
-
-    Args:
-        sprint_value: Sprint field raw value (string or list of strings)
-
-    Returns:
-        List of inferred current sprint names (deduplicated, preserve order)
-    """
 
     sprint_tokens = sprint_value if isinstance(sprint_value, list) else [sprint_value]
 
@@ -604,7 +461,6 @@ def _infer_current_sprints_from_field(sprint_value: str | list[str]) -> list[str
         return list(dict.fromkeys(preferred_names))
 
     if parsed_objects:
-        # JIRA field ordering is historical; last object is newest known sprint.
         return [parsed_objects[-1]["name"]]
 
     if fallback_names:
@@ -614,41 +470,21 @@ def _infer_current_sprints_from_field(sprint_value: str | list[str]) -> list[str
 
 
 def _parse_sprint_object(sprint_value: str) -> dict | None:
-    """Parse JIRA sprint object string to extract name, state, and dates.
 
-    JIRA returns serialized sprint objects like:
-    "com.atlassian.greenhopper.service.sprint.Sprint@44f88702[activatedDate=<null>,
-    autoStartStop=false,completeDate=<null>,endDate=2026-02-24T19:19:00.000+01:00,
-    goal=<null>,id=50477,name=Gravity Sprint 257,
-    startDate=2026-02-10T09:00:00.000+01:00,
-    state=FUTURE,...]"
-
-    Args:
-        sprint_value: Serialized JIRA sprint object string
-
-    Returns:
-        Dict with {"name": str, "state": str, "start_date": str, "end_date": str}
-            or None
-        State is one of: "ACTIVE", "FUTURE", "CLOSED"
-        Dates are ISO strings or None if <null>
-    """
     if not sprint_value or "[" not in sprint_value:
         return None
 
     try:
-        # Extract the part inside brackets
         start = sprint_value.index("[") + 1
         end = sprint_value.rindex("]")
         properties = sprint_value[start:end]
 
-        # Parse key=value pairs
         sprint_data = {}
         for prop in properties.split(","):
             if "=" in prop:
                 key, value = prop.split("=", 1)
                 sprint_data[key.strip()] = value.strip()
 
-        # Extract name, state, and dates
         name = sprint_data.get("name")
         state = sprint_data.get("state")
         start_date = sprint_data.get("startDate")
@@ -674,32 +510,9 @@ def _parse_sprint_object(sprint_value: str) -> dict | None:
 def detect_sprint_changes(
     changelog_entries: list[dict],
 ) -> dict[str, dict[str, list[dict]]]:
-    """Detect sprint lifecycle events from changelog.
 
-    Analyzes changelog to identify when issues were added, removed, or moved
-    between sprints.
-
-    Args:
-        changelog_entries: Changelog entries filtered to sprint field changes
-
-    Returns:
-        Dict of event types per sprint:
-        {
-            "Sprint 23": {
-                "added": [{"issue_key": "PROJ-1", "timestamp": "...", "from": null}],
-                "removed": [{"issue_key": "PROJ-2", "timestamp": "...", "to": null}],
-                "moved_in": [
-                    {"issue_key": "PROJ-3", "timestamp": "...", "from": "Sprint 22"}
-                ],
-                "moved_out": [
-                    {"issue_key": "PROJ-4", "timestamp": "...", "to": "Sprint 24"}
-                ]
-            }
-        }
-    """
     logger.info(f"Detecting sprint changes from {len(changelog_entries)} entries")
 
-    # Sort by change date
     sorted_entries = sorted(changelog_entries, key=lambda x: x.get("change_date", ""))
 
     sprint_changes = defaultdict(
@@ -718,19 +531,16 @@ def detect_sprint_changes(
         old_sprint = _parse_sprint_name(old_value)
         new_sprint = _parse_sprint_name(new_value)
 
-        # Case 1: Issue added to sprint (null -> Sprint X)
         if not old_sprint and new_sprint:
             sprint_changes[new_sprint]["added"].append(
                 {"issue_key": issue_key, "timestamp": timestamp, "from": None}
             )
 
-        # Case 2: Issue removed from sprint (Sprint X -> null)
         elif old_sprint and not new_sprint:
             sprint_changes[old_sprint]["removed"].append(
                 {"issue_key": issue_key, "timestamp": timestamp, "to": None}
             )
 
-        # Case 3: Issue moved between sprints (Sprint X -> Sprint Y)
         elif old_sprint and new_sprint and old_sprint != new_sprint:
             sprint_changes[old_sprint]["moved_out"].append(
                 {"issue_key": issue_key, "timestamp": timestamp, "to": new_sprint}
@@ -746,28 +556,10 @@ def detect_sprint_changes(
 def calculate_sprint_scope_changes(
     sprint_snapshot: dict, sprint_start_date: str | None = None
 ) -> dict[str, int]:
-    """Calculate sprint scope changes using snapshot data.
 
-    Compares issues added/removed from sprint changelog to determine scope changes.
-    More reliable than changelog-based detection as it uses actual snapshot data.
-
-    Args:
-        sprint_snapshot: Sprint snapshot from get_sprint_snapshots()
-        sprint_start_date: Sprint start date (ISO format) - if provided, only counts
-                          changes after this date
-
-    Returns:
-        Dict with scope change metrics:
-        {
-            "added": 3,      # Issues added after sprint started
-            "removed": 2,    # Issues removed after sprint started
-            "net_change": 1  # Net change (added - removed)
-        }
-    """
     added_issues = sprint_snapshot.get("added_issues", [])
     removed_issues = sprint_snapshot.get("removed_issues", [])
 
-    # If sprint start date provided, filter to only changes after start
     if sprint_start_date:
         try:
             start_dt = date_parser.parse(sprint_start_date)
@@ -799,22 +591,6 @@ def get_sprint_scope_change_issues(
     sprint_start_date: str | None = None,
     sprint_end_date: str | None = None,
 ) -> dict[str, list[str]]:
-    """Get unique issue keys added/removed within a sprint time window.
-
-    Args:
-        sprint_snapshot: Sprint snapshot from get_sprint_snapshots()
-        sprint_start_date: Optional sprint start date. If provided, only events
-            strictly after the start date are included.
-        sprint_end_date: Optional sprint end date. If provided, only events up to
-            and including this date are included.
-
-    Returns:
-        Dict with sorted unique issue key lists:
-        {
-            "added": ["PROJ-1", "PROJ-2"],
-            "removed": ["PROJ-3"]
-        }
-    """
 
     start_dt = None
     end_dt = None
@@ -868,17 +644,6 @@ def calculate_sprint_scope_change_points(
     sprint_start_date: str | None = None,
     sprint_end_date: str | None = None,
 ) -> dict[str, float]:
-    """Calculate added/removed scope points within sprint time window.
-
-    Args:
-        sprint_snapshot: Sprint snapshot from get_sprint_snapshots()
-        issues: Current filtered issue list used by Sprint Tracker
-        sprint_start_date: Optional sprint start date (exclusive lower bound)
-        sprint_end_date: Optional sprint end date (inclusive upper bound)
-
-    Returns:
-        Dict with added/removed/net point deltas.
-    """
 
     scope_change_issues = get_sprint_scope_change_issues(
         sprint_snapshot,
@@ -936,22 +701,6 @@ def reconcile_active_sprint_membership(
     sprint_name: str,
     sprint_field: str,
 ) -> dict:
-    """Reconcile active sprint current membership using current issue sprint fields.
-
-    For active sprints, changelog data can be stale or incomplete. This helper
-    narrows ``current_issues`` to issues that currently list the selected sprint
-    in their sprint field, while preserving added/removed history for scope cards.
-
-    Args:
-        sprint_snapshot: Snapshot from get_sprint_snapshots()
-        issues: Current issue list used by Sprint Tracker
-        sprint_name: Selected sprint name
-        sprint_field: Configured sprint custom field id
-
-    Returns:
-        Copy of sprint snapshot with reconciled ``current_issues`` and
-        ``issue_states``.
-    """
 
     current_members: set[str] = set()
     issue_lookup: dict[str, dict] = {}
@@ -1034,43 +783,7 @@ def calculate_sprint_progress(
     flow_end_statuses: list[str] | None = None,
     flow_wip_statuses: list[str] | None = None,
 ) -> dict:
-    """Calculate sprint progress metrics.
 
-    Analyzes issue states to calculate completion percentage, story points
-    progress, and issue breakdown by status.
-
-    Args:
-        sprint_snapshot: Sprint snapshot from get_sprint_snapshots()
-        flow_end_statuses: List of statuses considered "done"
-            (default: ["Done", "Closed"])
-        flow_wip_statuses: List of statuses considered "in progress"
-            (default: ["In Progress"])
-
-    Returns:
-        Progress metrics:
-        {
-            "total_issues": 10,
-            "completed_issues": 7,
-            "wip_issues": 2,
-            "completion_pct": 70.0,
-            "completion_percentage": 70.0,
-            "total_points": 50.0,
-            "completed_points": 35.0,
-            "wip_points": 10.0,
-            "points_completion_pct": 70.0,
-            "points_completion_percentage": 70.0,
-            "by_status": {
-                "Done": {"count": 7, "points": 35.0},
-                "In Progress": {"count": 2, "points": 10.0},
-                "To Do": {"count": 1, "points": 5.0}
-            },
-            "by_issue_type": {
-                "Story": {"count": 5, "points": 30.0},
-                "Bug": {"count": 3, "points": 15.0},
-                "Task": {"count": 2, "points": 5.0}
-            }
-        }
-    """
     if flow_end_statuses is None:
         flow_end_statuses = ["Done", "Closed", "Resolved"]
     if flow_wip_statuses is None:
@@ -1088,7 +801,6 @@ def calculate_sprint_progress(
     by_status = defaultdict(lambda: {"count": 0, "points": 0.0})
     by_issue_type = defaultdict(lambda: {"count": 0, "points": 0.0})
 
-    # Debug: Track which statuses are present but not counted as WIP
     all_statuses_in_sprint = set()
     wip_status_set = set(flow_wip_statuses)
 
@@ -1099,27 +811,21 @@ def calculate_sprint_progress(
 
         all_statuses_in_sprint.add(status)
 
-        # Count completion
         if status in flow_end_statuses:
             completed_issues += 1
             completed_points += story_points
-        # Count WIP (in progress) - statuses between start and end
         elif status in flow_wip_statuses:
             wip_issues += 1
             wip_points += story_points
 
-        # Aggregate totals
         total_points += story_points
 
-        # Breakdown by status
         by_status[status]["count"] += 1
         by_status[status]["points"] += story_points
 
-        # Breakdown by issue type
         by_issue_type[issue_type]["count"] += 1
         by_issue_type[issue_type]["points"] += story_points
 
-    # Debug logging: Show statuses that exist but aren't in WIP config
     uncounted_wip_statuses = (
         all_statuses_in_sprint - wip_status_set - set(flow_end_statuses)
     )
@@ -1129,7 +835,6 @@ def calculate_sprint_progress(
             f"WIP config: {flow_wip_statuses}, End config: {flow_end_statuses}"
         )
 
-    # Calculate percentages
     completion_percentage = (
         (completed_issues / total_issues * 100.0) if total_issues > 0 else 0.0
     )
@@ -1137,7 +842,6 @@ def calculate_sprint_progress(
         (completed_points / total_points * 100.0) if total_points > 0 else 0.0
     )
 
-    # Calculate to-do items (not started = total - wip - completed)
     todo_issues = total_issues - wip_issues - completed_issues
     todo_points = total_points - wip_points - completed_points
 
@@ -1163,28 +867,18 @@ def filter_sprint_issues(
     issues: list[dict],
     tracked_issue_types: list[str] | None = None,
 ) -> list[dict]:
-    """Filter issues to tracked issue types (exclude sub-tasks).
 
-    Args:
-        issues: List of JIRA issues
-        tracked_issue_types: Issue types to include (default: ["Story", "Task", "Bug"])
-
-    Returns:
-        Filtered list of issues excluding sub-tasks and other excluded types
-    """
     if tracked_issue_types is None:
         tracked_issue_types = ["Story", "Task", "Bug"]
 
     filtered = []
 
     for issue in issues:
-        # Extract issue type from nested fields or flat structure
         if "fields" in issue:
             issue_type = issue.get("fields", {}).get("issuetype", {}).get("name", "")
         else:
             issue_type = issue.get("issue_type", "")
 
-        # Include only tracked issue types
         if issue_type in tracked_issue_types:
             filtered.append(issue)
 
@@ -1197,14 +891,7 @@ def filter_sprint_issues(
 
 
 def get_sprint_field_from_config(config: dict) -> str | None:
-    """Extract sprint field ID from configuration.
 
-    Args:
-        config: App settings configuration dict
-
-    Returns:
-        Sprint field ID (e.g., "customfield_10020") or None if not configured
-    """
     field_mappings = config.get("field_mappings", {})
     sprint_tracker_mappings = field_mappings.get("sprint_tracker", {})
     return sprint_tracker_mappings.get("sprint_field")
@@ -1215,33 +902,7 @@ def calculate_issue_status_timeline(
     changelog_entries: list[dict],
     include_current: bool = True,
 ) -> list[dict]:
-    """Calculate time spent in each status as percentages for timeline visualization.
 
-    This function creates timeline segments showing how an issue moved through
-    different statuses over time, with each segment representing a percentage
-    of total time spent.
-
-    Args:
-        issue_key: JIRA issue key
-        changelog_entries: List of status changelog entries from database
-        include_current: Whether to calculate time up to now for current status
-
-    Returns:
-        List of timeline segments:
-        [
-            {
-                "status": "To Do",
-                "start_time": datetime,
-                "end_time": datetime,
-                "duration_hours": 24.5,
-                "duration_pct": 10.0,  # Percentage of total time
-            },
-            ...
-        ]
-        Empty list if no status changes found
-    """
-
-    # Filter to this issue's status changes
     issue_changes = [
         entry
         for entry in changelog_entries
@@ -1251,10 +912,8 @@ def calculate_issue_status_timeline(
     if not issue_changes:
         return []
 
-    # Sort chronologically
     issue_changes.sort(key=lambda x: x.get("change_date", ""))
 
-    # Build timeline segments
     segments = []
     for i, change in enumerate(issue_changes):
         status = change.get("new_value", "Unknown")
@@ -1268,7 +927,6 @@ def calculate_issue_status_timeline(
             )
             continue
 
-        # Determine end time - next change or now
         if i < len(issue_changes) - 1:
             next_change_date_str = issue_changes[i + 1].get("change_date", "")
             try:
@@ -1282,10 +940,8 @@ def calculate_issue_status_timeline(
                 )
                 end_time = datetime.now(UTC)
         else:
-            # Last change - use current time if include_current
             end_time = datetime.now(UTC) if include_current else start_time
 
-        # Calculate duration
         duration = end_time - start_time
         duration_hours = duration.total_seconds() / 3600
 
@@ -1295,14 +951,12 @@ def calculate_issue_status_timeline(
                 "start_time": start_time,
                 "end_time": end_time,
                 "duration_hours": duration_hours,
-                "duration_pct": 0.0,  # Will calculate after total known
+                "duration_pct": 0.0,
             }
         )
 
-    # Calculate total time
     total_hours = sum(seg["duration_hours"] for seg in segments)
 
-    # Calculate percentages
     if total_hours > 0:
         for seg in segments:
             seg["duration_pct"] = (seg["duration_hours"] / total_hours) * 100.0

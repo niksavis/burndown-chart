@@ -1,12 +1,3 @@
-"""
-Persistence layer public interface for Burndown application.
-
-Architecture Pattern: Repository Pattern. Implementation is split across:
-- _persistence_interface.py  -- PersistenceBackend ABC
-- _persistence_errors.py     -- exception hierarchy
-- _persistence_proxy.py      -- lazy backend proxy and adapter resolver
-"""
-
 from data.persistence._persistence_errors import (  # noqa: F401
     DatabaseCorruptionError,
     PersistenceError,

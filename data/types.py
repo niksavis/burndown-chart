@@ -1,11 +1,7 @@
-"""Shared TypedDict definitions for core data-layer shapes."""
-
 from typing import Any, NotRequired, Required, TypedDict
 
 
 class AppSettings(TypedDict, total=False):
-    """Application settings payload used across persistence and callbacks."""
-
     profile_id: str
     query_id: str
     jira_url: str
@@ -45,8 +41,6 @@ class AppSettings(TypedDict, total=False):
 
 
 class JiraConfig(TypedDict, total=False):
-    """JIRA integration configuration persisted in profile settings."""
-
     api_endpoint: str
     base_url: Required[str]
     api_version: str
@@ -63,8 +57,6 @@ class JiraConfig(TypedDict, total=False):
 
 
 class MetricsResult(TypedDict, total=False):
-    """Dashboard/report metrics produced by report calculations."""
-
     has_data: Required[bool]
     completed_items: Required[int]
     health_score: Required[int]
@@ -107,15 +99,11 @@ class MetricsResult(TypedDict, total=False):
 
 
 class StatusBreakdownEntry(TypedDict):
-    """Per-status counts and points captured in sprint snapshots."""
-
     count: int
     points: float
 
 
 class SprintSnapshot(TypedDict):
-    """Daily sprint snapshot used by burnup and CFD visualizations."""
-
     date: str
     completed_points: float
     total_scope: float
@@ -125,8 +113,6 @@ class SprintSnapshot(TypedDict):
 
 
 class QueryProfile(TypedDict):
-    """Persisted JQL query profile for reusable search definitions."""
-
     id: str
     name: str
     jql: str

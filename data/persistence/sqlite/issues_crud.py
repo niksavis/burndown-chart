@@ -1,5 +1,3 @@
-"""JIRA issues CRUD operations mixin for SQLiteBackend."""
-
 from __future__ import annotations
 
 import json
@@ -17,11 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 class IssuesCRUDMixin:
-    """Mixin for JIRA issues CRUD operations (Create, Read, Update, Delete)."""
+    db_path: Path
 
-    db_path: Path  # Set by composition class (SQLiteBackend)
-
-    # Method stub for cross-mixin call (provided by ProfilesMixin)
     def get_profile(self, profile_id: str) -> dict | None: ...  # type: ignore[empty-body]
 
     def get_issues(
@@ -34,12 +29,10 @@ class IssuesCRUDMixin:
         project_key: str | None = None,
         limit: int | None = None,
     ) -> list[dict]:
-        """Query normalized JIRA issues with optional filters."""
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
 
-                # Build dynamic query with filters
                 query = (
                     "SELECT * FROM jira_issues WHERE profile_id = ? AND query_id = ?"
                 )
@@ -67,18 +60,14 @@ class IssuesCRUDMixin:
                 cursor.execute(query, params)
                 results = cursor.fetchall()
 
-                # Parse JSON fields - return database format (flat structure)
                 issues = []
                 for row in results:
                     issue = dict(row)
 
-                    # Parse JSON fields
                     fix_versions_data = json.loads(
                         issue.get("fix_versions", "null") or "null"
                     )
 
-                    # Store as both fix_versions AND fixVersions for compatibility
-                    # (code expects camelCase, database uses snake_case)
                     issue["fix_versions"] = fix_versions_data
                     issue["fixVersions"] = fix_versions_data
 
@@ -115,11 +104,9 @@ class IssuesCRUDMixin:
         issues: list[dict],
         expires_at: datetime,
     ) -> None:
-        """Batch UPSERT normalized issues with two-layer storage."""
         if not issues:
             return
 
-        # Load profile configuration to get points field mapping
         profile_data = self.get_profile(profile_id)
         jira_config = {}
         points_field = ""
@@ -144,7 +131,6 @@ class IssuesCRUDMixin:
                     f"Unexpected field_mappings type: {type(field_mappings)}"
                 )
 
-        # Get general field mappings with fallbacks
         general_mappings = field_mappings.get("general", {})
         if not isinstance(general_mappings, dict):
             general_mappings = {}
@@ -166,7 +152,6 @@ class IssuesCRUDMixin:
                     fields = fields_raw if isinstance(fields_raw, dict) else {}
                     is_flat_issue = not fields
 
-                    # RAW LAYER: Save ALL custom fields (immutable)
                     if is_flat_issue:
                         if isinstance(issue.get("custom_fields"), dict):
                             custom_fields_raw = issue.get("custom_fields", {})
@@ -272,7 +257,6 @@ class IssuesCRUDMixin:
                         else issue.get("components")
                     )
 
-                    # NORMALIZED LAYER: Extract points via configured mapping
                     points = None
                     if points_field and not is_flat_issue:
                         points_raw = fields.get(points_field)
@@ -381,7 +365,6 @@ class IssuesCRUDMixin:
             raise
 
     def delete_expired_issues(self, cutoff_time: datetime) -> int:
-        """Delete issues where expires_at < cutoff_time."""
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -407,7 +390,6 @@ class IssuesCRUDMixin:
             raise
 
     def renormalize_points(self, profile_id: str, query_id: str | None = None) -> int:
-        """Re-normalize points column from raw custom_fields data."""
         profile = self.get_profile(profile_id)
         if not profile:
             raise ValueError(f"Profile not found: {profile_id}")

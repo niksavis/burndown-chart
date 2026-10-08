@@ -1,8 +1,3 @@
-"""Report metric calculation: all-metrics orchestration and executive summary.
-
-Part of data/report/generator.py split.
-"""
-
 import logging
 from datetime import datetime
 from typing import Any
@@ -30,27 +25,13 @@ logger = logging.getLogger(__name__)
 def calculate_all_metrics(
     report_data: dict[str, Any], sections: list[str], time_period_weeks: int
 ) -> dict[str, Any]:
-    """
-    Calculate all metrics for requested report sections.
-
-    Args:
-        report_data: Loaded and filtered report data
-        sections: List of section identifiers
-        time_period_weeks: Number of weeks in the analysis period
-
-    Returns:
-        Dictionary with metrics for each section
-    """
 
     metrics = {}
 
-    # Extract show_points from settings (whether to use points or items for forecasting)
     show_points = report_data["settings"].get("show_points", False)
 
-    # Calculate extended metrics first (needed for comprehensive health calculation)
     extended_metrics: dict[str, Any] = {}
 
-    # Bug Analysis metrics
     if "burndown" in sections:
         extended_metrics["bug_analysis"] = calculate_bug_metrics(
             report_data["jira_issues"],
@@ -59,42 +40,32 @@ def calculate_all_metrics(
             report_data["weeks_count"],
         )
 
-    # Flow metrics
     if "flow" in sections:
         extended_metrics["flow"] = calculate_flow_metrics(
             report_data["snapshots"],
             report_data["weeks_count"],
-            report_data["week_labels"],  # Pass week labels for consistent filtering
+            report_data["week_labels"],
         )
 
-    # DORA metrics
     if "dora" in sections:
         extended_metrics["dora"] = calculate_dora_metrics(
             report_data["profile_id"], report_data["weeks_count"]
         )
 
-    # Budget metrics (always calculated for health score)
-
-    # Note: Budget needs velocity which we calculate in dashboard, so we'll add it later
-    # For now, mark that it's needed
     extended_metrics["budget_needed"] = True
 
-    # Dashboard metrics (always calculated, shows summary)
-    # Pass extended metrics for comprehensive health calculation
     metrics["dashboard"] = calculate_dashboard_metrics(
-        report_data["all_statistics"],  # Use ALL stats for lifetime metrics
-        report_data["statistics"],  # Windowed stats for velocity
+        report_data["all_statistics"],
+        report_data["statistics"],
         report_data["project_scope"],
         report_data["settings"],
         report_data["weeks_count"],
         show_points,
-        extended_metrics,  # Pass extended metrics for health calculation
+        extended_metrics,
     )
 
-    # Now calculate budget with velocity from dashboard
     if extended_metrics.get("budget_needed"):
         query_id = get_active_query_id() or ""
-        # Pass velocity from dashboard for accurate cost per item/point calculation
         velocity_items = metrics["dashboard"].get("velocity_items", 0.0)
         velocity_points = metrics["dashboard"].get("velocity_points", 0.0)
         extended_metrics["budget"] = calculate_budget_metrics(
@@ -106,12 +77,6 @@ def calculate_all_metrics(
         )
         extended_metrics.pop("budget_needed")
 
-        # CRITICAL FIX: Recalculate health_dimensions now that budget is available
-        # The initial health calculation in calculate_dashboard_metrics() didn't
-        # have budget
-        # This ensures Financial dimension is included when budget is configured
-
-        # Prepare same dashboard metrics used in initial calculation
         dashboard = metrics["dashboard"]
         items_completion_pct = dashboard.get("items_completion_pct", 0)
         velocity_items = dashboard.get("velocity_items", 0)
@@ -137,21 +102,17 @@ def calculate_all_metrics(
             completion_confidence=completion_confidence,
         )
 
-        # Calculate scope_change_rate from dashboard
-        # (it's calculated there, not in scope metrics)
         scope_change_rate = dashboard.get("scope_change_rate", 0)
 
-        # Recalculate comprehensive health WITH budget_metrics
         health_result = calculate_comprehensive_project_health(
             dashboard_metrics=dashboard_metrics_for_health,
             dora_metrics=extended_metrics.get("dora"),
             flow_metrics=extended_metrics.get("flow"),
             bug_metrics=extended_metrics.get("bug_analysis"),
-            budget_metrics=extended_metrics.get("budget"),  # NOW has data
+            budget_metrics=extended_metrics.get("budget"),
             scope_metrics={"scope_change_rate": scope_change_rate},
         )
 
-        # Update dashboard metrics with correct health_dimensions including Financial
         metrics["dashboard"]["health_dimensions"] = health_result.get("dimensions", {})
         metrics["dashboard"]["health_score"] = health_result["overall_score"]
         financial_weight = (
@@ -164,7 +125,6 @@ def calculate_all_metrics(
             f"financial_weight={financial_weight:.1f}%"
         )
 
-    # Burndown metrics
     if "burndown" in sections:
         metrics["burndown"] = calculate_burndown_metrics(
             report_data["statistics"],
@@ -172,10 +132,8 @@ def calculate_all_metrics(
             report_data["weeks_count"],
         )
 
-        # Bug Analysis (already calculated above for health)
         metrics["bug_analysis"] = extended_metrics.get("bug_analysis", {})
 
-    # Scope metrics
     if "burndown" in sections:
         scope_metrics = calculate_scope_metrics(
             report_data["statistics"],
@@ -183,31 +141,24 @@ def calculate_all_metrics(
             report_data["weeks_count"],
         )
         metrics["scope"] = scope_metrics
-        # Add to extended_metrics for health score
-        # Include scope_change_rate from dashboard
         extended_metrics["scope"] = {
             **scope_metrics,
             "scope_change_rate": metrics["dashboard"].get("scope_change_rate", 0),
         }
 
-    # Flow metrics (already calculated above for health)
     if "flow" in sections:
         metrics["flow"] = extended_metrics.get("flow", {})
 
-    # DORA metrics (already calculated above for health)
     if "dora" in sections:
         metrics["dora"] = extended_metrics.get("dora", {})
 
-    # Budget metrics (already calculated above)
     if "budget" in sections:
         metrics["budget"] = extended_metrics.get("budget", {})
 
-    # Executive Summary (NEW - always calculated for reports)
     metrics["executive_summary"] = calculate_executive_summary(
         metrics["dashboard"], extended_metrics
     )
 
-    # Actionable Insights/Recommendations (always calculated for reports)
     metrics["recommendations"] = calculate_recommendations(
         report_data["statistics"],
         metrics["dashboard"],
@@ -222,16 +173,7 @@ def calculate_all_metrics(
 def calculate_executive_summary(
     dashboard_metrics: MetricsResult, extended_metrics: dict[str, Any]
 ) -> dict[str, Any]:
-    """
-    Generate executive summary with top insights and risks.
 
-    Args:
-        dashboard_metrics: Dashboard metrics (health, completion, velocity, forecast)
-        extended_metrics: Extended metrics (DORA, Flow, Bug, Budget, Scope)
-
-    Returns:
-        Dictionary with executive summary data
-    """
     summary = {
         "has_data": dashboard_metrics.get("has_data", False),
         "health_score": dashboard_metrics.get("health_score", 0),
@@ -244,16 +186,13 @@ def calculate_executive_summary(
         "top_wins": [],
     }
 
-    # Budget runway
     if "budget" in extended_metrics:
         budget = extended_metrics["budget"]
         if budget.get("has_data"):
             summary["budget_runway_weeks"] = budget.get("runway_weeks", 0)
 
-    # Identify top 3 risks
     risks = []
 
-    # Schedule risk
     if summary["forecast_date"] and summary["deadline"]:
         try:
             forecast_dt = datetime.strptime(summary["forecast_date"], "%Y-%m-%d")
@@ -278,7 +217,6 @@ def calculate_executive_summary(
         except Exception:
             pass
 
-    # Budget risk
     if summary["budget_runway_weeks"] > 0:
         forecast_weeks = dashboard_metrics.get("forecast_weeks_items", 0)
         if forecast_weeks > summary["budget_runway_weeks"]:
@@ -293,7 +231,6 @@ def calculate_executive_summary(
         elif forecast_weeks * 1.2 > summary["budget_runway_weeks"]:
             risks.append(("Budget", "Budget runway tight if velocity drops", "high"))
 
-    # Quality risk
     if "bug_analysis" in extended_metrics:
         bug_metrics = extended_metrics["bug_analysis"]
         if bug_metrics.get("has_data"):
@@ -315,7 +252,6 @@ def calculate_executive_summary(
                     )
                 )
 
-    # Velocity risk
     velocity_cv = dashboard_metrics.get("velocity_cv", 0)
     if velocity_cv > 50:
         risks.append(
@@ -326,15 +262,12 @@ def calculate_executive_summary(
             )
         )
 
-    # Sort by severity and take top 3
     severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
     risks.sort(key=lambda x: severity_order.get(x[2], 99))
     summary["top_risks"] = risks[:3]
 
-    # Identify top 3 wins
     wins = []
 
-    # Health win
     if summary["health_score"] >= 70:
         wins.append(
             (
@@ -347,7 +280,6 @@ def calculate_executive_summary(
             ("Project Health", f"Stable health score: {summary['health_score']:.0f}%")
         )
 
-    # Schedule win
     if summary["forecast_date"] and summary["deadline"]:
         try:
             forecast_dt = datetime.strptime(summary["forecast_date"], "%Y-%m-%d")
@@ -362,7 +294,6 @@ def calculate_executive_summary(
         except Exception:
             pass
 
-    # Velocity win
     trend = dashboard_metrics.get("trend_direction", "stable")
     if trend == "improving":
         change_pct = dashboard_metrics.get("recent_velocity_change", 0)
@@ -370,7 +301,6 @@ def calculate_executive_summary(
     elif velocity_cv < 20:
         wins.append(("Predictability", f"Consistent velocity (CV: {velocity_cv:.0f}%)"))
 
-    # Quality win
     if "bug_analysis" in extended_metrics:
         bug_metrics = extended_metrics["bug_analysis"]
         if bug_metrics.get("has_data"):

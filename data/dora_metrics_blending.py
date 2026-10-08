@@ -1,8 +1,3 @@
-"""DORA metrics blending helpers.
-
-Contains behavior-preserving blending utilities used by DORA callbacks.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -19,7 +14,6 @@ def _blend_metric_series(
     filter_zero_prior_weeks: bool,
     metric_log_name: str,
 ) -> tuple[list[float] | None, dict[str, Any] | None]:
-    """Return adjusted weekly values and blend metadata for a metric series."""
     if not weekly_values or len(weekly_values) < 2:
         return None, None
 
@@ -57,7 +51,6 @@ def _blend_metric_series(
 
 
 def calculate_dora_blended_series(cached_metrics: dict[str, Any]) -> dict[str, Any]:
-    """Calculate blended weekly series for selected DORA metrics."""
     deployment_weekly_values = cached_metrics.get("deployment_frequency", {}).get(
         "weekly_values", []
     )

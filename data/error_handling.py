@@ -1,18 +1,3 @@
-"""
-T007: Advanced Error Handling with Setup Context
-
-Provides intelligent error handling that considers the user's current setup progress
-and provides contextual guidance for resolution. Errors are categorized by setup step
-and include actionable remediation suggestions.
-
-Key Features:
-- Context-aware error messages based on setup progress
-- Actionable remediation suggestions with specific steps
-- Error categorization (configuration, network, data, permissions)
-- Progressive error disclosure (show relevant errors only)
-- Recovery workflows for common failure scenarios
-"""
-
 import logging
 from enum import Enum
 from typing import Any
@@ -21,8 +6,6 @@ logger = logging.getLogger(__name__)
 
 
 class ErrorCategory(Enum):
-    """Error categories for T007 contextual handling."""
-
     CONFIGURATION = "configuration"
     NETWORK = "network"
     DATA = "data"
@@ -32,17 +15,13 @@ class ErrorCategory(Enum):
 
 
 class ErrorSeverity(Enum):
-    """Error severity levels for T007 prioritization."""
-
-    CRITICAL = "critical"  # Blocks all functionality
-    HIGH = "high"  # Blocks current step
-    MEDIUM = "medium"  # Degrades functionality
-    LOW = "low"  # Minor issues, workarounds available
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
 
 
 class ContextualError:
-    """Enhanced error with setup context and remediation guidance (T007)."""
-
     def __init__(
         self,
         category: ErrorCategory,
@@ -64,7 +43,6 @@ class ContextualError:
         self.related_docs = related_docs or []
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary for JSON serialization."""
         return {
             "category": self.category.value,
             "severity": self.severity.value,
@@ -77,63 +55,42 @@ class ContextualError:
         }
 
 
-# ============================================================================
-# T007: Contextual Error Analysis
-# ============================================================================
-
-
 def analyze_error_with_context(
     error: Exception, setup_status: dict[str, Any], current_operation: str
 ) -> ContextualError:
-    """Analyze error with setup context to provide targeted guidance (T007).
 
-    Args:
-        error: Original exception
-        setup_status: Current profile setup status
-        current_operation: What was being attempted
-
-    Returns:
-        ContextualError with contextual remediation guidance
-    """
     error_str = str(error).lower()
 
-    # Network/Connection errors
     if any(
         keyword in error_str
         for keyword in ["connection", "timeout", "unreachable", "dns"]
     ):
         return _handle_network_error(error, setup_status, current_operation)
 
-    # Authentication/Permission errors
     if any(
         keyword in error_str
         for keyword in ["unauthorized", "401", "403", "forbidden", "token"]
     ):
         return _handle_auth_error(error, setup_status, current_operation)
 
-    # JIRA Configuration errors
     if any(keyword in error_str for keyword in ["jira", "field", "customfield", "jql"]):
         return _handle_jira_config_error(error, setup_status, current_operation)
 
-    # Data/Validation errors
     if any(
         keyword in error_str
         for keyword in ["validation", "required", "missing", "invalid"]
     ):
         return _handle_validation_error(error, setup_status, current_operation)
 
-    # Dependencies not met
     if "dependencies not met" in error_str:
         return _handle_dependency_error(error, setup_status, current_operation)
 
-    # Generic error with context
     return _handle_generic_error(error, setup_status, current_operation)
 
 
 def _handle_network_error(
     error: Exception, setup_status: dict[str, Any], current_operation: str
 ) -> ContextualError:
-    """Handle network/connection errors with setup context."""
     if not setup_status.get("jira_connected", False):
         return ContextualError(
             category=ErrorCategory.NETWORK,
@@ -173,7 +130,6 @@ def _handle_network_error(
 def _handle_auth_error(
     error: Exception, setup_status: dict[str, Any], current_operation: str
 ) -> ContextualError:
-    """Handle authentication/authorization errors."""
     if not setup_status.get("jira_connected", False):
         return ContextualError(
             category=ErrorCategory.PERMISSIONS,
@@ -215,7 +171,6 @@ def _handle_auth_error(
 def _handle_jira_config_error(
     error: Exception, setup_status: dict[str, Any], current_operation: str
 ) -> ContextualError:
-    """Handle JIRA configuration-related errors."""
     error_str = str(error).lower()
 
     if "field" in error_str or "customfield" in error_str:
@@ -279,7 +234,6 @@ def _handle_jira_config_error(
 def _handle_validation_error(
     error: Exception, setup_status: dict[str, Any], current_operation: str
 ) -> ContextualError:
-    """Handle validation and input errors."""
     return ContextualError(
         category=ErrorCategory.VALIDATION,
         severity=ErrorSeverity.MEDIUM,
@@ -298,7 +252,6 @@ def _handle_validation_error(
 def _handle_dependency_error(
     error: Exception, setup_status: dict[str, Any], current_operation: str
 ) -> ContextualError:
-    """Handle dependency validation errors (T005)."""
     current_step = setup_status.get("current_step", "unknown")
 
     remediation = []
@@ -329,7 +282,6 @@ def _handle_dependency_error(
 def _handle_generic_error(
     error: Exception, setup_status: dict[str, Any], current_operation: str
 ) -> ContextualError:
-    """Handle generic errors with basic context."""
     return ContextualError(
         category=ErrorCategory.DATA,
         severity=ErrorSeverity.MEDIUM,
@@ -345,20 +297,8 @@ def _handle_generic_error(
     )
 
 
-# ============================================================================
-# T007: Error Recovery Workflows
-# ============================================================================
-
-
 def get_error_recovery_workflow(error: ContextualError) -> list[dict[str, str]]:
-    """Get step-by-step recovery workflow for an error (T007).
 
-    Args:
-        error: Contextual error to create workflow for
-
-    Returns:
-        List of recovery steps with actions
-    """
     if (
         error.category == ErrorCategory.NETWORK
         and error.setup_step == "jira_connection"
@@ -406,7 +346,6 @@ def get_error_recovery_workflow(error: ContextualError) -> list[dict[str, str]]:
             },
         ]
 
-    # Generic recovery workflow
     return [
         {
             "step": "1",
@@ -432,15 +371,7 @@ def get_error_recovery_workflow(error: ContextualError) -> list[dict[str, str]]:
 def format_error_for_ui(
     error: ContextualError, include_technical: bool = False
 ) -> dict[str, Any]:
-    """Format contextual error for UI display (T007).
 
-    Args:
-        error: Contextual error to format
-        include_technical: Whether to include technical details
-
-    Returns:
-        Dict formatted for UI components
-    """
     severity_colors = {
         ErrorSeverity.CRITICAL: "danger",
         ErrorSeverity.HIGH: "warning",
@@ -473,61 +404,33 @@ def format_error_for_ui(
     return formatted
 
 
-# ============================================================================
-# T007: Error Context Helpers
-# ============================================================================
-
-
 def should_show_error_in_setup_step(
     error: ContextualError, current_setup_step: str
 ) -> bool:
-    """Determine if error should be shown in current setup step (T007).
 
-    Progressive error disclosure - only show relevant errors.
-
-    Args:
-        error: Error to evaluate
-        current_setup_step: User's current setup step
-
-    Returns:
-        True if error should be displayed
-    """
-    # Critical errors are always shown
     if error.severity == ErrorSeverity.CRITICAL:
         return True
 
-    # Show errors related to current step
     if error.setup_step == current_setup_step:
         return True
 
-    # Show high-priority errors even if not current step
     if error.severity == ErrorSeverity.HIGH:
         return True
 
-    # Hide low-priority errors from other steps
     return False
 
 
 def get_error_summary_for_dashboard(errors: list[ContextualError]) -> dict[str, Any]:
-    """Create error summary for dashboard display (T007).
 
-    Args:
-        errors: List of contextual errors
-
-    Returns:
-        Summary dict with counts and priorities
-    """
     if not errors:
         return {"status": "healthy", "total": 0}
 
-    # Count errors by severity
     total = len(errors)
     critical = sum(1 for e in errors if e.severity == ErrorSeverity.CRITICAL)
     high = sum(1 for e in errors if e.severity == ErrorSeverity.HIGH)
     medium = sum(1 for e in errors if e.severity == ErrorSeverity.MEDIUM)
     low = sum(1 for e in errors if e.severity == ErrorSeverity.LOW)
 
-    # Determine overall status and message
     if critical > 0:
         status = "critical"
         message = f"{critical} critical issue(s) need attention"

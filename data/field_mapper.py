@@ -1,11 +1,3 @@
-"""Jira custom field mapping logic.
-
-This module provides functions for fetching available Jira custom fields, validating
-field type compatibility, and persisting field mappings to configuration.
-
-Reference: DORA_Flow_Jira_Mapping.md
-"""
-
 import hashlib
 import json
 import logging
@@ -20,7 +12,6 @@ from data.persistence.factory import get_backend
 
 logger = logging.getLogger(__name__)
 
-# Field type mapping from Jira schema types to internal types
 JIRA_TYPE_MAPPING = {
     "datetime": "datetime",
     "date": "datetime",
@@ -28,8 +19,7 @@ JIRA_TYPE_MAPPING = {
     "string": "text",
     "option": "select",
     "array": "multiselect",
-    "any": "checkbox",  # Jira checkbox type
-    # Standard JIRA field types
+    "any": "checkbox",
     "issuetype": "select",
     "status": "select",
     "priority": "select",
@@ -43,59 +33,31 @@ JIRA_TYPE_MAPPING = {
     "labels": "multiselect",
 }
 
-# Internal field type requirements for DORA and Flow metrics
-# Field names match official DORA and Flow Metrics documentation
 INTERNAL_FIELD_TYPES = {
-    # DORA Metrics fields (aligned with dora.dev standards)
-    "deployment_date": "datetime",  # When deployment occurred
-    "deployment_successful": "checkbox",  # Deployment success/failure
-    "code_commit_date": "datetime",  # When code was committed
-    "incident_detected_at": "datetime",  # When production issue found
-    "incident_resolved_at": "datetime",  # When issue fixed in production
-    "change_failure": "select",  # Deployment failure indicator
-    # (field or field=Value syntax)
-    "affected_environment": "select",  # Environment affected by incidents
-    "target_environment": "select",  # Deployment target environment
-    "severity_level": "select",  # Incident priority/severity
-    # Flow Metrics fields (aligned with Flow Framework standards)
-    # Note: Flow Time now uses flow_start_statuses and flow_end_statuses
-    # from project_classification to find status transitions in changelog.
-    "flow_item_type": "select",  # Work category (Feature/Defect/Tech Debt/Risk)
-    "status": "select",  # Current work status
-    "effort_category": "select",  # Secondary work classification
-    "estimate": "number",  # Story points or effort estimation
+    "deployment_date": "datetime",
+    "deployment_successful": "checkbox",
+    "code_commit_date": "datetime",
+    "incident_detected_at": "datetime",
+    "incident_resolved_at": "datetime",
+    "change_failure": "select",
+    "affected_environment": "select",
+    "target_environment": "select",
+    "severity_level": "select",
+    "flow_item_type": "select",
+    "status": "select",
+    "effort_category": "select",
+    "estimate": "number",
 }
 
 
 def fetch_available_jira_fields() -> list[dict]:
-    """Fetch all fields from Jira instance.
 
-    Tries authenticated request first, then falls back to unauthenticated
-    for public Jira instances like Apache Kafka.
-
-    Returns:
-        List of field dictionaries with structure:
-        [
-            {
-                "field_id": "customfield_10100",
-                "field_name": "Deployment Date",
-                "field_type": "datetime",
-                "is_custom": True,
-                "schema": {...}
-            },
-            ...
-        ]
-
-    Raises:
-        requests.RequestException: If Jira API call fails
-    """
     config = load_jira_configuration()
     base_url = config.get("base_url", "")
 
     if not base_url:
         raise requests.RequestException("No JIRA base URL configured")
 
-    # Use configured API version (v2 or v3)
     api_version = config.get("api_version", "v2")
     if api_version == "v3":
         endpoint = f"{base_url}/rest/api/3/field"
@@ -104,7 +66,6 @@ def fetch_available_jira_fields() -> list[dict]:
 
     token = config.get("token", "")
 
-    # Try authenticated request first
     try:
         headers = {"Content-Type": "application/json"}
         if token:
@@ -115,13 +76,11 @@ def fetch_available_jira_fields() -> list[dict]:
 
         jira_fields = response.json()
 
-        # Transform to our internal format
         transformed_fields = []
         for field in jira_fields:
             field_id = field.get("id", "")
             is_custom = field_id.startswith("customfield_")
 
-            # Map Jira schema type to our internal type
             schema = field.get("schema", {})
             jira_type = schema.get("type", "string")
             internal_type = JIRA_TYPE_MAPPING.get(jira_type, "text")
@@ -150,41 +109,7 @@ def fetch_available_jira_fields() -> list[dict]:
 def validate_field_mapping(
     internal_field: str, jira_field_id: str, field_metadata: dict
 ) -> tuple[bool, str | None]:
-    """Validate that Jira field type matches required internal field type.
 
-    Uses flexible validation rules to accommodate real-world JIRA field usage:
-    - Standard fields (issuetype, status, fixVersions) are always valid
-    - Text fields can be used as select fields (JIRA returns string values)
-    - Multiselect fields can provide datetime values (e.g., fixVersions release dates)
-    - Value filter syntax (field=Value) is supported for conditional matching
-
-    Args:
-        internal_field: Internal field name (e.g., "deployment_date")
-        jira_field_id: Jira field ID, optionally with value filter
-            (e.g., "customfield_10100" or "customfield_10100=Yes")
-        field_metadata: Dictionary of available Jira fields with metadata
-
-    Returns:
-        Tuple of (is_valid, error_message)
-            - (True, None) if valid
-            - (False, "error message") if invalid
-
-    Example:
-        >>> validate_field_mapping(
-        ...     "deployment_date",
-        ...     "customfield_10100",
-        ...     {"customfield_10100": {"field_type": "datetime"}}
-        ... )
-        (True, None)
-        >>> validate_field_mapping(
-        ...     "change_failure",
-        ...     "customfield_12708=Yes",
-        ...     {"customfield_12708": {"field_type": "select"}}
-        ... )
-        (True, None)
-    """
-    # Handle value filter syntax: "field=Value" or "field=Value1|Value2"
-    # Extract just the field ID for validation
     actual_field_id = jira_field_id
     if "=" in jira_field_id:
         actual_field_id = jira_field_id.split("=", 1)[0].strip()
@@ -193,21 +118,16 @@ def validate_field_mapping(
             f"'{jira_field_id}' -> field '{actual_field_id}'"
         )
 
-    # Check if internal field has type requirement
     required_type = INTERNAL_FIELD_TYPES.get(internal_field)
     if not required_type:
         logger.warning(f"Unknown internal field: {internal_field}")
-        return True, None  # Allow unknown fields for flexibility
+        return True, None
 
-    # Check if Jira field exists in metadata
     if actual_field_id not in field_metadata:
         return False, f"Jira field '{actual_field_id}' not found in available fields"
 
-    # Get JIRA field type
     jira_field_type = field_metadata[actual_field_id].get("field_type", "text")
 
-    # FLEXIBLE VALIDATION RULES
-    # Allow standard JIRA fields to be used regardless of reported type
     standard_fields = [
         "issuetype",
         "status",
@@ -226,17 +146,16 @@ def validate_field_mapping(
         )
         return True, None
 
-    # Type compatibility matrix: which JIRA types can satisfy which requirements
     compatible_types = {
         "datetime": [
             "datetime",
             "multiselect",
             "text",
-        ],  # fixVersions (multiselect) can provide dates
-        "select": ["select", "text"],  # text fields often contain select-like values
-        "text": ["text", "select"],  # select fields can provide text
-        "number": ["number", "text"],  # text might contain numeric values
-        "checkbox": ["checkbox", "select", "text"],  # various ways to represent boolean
+        ],
+        "select": ["select", "text"],
+        "text": ["text", "select"],
+        "number": ["number", "text"],
+        "checkbox": ["checkbox", "select", "text"],
         "multiselect": ["multiselect", "array"],
     }
 
@@ -247,63 +166,31 @@ def validate_field_mapping(
             f"Type flexibility: '{internal_field}' expects '{required_type}', "
             f"but '{actual_field_id}' is '{jira_field_type}' - allowing anyway"
         )
-        # Allow with warning instead of blocking
         return True, None
 
     return True, None
 
 
 def save_field_mappings(mappings: dict) -> bool:
-    """Save field mappings to profile.json (flat structure).
 
-    Args:
-        mappings: Dictionary with structure:
-            {
-                "field_mappings": {
-                    "deployment_date": "resolutiondate",
-                    "incident_start": "created",
-                    "work_started_date": "created",
-                    "work_type": "issuetype",
-                    ...
-                },
-                "field_metadata": {
-                    "resolutiondate": {
-                        "name": "Resolution Date",
-                        "type": "datetime",
-                        "required": True
-                    },
-                    ...
-                }
-            }
-
-    Returns:
-        True if save successful, False otherwise
-    """
     try:
-        # Use repository pattern - get backend and save via database
         backend = get_backend()
 
-        # Get active profile
         active_profile_id = backend.get_app_state("active_profile_id")
         if not active_profile_id:
             logger.error("No active profile to save field mappings to")
             return False
 
-        # Load existing profile data
         settings = backend.get_profile(active_profile_id) or {}
 
-        # Save to flat field_mappings structure (not nested dora_flow_config)
         if "field_mappings" in mappings:
             settings["field_mappings"] = mappings["field_mappings"]
 
-        # Optionally save field_metadata if provided
         if "field_metadata" in mappings:
             settings["field_metadata"] = mappings["field_metadata"]
 
-        # Ensure id is in settings dict
         settings["id"] = active_profile_id
 
-        # Save via backend
         backend.save_profile(settings)
         logger.info("Successfully saved field mappings to database")
         return True
@@ -314,39 +201,22 @@ def save_field_mappings(mappings: dict) -> bool:
 
 
 def load_field_mappings() -> dict:
-    """Load field mappings from profile.json.
 
-    Converts flat field_mappings structure to nested dora/flow structure
-    expected by the UI.
-
-    Returns:
-        Dictionary with structure:
-        {
-            "field_mappings": {
-                "dora": { "deployment_date": "fixVersions", ... },
-                "flow": { "effort_category": "customfield_10003", ... }
-            }
-        }
-    """
     try:
         settings = load_app_settings()
 
-        # Support both legacy nested structure and new flat structure
         if "dora_flow_config" in settings:
-            # Legacy nested structure - return as-is
             return settings.get("dora_flow_config", {})
 
-        # New flat structure - convert to nested structure for UI
         flat_mappings = settings.get("field_mappings", {})
 
-        # Define which fields belong to DORA vs Flow metrics
         dora_fields = {
             "deployment_date",
             "target_environment",
             "code_commit_date",
             "incident_detected_at",
             "incident_resolved_at",
-            "change_failure",  # Changed from deployment_successful to change_failure
+            "change_failure",
             "production_impact",
             "affected_environment",
             "severity_level",
@@ -358,7 +228,6 @@ def load_field_mappings() -> dict:
             "status",
         }
 
-        # Separate into dora and flow dictionaries
         dora_mappings = {k: v for k, v in flat_mappings.items() if k in dora_fields}
         flow_mappings = {k: v for k, v in flat_mappings.items() if k in flow_fields}
 
@@ -370,27 +239,16 @@ def load_field_mappings() -> dict:
 
 
 def get_field_mappings_hash() -> str:
-    """Calculate MD5 hash of current field mappings for cache invalidation.
 
-    Returns:
-        8-character hex hash of field mappings (or "00000000" if no mappings)
-
-    Example:
-        >>> get_field_mappings_hash()
-        "a3f5c8d9"
-    """
     try:
         settings = load_app_settings()
-        # Support both legacy nested structure and new flat structure
         if "dora_flow_config" in settings:
             mappings = settings.get("dora_flow_config", {}).get("field_mappings", {})
         else:
             mappings = settings.get("field_mappings", {})
 
-        # Create deterministic string representation
         mappings_str = json.dumps(mappings, sort_keys=True)
 
-        # Calculate hash
         hash_object = hashlib.md5(mappings_str.encode(), usedforsecurity=False)
         return hash_object.hexdigest()[:8]
 
@@ -400,76 +258,18 @@ def get_field_mappings_hash() -> str:
 
 
 def get_mapped_field_id(metric_type: str, internal_field: str) -> str | None:
-    """Get Jira field ID for an internal field name.
 
-    Args:
-        metric_type: "dora" or "flow"
-        internal_field: Internal field name (e.g., "deployment_date")
-
-    Returns:
-        Jira field ID (e.g., "customfield_10100") or None if not mapped
-
-    Example:
-        >>> get_mapped_field_id("dora", "deployment_date")
-        "customfield_10100"
-    """
     mappings = load_field_mappings()
     return mappings.get("field_mappings", {}).get(metric_type, {}).get(internal_field)
 
 
 def create_field_mapping_index(field_mappings: dict[str, str]) -> FieldMappingIndex:
-    """Create FieldMappingIndex for O(1) field lookups.
 
-    This function creates an optimized index for fast bidirectional field mapping
-    lookups, providing ~95% speedup over repeated dictionary access.
-
-    Use this when performing multiple field lookups in tight loops (e.g., processing
-    hundreds or thousands of JIRA issues in metric calculations).
-
-    Args:
-        field_mappings: Flat dictionary of internal field -> JIRA field mappings
-            Example: {
-                "deployment_date": "customfield_10100",
-                "incident_start": "created",
-                "work_started_date": "customfield_10200"
-            }
-
-    Returns:
-        FieldMappingIndex instance with O(1) lookup performance
-
-    Example:
-        >>> from data.persistence import load_app_settings
-        >>> settings = load_app_settings()
-        >>> field_mappings = settings.get("field_mappings", {})
-        >>> index = create_field_mapping_index(field_mappings)
-        >>> jira_field = index.get_jira_field("deployment_date")  # O(1)
-        >>> internal_field = index.get_internal_field("customfield_10100")  # O(1)
-
-    Performance:
-        - Standard dict.get(): O(n) when called repeatedly in loops
-        - FieldMappingIndex: O(1) for all lookups after initialization
-        - Benchmark: ~95% speedup for 1000 lookups (see test_performance.py)
-    """
     return FieldMappingIndex(field_mappings)
 
 
 def check_required_mappings(metric_name: str) -> tuple[bool, list[str]]:
-    """Check if all required field mappings exist for a metric.
 
-    Args:
-        metric_name: Name of metric (e.g., "deployment_frequency")
-
-    Returns:
-        Tuple of (all_mapped, missing_fields)
-            - (True, []) if all required fields mapped
-            - (False, ["field1", "field2"]) if some fields missing
-
-    Example:
-        >>> check_required_mappings("deployment_frequency")
-        (True, [])
-    """
-
-    # Determine if DORA or Flow metric
     if metric_name in dora_config.REQUIRED_DORA_FIELDS:
         required_fields = dora_config.get_required_fields(metric_name)
         metric_type = "dora"
@@ -480,7 +280,6 @@ def check_required_mappings(metric_name: str) -> tuple[bool, list[str]]:
         logger.warning(f"Unknown metric: {metric_name}")
         return False, []
 
-    # Check mappings
     mappings = load_field_mappings()
     field_mappings = mappings.get("field_mappings", {}).get(metric_type, {})
 
@@ -489,60 +288,12 @@ def check_required_mappings(metric_name: str) -> tuple[bool, list[str]]:
     return len(missing_fields) == 0, missing_fields
 
 
-# ============================================================================
-# Data Source Validation (Feature 007 - Data Quality)
-# ============================================================================
-
-
 def validate_dora_jira_compatibility(field_mappings: dict[str, str]) -> dict[str, Any]:
-    """Validate if JIRA configuration is suitable for DORA/Flow metrics.
 
-    Detects inappropriate proxy field mappings that produce misleading metrics.
-    Provides validation mode recommendations: 'devops' vs 'issue_tracker'.
-
-    Args:
-        field_mappings: Dictionary of internal field -> JIRA field mappings
-            Example: {"deployment_date": "resolutiondate", ...}
-
-    Returns:
-        Dictionary with structure:
-        {
-            "validation_mode": "devops" | "issue_tracker" | "unknown",
-            "compatibility_level": "full" | "partial" | "unsuitable",
-            "warnings": [
-                {
-                    "severity": "error" | "warning" | "info",
-                    "field": "deployment_date",
-                    "mapped_to": "resolutiondate",
-                    "issue": "Treats all resolved issues as deployments",
-                    "recommendation": "Add custom field for actual deployment tracking"
-                },
-                ...
-            ],
-            "recommended_interpretation": {
-                "deployment_frequency": "Issue Resolution Frequency",
-                "lead_time_for_changes": "Issue Resolution Time",
-                ...
-            },
-            "alternative_metrics_available": True | False
-        }
-
-    Example:
-        >>> mappings = {
-        ...     "deployment_date": "resolutiondate",
-        ...     "incident_detected_at": "created"
-        ... }
-        >>> result = validate_dora_jira_compatibility(mappings)
-        >>> result["validation_mode"]
-        'issue_tracker'
-        >>> result["compatibility_level"]
-        'unsuitable'
-    """
     warnings = []
     devops_field_count = 0
     proxy_field_count = 0
 
-    # Standard JIRA fields that are proxies (not real DORA fields)
     STANDARD_JIRA_FIELDS = {
         "created",
         "resolutiondate",
@@ -553,7 +304,6 @@ def validate_dora_jira_compatibility(field_mappings: dict[str, str]) -> dict[str
         "resolution",
     }
 
-    # DORA-specific field patterns
     DEVOPS_FIELD_PATTERNS = {
         "deployment",
         "deploy",
@@ -564,7 +314,6 @@ def validate_dora_jira_compatibility(field_mappings: dict[str, str]) -> dict[str
         "pipeline",
     }
 
-    # Check each DORA/Flow mapping
     CRITICAL_DORA_FIELDS = {
         "deployment_date": {
             "purpose": "Track actual production deployments",
@@ -588,7 +337,6 @@ def validate_dora_jira_compatibility(field_mappings: dict[str, str]) -> dict[str
         },
     }
 
-    # Validate each critical field
     for internal_field, field_info in CRITICAL_DORA_FIELDS.items():
         if internal_field not in field_mappings:
             warnings.append(
@@ -605,7 +353,6 @@ def validate_dora_jira_compatibility(field_mappings: dict[str, str]) -> dict[str
 
         jira_field = field_mappings[internal_field]
 
-        # Check if using standard JIRA field as proxy
         if jira_field in STANDARD_JIRA_FIELDS:
             proxy_field_count += 1
             warnings.append(
@@ -617,7 +364,6 @@ def validate_dora_jira_compatibility(field_mappings: dict[str, str]) -> dict[str
                     "recommendation": field_info["recommendation"],
                 }
             )
-        # Check if using proper DevOps-specific field
         elif any(pattern in jira_field.lower() for pattern in DEVOPS_FIELD_PATTERNS):
             devops_field_count += 1
             warnings.append(
@@ -631,7 +377,6 @@ def validate_dora_jira_compatibility(field_mappings: dict[str, str]) -> dict[str
                 }
             )
         else:
-            # Custom field but unclear purpose
             warnings.append(
                 {
                     "severity": "warning",
@@ -642,9 +387,6 @@ def validate_dora_jira_compatibility(field_mappings: dict[str, str]) -> dict[str
                 }
             )
 
-    # Note: work_started_date validation removed - Flow Time now uses status lists
-
-    # Determine validation mode and compatibility
     error_count = sum(1 for w in warnings if w["severity"] == "error")
 
     if devops_field_count >= 3 and error_count == 0:
@@ -653,14 +395,13 @@ def validate_dora_jira_compatibility(field_mappings: dict[str, str]) -> dict[str
     elif devops_field_count >= 1 and error_count <= 2:
         validation_mode = "devops"
         compatibility_level = "partial"
-    elif proxy_field_count >= 2:  # Changed from >= 3 to >= 2 for better detection
+    elif proxy_field_count >= 2:
         validation_mode = "issue_tracker"
         compatibility_level = "unsuitable"
     else:
         validation_mode = "unknown"
         compatibility_level = "partial"
 
-    # Provide alternative interpretations for issue tracker mode
     recommended_interpretation = {}
     if validation_mode == "issue_tracker":
         recommended_interpretation = {

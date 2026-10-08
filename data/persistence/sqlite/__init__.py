@@ -1,5 +1,3 @@
-"""SQLite backend package - modular mixin-based architecture."""
-
 from data.persistence.sqlite.app_state import AppStateMixin
 from data.persistence.sqlite.backend import SQLiteBackend
 from data.persistence.sqlite.budget import BudgetMixin

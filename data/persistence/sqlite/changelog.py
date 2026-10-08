@@ -1,5 +1,3 @@
-"""Changelog operations mixin for SQLiteBackend."""
-
 from __future__ import annotations
 
 import logging
@@ -15,9 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class ChangelogMixin:
-    """Mixin for JIRA changelog operations."""
-
-    db_path: Path  # Set by composition class (SQLiteBackend)
+    db_path: Path
 
     def get_changelog_entries(
         self,
@@ -28,7 +24,6 @@ class ChangelogMixin:
         start_date: str | None = None,
         end_date: str | None = None,
     ) -> list[dict]:
-        """Query normalized changelog entries with filters."""
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -78,7 +73,6 @@ class ChangelogMixin:
         entries: list[dict],
         expires_at: datetime,
     ) -> None:
-        """Batch insert normalized changelog entries."""
         if not entries:
             return
 
@@ -162,7 +156,6 @@ class ChangelogMixin:
     def get_jira_changelog(
         self, profile_id: str, query_id: str, issue_key: str
     ) -> dict | None:
-        """LEGACY: Get changelog - returns aggregated normalized data."""
         entries = self.get_changelog_entries(profile_id, query_id, issue_key=issue_key)
         if not entries:
             return None
@@ -176,7 +169,6 @@ class ChangelogMixin:
         changelog: dict,
         expires_at: datetime,
     ) -> None:
-        """LEGACY: Save changelog - redirects to save_changelog_batch."""
         entries = changelog.get("entries", [])
         for entry in entries:
             entry["issue_key"] = issue_key

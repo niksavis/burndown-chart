@@ -1,10 +1,3 @@
-"""
-JIRA Configuration Management
-
-Handles configuration loading, validation, and connection testing.
-Configuration hierarchy: jira_config → Environment Variables → Defaults
-"""
-
 import hashlib
 import json
 import logging
@@ -19,53 +12,21 @@ from data.jira.validation import validate_jql_for_scriptrunner
 
 logger = logging.getLogger(__name__)
 
-#######################################################################
-# CONFIGURATION CONSTANTS
 
 JIRA_CACHE_FILE = "jira_cache.json"
 JIRA_CHANGELOG_CACHE_FILE = "jira_changelog_cache.json"
 DEFAULT_CACHE_MAX_SIZE_MB = 100
 
-# Cache version - increment when cache format changes or pagination logic changes
-CACHE_VERSION = "2.0"  # v2.0: Pagination support added
-CHANGELOG_CACHE_VERSION = "2.0"  # v2.0: Added critical fields for DORA metrics
+CACHE_VERSION = "2.0"
+CHANGELOG_CACHE_VERSION = "2.0"
 
-# Cache expiration - invalidate cache after this duration
-CACHE_EXPIRATION_HOURS = 24  # Cache expires after 24 hours
-
-
-#######################################################################
-# CONFIGURATION FUNCTIONS
-#######################################################################
+CACHE_EXPIRATION_HOURS = 24
 
 
 def get_jira_config(settings_jql_query: str | None = None) -> dict:
-    """
-    Load JIRA configuration with priority hierarchy:
-    jira_config → Environment → Default.
 
-    This function reads from the jira_config structure in profile.json (managed via
-    the JIRA Configuration modal). Falls back to environment variables
-    if config not found.
-
-    Args:
-        settings_jql_query: JQL query parameter (highest priority for JQL only)
-
-    Returns:
-        Dictionary containing JIRA configuration with keys:
-        - jql_query: JQL query string
-        - api_endpoint: Full JIRA API endpoint URL
-        - token: JIRA authentication token
-        - story_points_field: Custom field ID for story points
-        - cache_max_size_mb: Maximum cache size in MB
-        - max_results: Maximum results per API call
-        - devops_projects: List of DevOps project keys
-        - devops_task_types: List of DevOps task type names
-        - field_mappings: Field mappings for metrics
-    """
-    # Load app settings first
     try:
-        from data.persistence import (  # circular import guard  # noqa: PLC0415
+        from data.persistence import (  # noqa: PLC0415
             load_app_settings,
             load_jira_configuration,
         )
@@ -84,7 +45,6 @@ def get_jira_config(settings_jql_query: str | None = None) -> dict:
         logger.debug(f"Failed to load app settings: {e}")
         app_settings = {}
 
-    # Load jira_config structure (new configuration system)
     try:
         jira_config = load_jira_configuration()
     except (
@@ -100,15 +60,13 @@ def get_jira_config(settings_jql_query: str | None = None) -> dict:
         logger.debug(f"Failed to load jira configuration: {e}")
         jira_config = {}
 
-    # Configuration hierarchy: Parameter → App settings → Environment → Default
     jql_query = (
-        settings_jql_query  # JQL from parameter (highest priority)
-        or app_settings.get("jql_query", "")  # App settings
-        or os.getenv("JIRA_DEFAULT_JQL", "")  # Environment variable
-        or "project = JRASERVER"  # Default fallback
+        settings_jql_query
+        or app_settings.get("jql_query", "")
+        or os.getenv("JIRA_DEFAULT_JQL", "")
+        or "project = JRASERVER"
     )
 
-    # Build API endpoint from jira_config or environment
     base_url = jira_config.get("base_url") or os.getenv("JIRA_BASE_URL", "")
     api_version = jira_config.get("api_version") or os.getenv("JIRA_API_VERSION", "v2")
 
@@ -129,54 +87,32 @@ def get_jira_config(settings_jql_query: str | None = None) -> dict:
     config = {
         "jql_query": jql_query,
         "api_endpoint": api_endpoint,
-        "token": (
-            jira_config.get("token", "")  # jira_config (new structure)
-            or os.getenv("JIRA_TOKEN", "")  # Environment variable
-            or ""  # Default
-        ),
+        "token": (jira_config.get("token", "") or os.getenv("JIRA_TOKEN", "") or ""),
         "story_points_field": (
-            estimate_field  # Field mappings (General > Estimate)
-            or jira_config.get("points_field", "")  # jira_config (legacy)
-            or os.getenv("JIRA_STORY_POINTS_FIELD", "")  # Environment variable
-            or ""  # Default
+            estimate_field
+            or jira_config.get("points_field", "")
+            or os.getenv("JIRA_STORY_POINTS_FIELD", "")
+            or ""
         ),
         "cache_max_size_mb": int(
-            jira_config.get(
-                "cache_size_mb", DEFAULT_CACHE_MAX_SIZE_MB
-            )  # jira_config (new structure)
-            or os.getenv(
-                "JIRA_CACHE_MAX_SIZE_MB", DEFAULT_CACHE_MAX_SIZE_MB
-            )  # Environment variable
+            jira_config.get("cache_size_mb", DEFAULT_CACHE_MAX_SIZE_MB)
+            or os.getenv("JIRA_CACHE_MAX_SIZE_MB", DEFAULT_CACHE_MAX_SIZE_MB)
         ),
         "max_results": int(
-            jira_config.get("max_results_per_call", 1000)  # jira_config (new structure)
-            or os.getenv("JIRA_MAX_RESULTS", 1000)  # Environment variable
+            jira_config.get("max_results_per_call", 1000)
+            or os.getenv("JIRA_MAX_RESULTS", 1000)
         ),
-        "development_projects": app_settings.get(
-            "development_projects", []
-        ),  # Load development projects for filtering
-        "devops_projects": app_settings.get(
-            "devops_projects", []
-        ),  # Load from app_settings
-        "devops_task_types": app_settings.get(
-            "devops_task_types", []
-        ),  # Load DevOps task types
-        "field_mappings": field_mappings,  # Load field mappings for metrics
+        "development_projects": app_settings.get("development_projects", []),
+        "devops_projects": app_settings.get("devops_projects", []),
+        "devops_task_types": app_settings.get("devops_task_types", []),
+        "field_mappings": field_mappings,
     }
 
     return config
 
 
 def validate_jira_config(config: dict) -> tuple[bool, str]:
-    """
-    Validate JIRA configuration and custom fields.
 
-    Args:
-        config: JIRA configuration dictionary
-
-    Returns:
-        Tuple of (is_valid: bool, message: str)
-    """
     api_endpoint = config.get("api_endpoint", "")
     if not api_endpoint:
         return False, "JIRA API endpoint is required"
@@ -184,39 +120,22 @@ def validate_jira_config(config: dict) -> tuple[bool, str]:
     if not config["jql_query"]:
         return False, "JQL query is required"
 
-    # Basic JQL validation (optional - JQL is complex, so we do minimal validation)
     jql_query = config["jql_query"].strip()
-    if len(jql_query) < 5:  # Minimum reasonable JQL length
+    if len(jql_query) < 5:
         return False, "JQL query is too short"
 
-    # Basic URL validation for API endpoint
     if not api_endpoint.startswith(("http://", "https://")):
         return False, "JIRA API endpoint must be a valid URL (http:// or https://)"
 
-    # Check for ScriptRunner compatibility issues
-
     is_compatible, scriptrunner_warning = validate_jql_for_scriptrunner(jql_query)
     if not is_compatible:
-        # Return as warning, not blocking error - let user decide
         logger.warning(f"[JIRA] {scriptrunner_warning}")
 
     return True, "Configuration valid"
 
 
 def generate_config_hash(config: dict, fields: str) -> str:
-    """
-    Generate hash of configuration for cache validation.
 
-    This hash ensures cache is invalidated when configuration changes.
-    Includes: JQL query, fields requested, field mappings, time period
-
-    Args:
-        config: JIRA configuration dictionary
-        fields: Fields requested in API call
-
-    Returns:
-        MD5 hash string of configuration
-    """
     config_str = json.dumps(
         {
             "jql": config.get("jql_query", ""),
@@ -233,16 +152,7 @@ def generate_config_hash(config: dict, fields: str) -> str:
 def build_sync_jira_config(
     jira_config: dict, settings_jql: str, app_settings: dict
 ) -> dict:
-    """Build JIRA configuration dictionary for a sync operation.
 
-    Args:
-        jira_config: Raw JIRA configuration from persistence layer
-        settings_jql: Resolved JQL query string to use for the fetch
-        app_settings: Application settings dict with project and field config
-
-    Returns:
-        Configuration dict suitable for passing to the JIRA sync functions
-    """
     base_url = jira_config.get("base_url", "https://jira.atlassian.com")
     api_version = jira_config.get("api_version", "v2")
     points_field_raw = jira_config.get("points_field", "")
@@ -264,65 +174,26 @@ def build_sync_jira_config(
 
 
 def construct_jira_endpoint(base_url: str, api_version: str = "v2") -> str:
-    """
-    Construct full JIRA API endpoint from base URL and version.
 
-    Args:
-        base_url: Base JIRA URL (e.g., "https://company.atlassian.net")
-        api_version: API version ("v2" or "v3")
-
-    Returns:
-        Full endpoint URL (e.g., "https://company.atlassian.net/rest/api/3/search")
-
-    Raises:
-        ValueError: If URL format is invalid
-    """
-    # Remove trailing slashes
     clean_url = base_url.rstrip("/")
 
-    # Validate URL format
     if not clean_url.startswith(("http://", "https://")):
         raise ValueError("URL must start with http:// or https://")
 
     if not clean_url:
         raise ValueError("URL cannot be empty")
 
-    # Construct endpoint based on API version
     api_path = "/rest/api/2/search" if api_version == "v2" else "/rest/api/3/search"
 
     return f"{clean_url}{api_path}"
 
 
 def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> dict:
-    """
-    Test JIRA connection by calling serverInfo endpoint.
 
-    This validates the base URL and token without requiring a JQL query.
-    Uses the serverInfo endpoint which is lightweight and doesn't require authentication
-    for connectivity check, but we include the token to verify authentication.
-
-    Args:
-        base_url: Base JIRA URL (e.g., "https://company.atlassian.net")
-        token: Personal access token
-        api_version: API version ("v2" or "v3")
-
-    Returns:
-        Dictionary with test results:
-        {
-            "success": bool,
-            "message": str,
-            "response_time_ms": int,
-            "server_info": dict (if successful),
-            "error_code": str (if failed),
-            "error_details": str (if failed),
-            "timestamp": str (ISO 8601)
-        }
-    """
     timestamp = datetime.now().isoformat()
     start_time = time.time()
 
     try:
-        # Validate base URL format first
         clean_url = base_url.rstrip("/")
         if not clean_url.startswith(("http://", "https://")):
             return {
@@ -334,31 +205,25 @@ def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> 
                 "error_details": "URL must start with http:// or https://",
             }
 
-        # Construct serverInfo endpoint using configured API version
-        api_ver = api_version.replace("v", "")  # Normalize "v2" or "2" to "2"
+        api_ver = api_version.replace("v", "")
         server_info_url = f"{clean_url}/rest/api/{api_ver}/serverInfo"
 
-        # Prepare headers with authentication
         headers = {"Accept": "application/json", "Content-Type": "application/json"}
 
         if token:
             headers["Authorization"] = f"Bearer {token}"
 
-        # Make request with timeout
         logger.info(f"[JIRA] Testing connection to: {server_info_url}")
         response = requests.get(server_info_url, headers=headers, timeout=10)
 
         response_time_ms = int((time.time() - start_time) * 1000)
 
-        # Check response status
         if response.status_code == 200:
             server_info = response.json()
 
-            # Additional check: Verify the search endpoint with specified API version
             search_endpoint = construct_jira_endpoint(base_url, api_version)
             logger.info(f"[JIRA] Verifying search endpoint: {search_endpoint}")
 
-            # Test with a minimal JQL query (just get 1 result)
             test_jql = "order by created DESC"
             search_headers = headers.copy()
             search_response = requests.get(
@@ -368,12 +233,10 @@ def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> 
                 timeout=10,
             )
 
-            # If search endpoint fails, provide specific guidance
             if search_response.status_code in (400, 404):
                 api_version_name = "v3" if api_version == "v3" else "v2"
                 opposite_version = "v2" if api_version == "v3" else "v3"
 
-                # Log the actual error for debugging
                 logger.warning(
                     f"[JIRA] API {api_version_name} not available "
                     f"(status {search_response.status_code})"
@@ -403,12 +266,9 @@ def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> 
                     ),
                 }
 
-            # If search works, return full success (only accept 200 OK with valid JSON)
             if search_response.status_code == 200:
-                # Verify response body is valid JSON
                 try:
                     search_data = search_response.json()
-                    # Verify it has expected structure
                     if "issues" in search_data or "total" in search_data:
                         logger.info(
                             f"[JIRA] API {api_version} verified "
@@ -430,14 +290,12 @@ def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> 
                             },
                         }
                     else:
-                        # Got JSON but wrong structure
                         logger.warning(
                             f"[JIRA] API {api_version} returned JSON "
                             "with unexpected structure: "
                             f"{list(search_data.keys())}"
                         )
                 except ValueError as json_error:
-                    # Status 200 but body is not JSON - API version doesn't work
                     logger.warning(
                         f"[JIRA] API {api_version} returned 200 "
                         f"but invalid JSON: {json_error}"
@@ -447,7 +305,6 @@ def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> 
                         f"{search_response.text[:200]}"
                     )
 
-                # If we get here, API returns 200 but doesn't work properly
                 api_version_name = "v3" if api_version == "v3" else "v2"
                 opposite_version = "v2" if api_version == "v3" else "v3"
                 return {
@@ -466,7 +323,6 @@ def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> 
                     ),
                 }
 
-            # Search endpoint returned any other error - treat as API version issue
             api_version_name = "v3" if api_version == "v3" else "v2"
             opposite_version = "v2" if api_version == "v3" else "v3"
 
@@ -531,7 +387,6 @@ def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> 
             }
 
         else:
-            # Generic HTTP error
             error_text = response.text[:200] if response.text else "No error details"
             return {
                 "success": False,

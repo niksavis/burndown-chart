@@ -1,6 +1,3 @@
-"""Data persistence adapters - public API."""
-
-# Re-export all public functions for backwards compatibility
 from data.persistence.adapters.app_settings import (
     load_app_settings,
     save_app_settings,

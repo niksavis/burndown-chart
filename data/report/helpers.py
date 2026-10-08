@@ -1,9 +1,3 @@
-"""Helper functions for report generation.
-
-This module contains utility functions that support report generation
-but don't fit into specific semantic groups (domain metrics, chart generation, etc.)
-"""
-
 import logging
 from datetime import datetime
 from typing import Any
@@ -23,15 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def calculate_weekly_breakdown(statistics: list[dict]) -> list[dict]:
-    """
-    Calculate weekly breakdown of created/completed items and points.
 
-    Args:
-        statistics: List of daily statistics
-
-    Returns:
-        List of weekly aggregates with ISO week labels
-    """
     if not statistics:
         return []
 
@@ -39,7 +25,6 @@ def calculate_weekly_breakdown(statistics: list[dict]) -> list[dict]:
     df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")  # type: ignore
     df["week"] = df["date"].dt.strftime("%Y-W%U")  # type: ignore
 
-    # Group by week and aggregate
     weekly = (
         df.groupby("week")
         .agg(
@@ -53,7 +38,6 @@ def calculate_weekly_breakdown(statistics: list[dict]) -> list[dict]:
         .reset_index()
     )
 
-    # Convert to list of dicts with formatted week labels
     weekly_data = []
     for _, row in weekly.iterrows():
         weekly_data.append(
@@ -76,20 +60,6 @@ def calculate_budget_metrics(
     velocity_items: float = 0.0,
     velocity_points: float = 0.0,
 ) -> dict[str, Any]:
-    """
-    Calculate budget metrics for report using proper budget calculator functions.
-
-    Args:
-        profile_id: Profile identifier
-        query_id: Query identifier
-        weeks_count: Number of weeks in analysis period
-        velocity_items: Items velocity for cost_per_item calculation (from dashboard)
-        velocity_points: Story points velocity for
-            cost_per_point calculation (from dashboard)
-
-    Returns:
-        Dictionary with budget metrics and weekly tracking data including cost breakdown
-    """
 
     logger.info(f"Calculating budget metrics for {profile_id}/{query_id}")
 
@@ -100,49 +70,36 @@ def calculate_budget_metrics(
         logger.info("No budget configured for query")
         return {"has_data": False}
 
-    # Get budget revisions for history
     revisions = backend.get_budget_revisions(profile_id, query_id) or []
 
-    # Calculate latest budget state
     time_allocated = budget_settings.get("time_allocated_weeks", 0)
     cost_per_week = budget_settings.get("team_cost_per_week_eur", 0.0)
     budget_total = budget_settings.get("budget_total_eur", 0.0)
     currency = budget_settings.get("currency_symbol", "€")
 
-    # Get current week for calculations
     current_week = get_week_label(datetime.now())
 
-    # Use proper budget calculator functions (same as app)
     try:
-        # Calculate consumption using actual budget calculator
         consumed_eur, budget_total_calc, consumed_pct = calculate_budget_consumed(
             profile_id, query_id, current_week
         )
 
-        # Calculate runway using actual budget calculator
         runway_weeks, burn_rate = calculate_runway(
             profile_id, query_id, current_week, data_points_count=weeks_count
         )
 
-        # Calculate cost breakdown by work type
         cost_breakdown = calculate_cost_breakdown_by_type(
             profile_id, query_id, current_week
         )
 
-        # Get variance metrics for health calculator
-        # (includes burn_rate_variance_pct, etc.)
         baseline_vs_actual = get_budget_baseline_vs_actual(
             profile_id, query_id, current_week, data_points_count=weeks_count
         )
         variance_metrics = baseline_vs_actual.get("variance", {})
 
-        # Use velocity from dashboard (already calculated in report)
-        # for accurate cost per item/point
-        # This ensures consistency with the velocity shown in the dashboard section
         cost_per_item = cost_per_week / velocity_items if velocity_items > 0 else 0
         cost_per_point = cost_per_week / velocity_points if velocity_points > 0 else 0
 
-        # Use 999999 as sentinel for infinity (Jinja2 compatible)
         if runway_weeks == float("inf"):
             runway_weeks = 999999
 
@@ -154,7 +111,6 @@ def calculate_budget_metrics(
 
     except Exception as e:
         logger.error(f"Failed to calculate budget metrics: {e}", exc_info=True)
-        # Fallback to basic calculations
         consumed_eur = 0.0
         consumed_pct = 0.0
         burn_rate = cost_per_week
@@ -179,7 +135,6 @@ def calculate_budget_metrics(
         "cost_per_item": cost_per_item,
         "cost_per_point": cost_per_point,
         "cost_breakdown": cost_breakdown,
-        # Add variance metrics for health calculator
         "burn_rate_variance_pct": variance_metrics.get("burn_rate_variance_pct", 0),
         "runway_vs_baseline_pct": variance_metrics.get("runway_vs_baseline_pct", 0),
         "utilization_vs_pace_pct": variance_metrics.get("utilization_vs_pace_pct", 0),
@@ -189,7 +144,6 @@ def calculate_budget_metrics(
 def calculate_historical_burndown(
     statistics: list[dict], project_scope: dict
 ) -> dict[str, list]:
-    """Calculate historical remaining work for burndown chart."""
     if not statistics:
         return {"dates": [], "remaining_items": [], "remaining_points": []}
 
@@ -210,7 +164,6 @@ def calculate_historical_burndown(
         current_remaining_points + df["cumulative_completed_points"]
     )
 
-    # Format dates and convert to lists
     dates = [d.strftime("%Y-%m-%d") for d in df["date"]]
     remaining_items = [round(x) for x in df["historical_remaining_items"]]
     remaining_points = [round(x) for x in df["historical_remaining_points"]]

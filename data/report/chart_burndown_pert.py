@@ -1,10 +1,3 @@
-"""Weekly items and points PERT/EWMA forecast charts.
-
-Generates focused Chart.js charts for weekly items and story points
-with PERT and EWMA forecast projections.
-Part of data/report/chart_burndown.py split.
-"""
-
 import json
 from datetime import datetime
 
@@ -20,11 +13,7 @@ def generate_weekly_items_chart(
     deadline: str | None = None,
     remaining_items: float | None = None,
 ) -> str:
-    """
-    Generate Chart.js script for weekly items breakdown with forecasts.
 
-    Separate chart focusing only on items for clarity.
-    """
     if not weekly_data:
         return ""
 
@@ -32,7 +21,6 @@ def generate_weekly_items_chart(
     dates_js = json.dumps(dates)
     items_completed = [week["completed_items"] for week in weekly_data]
 
-    # Calculate weighted 4-week moving average
     items_avg = []
     for i in range(len(items_completed)):
         if i < 3:
@@ -43,7 +31,6 @@ def generate_weekly_items_chart(
             w_avg = sum(w * v for w, v in zip(weights, window, strict=False))
             items_avg.append(round(w_avg, 1))
 
-    # Generate forecasts
     forecast_items = None
     ewma_items = None
 
@@ -70,7 +57,6 @@ def generate_weekly_items_chart(
             except KeyError, ValueError, IndexError:
                 pass
 
-    # Calculate required velocity using midnight-today (matches app calculation exactly)
     required_items = None
     if deadline and remaining_items is not None and remaining_items > 0:
         try:
@@ -86,7 +72,6 @@ def generate_weekly_items_chart(
         except ValueError, ZeroDivisionError:
             pass
 
-    # Build datasets
     datasets = [
         {
             "type": "bar",
@@ -110,7 +95,6 @@ def generate_weekly_items_chart(
             }
         )
 
-    # Add forecast data if available
     if forecast_items:
         forecast_dates = dates + [forecast_items["date"]]
         forecast_dates_js = json.dumps(forecast_dates)
@@ -234,11 +218,7 @@ def generate_weekly_points_chart(
     deadline: str | None = None,
     remaining_points: float | None = None,
 ) -> str:
-    """
-    Generate Chart.js script for weekly points breakdown with forecasts.
 
-    Separate chart focusing only on points for clarity.
-    """
     if not weekly_data:
         return ""
 
@@ -246,7 +226,6 @@ def generate_weekly_points_chart(
     dates_js = json.dumps(dates)
     points_completed = [week["completed_points"] for week in weekly_data]
 
-    # Calculate weighted 4-week moving average
     points_avg = []
     for i in range(len(points_completed)):
         if i < 3:
@@ -257,7 +236,6 @@ def generate_weekly_points_chart(
             w_avg = sum(w * v for w, v in zip(weights, window, strict=False))
             points_avg.append(round(w_avg, 1))
 
-    # Generate forecasts
     forecast_points = None
     ewma_points = None
 
@@ -282,7 +260,6 @@ def generate_weekly_points_chart(
             except KeyError, ValueError, IndexError:
                 pass
 
-    # Calculate required velocity using midnight-today (matches app calculation exactly)
     required_points = None
     if deadline and remaining_points is not None and remaining_points > 0:
         try:
@@ -298,7 +275,6 @@ def generate_weekly_points_chart(
         except ValueError, ZeroDivisionError:
             pass
 
-    # Build datasets
     datasets = [
         {
             "type": "bar",
@@ -322,7 +298,6 @@ def generate_weekly_points_chart(
             }
         )
 
-    # Add forecast data if available
     if forecast_points:
         forecast_dates = dates + [forecast_points["date"]]
         forecast_dates_js = json.dumps(forecast_dates)

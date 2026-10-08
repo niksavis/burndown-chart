@@ -1,10 +1,3 @@
-"""Backward-compatible re-export shim for data.dora_metrics.
-
-All DORA metric logic now lives in the data/dora/ package.
-This module re-exports the full public API so existing callers continue
-to work without modification.
-"""
-
 from data.dora import (
     CHANGE_FAILURE_RATE_TIERS,
     DEPLOYMENT_FREQUENCY_TIERS,

@@ -1,22 +1,16 @@
-"""Sorting helpers for Active Work epics."""
-
 from __future__ import annotations
 
 from typing import Any
 
 
 def is_epic_completed(epic: dict[str, Any]) -> bool:
-    """Return True when an epic is fully completed."""
     total_issues = int(epic.get("total_issues", 0) or 0)
     completed_issues = int(epic.get("completed_issues", 0) or 0)
     return total_issues > 0 and completed_issues == total_issues
 
 
 def get_epic_health_priority(epic: dict[str, Any]) -> int:
-    """Return health priority for an epic based on child issue signals.
 
-    Priority: 1=blocked, 2=aging, 3=wip, 4=none.
-    """
     child_issues = epic.get("child_issues", [])
     if not isinstance(child_issues, list):
         return 4
@@ -35,7 +29,6 @@ def get_epic_health_priority(epic: dict[str, Any]) -> int:
 
 
 def get_epic_sort_key(epic: dict[str, Any]) -> tuple[int, float, int]:
-    """Sort non-completed epics first, then by completion %, then health."""
     completion_pct = float(epic.get("completion_pct", 0.0) or 0.0)
     completed_flag = 1 if is_epic_completed(epic) else 0
     health_priority = get_epic_health_priority(epic)

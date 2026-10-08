@@ -1,13 +1,3 @@
-"""Domain-specific metrics calculations for report generation.
-
-This module contains calculations for specific domains:
-- Burndown metrics (velocity, remaining work)
-- Bug metrics (resolution rate, capacity consumption)
-- Scope metrics (scope creep, creation/completion ratios)
-- Flow metrics (velocity, efficiency, WIP)
-- DORA metrics (deployment frequency, lead time, CFR, MTTR)
-"""
-
 import logging
 from datetime import datetime, timedelta
 from typing import Any
@@ -46,17 +36,6 @@ logger = logging.getLogger(__name__)
 def calculate_burndown_metrics(
     statistics: list[dict], project_scope: dict, weeks_count: int
 ) -> dict[str, Any]:
-    """
-    Calculate burndown chart metrics and projections.
-
-    Args:
-        statistics: Filtered statistics for the time period
-        project_scope: Current project scope
-        weeks_count: Actual number of weeks with data
-
-    Returns:
-        Dictionary with burndown metrics and weekly data
-    """
 
     if not statistics:
         return {"has_data": False, "weeks_count": weeks_count}
@@ -64,15 +43,12 @@ def calculate_burndown_metrics(
     df = pd.DataFrame(statistics)
     df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")  # type: ignore
 
-    # Calculate velocity using proper week counting
     velocity_items = calculate_velocity_from_dataframe(df, "completed_items")
     velocity_points = calculate_velocity_from_dataframe(df, "completed_points")
 
-    # Get current remaining from project scope
     remaining_items = project_scope.get("remaining_items", 0)
     remaining_points = project_scope.get("remaining_total_points", 0)
 
-    # Calculate weeks to completion
     weeks_remaining_items = (
         remaining_items / velocity_items if velocity_items > 0 else float("inf")
     )
@@ -80,10 +56,8 @@ def calculate_burndown_metrics(
         remaining_points / velocity_points if velocity_points > 0 else float("inf")
     )
 
-    # Calculate weekly breakdown for chart
     weekly_data = calculate_weekly_breakdown(statistics)
 
-    # Calculate historical remaining work for burndown chart
     historical_data = calculate_historical_burndown(statistics, project_scope)
 
     return {
@@ -106,32 +80,18 @@ def calculate_bug_metrics(
     settings: dict,
     weeks_count: int,
 ) -> dict[str, Any]:
-    """
-    Calculate bug analysis metrics using proper bug processing functions.
-
-    Args:
-        jira_issues: Raw JIRA issues
-        statistics: Filtered statistics
-        settings: App settings with bug type mappings
-        weeks_count: Number of weeks in period
-
-    Returns:
-        Dictionary with bug analysis metrics
-    """
 
     if not jira_issues:
         logger.warning("[REPORT BUG] No JIRA issues available for bug analysis")
         return {"has_data": False}
 
     try:
-        # Get bug type mappings
         bug_types = settings.get("bug_types", {})
         logger.info(
             f"[REPORT BUG] Processing {len(jira_issues)} JIRA issues "
             f"with bug_types={bug_types}"
         )
 
-        # Calculate date range
         date_to = datetime.now()
         date_from = (
             date_to - timedelta(weeks=weeks_count)
@@ -139,15 +99,13 @@ def calculate_bug_metrics(
             else date_to - timedelta(weeks=12)
         )
 
-        # Filter bugs WITHOUT date filter for current state metrics (open bugs count)
         all_bug_issues = filter_bug_issues(
             jira_issues,
             bug_type_mappings=bug_types,
-            date_from=None,  # No date filter for current state
+            date_from=None,
             date_to=None,
         )
 
-        # Filter bugs WITH date filter for historical metrics (resolution rate, trends)
         timeline_filtered_bugs = filter_bug_issues(
             jira_issues,
             bug_type_mappings=bug_types,
@@ -162,7 +120,6 @@ def calculate_bug_metrics(
             )
             return {"has_data": False}
 
-        # Calculate weekly bug statistics using timeline-filtered bugs
         points_field = settings.get("points_field", "customfield_10016")
         weekly_stats = []
         try:
@@ -175,25 +132,19 @@ def calculate_bug_metrics(
         except Exception as e:
             logger.warning(f"Failed to calculate bug statistics: {e}")
 
-        # Calculate summary metrics using BOTH bug lists (like the app does)
         bug_summary = calculate_bug_metrics_summary(
             all_bug_issues=all_bug_issues,
             timeline_filtered_bugs=timeline_filtered_bugs,
             weekly_stats=weekly_stats,
             date_from=date_from,
             date_to=date_to,
-            all_project_issues=jira_issues,  # Pass all issues for capacity calculation
+            all_project_issues=jira_issues,
         )
 
-        # Calculate bug resolution forecast
         forecast = None
         open_bugs = bug_summary.get("open_bugs", 0)
         if open_bugs > 0 and weekly_stats:
             try:
-                # Use min(8, weeks_count) to match app behavior
-                # but respect shorter periods
-                # 8 weeks is optimal for trend analysis,
-                # but use less if data window is smaller
                 forecast_weeks = min(8, weeks_count)
                 forecast = forecast_bug_resolution(
                     open_bugs=open_bugs,
@@ -203,24 +154,19 @@ def calculate_bug_metrics(
             except Exception as e:
                 logger.warning(f"Failed to calculate bug forecast: {e}")
 
-        # Calculate bug investment percentage from weekly stats
         total_completed = sum(s.get("completed_items", 0) for s in statistics)
         total_bugs_resolved = sum(s.get("bugs_resolved", 0) for s in weekly_stats)
         bug_investment_pct = (
             (total_bugs_resolved / total_completed) * 100 if total_completed > 0 else 0
         )
 
-        # Convert resolution rate from decimal to percentage
         resolution_rate = bug_summary.get("resolution_rate", 0)
         resolution_rate_pct = resolution_rate * 100
 
-        # Round average age
         avg_age_days = bug_summary.get("avg_age_days", 0)
 
-        # Count closed bugs from timeline-filtered bugs
         closed_bugs = bug_summary.get("closed_bugs", 0)
 
-        # Bug health badge — consistent with DORA/Flow tier pattern
         if resolution_rate_pct >= 75:
             health_status = "Healthy"
             health_color = "#198754"
@@ -259,7 +205,7 @@ def calculate_bug_metrics(
             "bug_investment_pct": bug_investment_pct,
             "bug_capacity_consumption_pct": bug_summary.get(
                 "capacity_consumed_by_bugs", 0
-            ),  # Alias for health calculator
+            ),
             "weekly_stats": weekly_stats,
             "date_from": date_from.strftime("%b %d, %Y"),
             "date_to": date_to.strftime("%b %d, %Y"),
@@ -276,35 +222,20 @@ def calculate_bug_metrics(
 def calculate_scope_metrics(
     statistics: list[dict], project_scope: dict, weeks_count: int
 ) -> dict[str, Any]:
-    """
-    Calculate scope change metrics comparing window start vs current.
 
-    Args:
-        statistics: Filtered statistics for the time period
-        project_scope: Current project scope (remaining items/points)
-        weeks_count: Number of weeks in period
-
-    Returns:
-        Dictionary with scope metrics including creation/completion ratios
-    """
     if not statistics or len(statistics) < 2:
         return {"has_data": False}
 
     df = pd.DataFrame(statistics)
 
-    # Calculate creation/completion totals for the period
     total_created_items = int(df["created_items"].sum())
     total_created_points = df["created_points"].sum()
     total_completed_items = int(df["completed_items"].sum())
     total_completed_points = df["completed_points"].sum()
 
-    # Current scope from project_scope (remaining work)
     current_items = project_scope.get("remaining_items", 0)
     current_points = project_scope.get("remaining_total_points", 0)
 
-    # Calculate initial scope at window start
-    # Work backwards from current: Initial = Current + Completed - Created
-    # This accounts for both work completed and new work added during the period
     initial_items = current_items + total_completed_items - total_created_items
     initial_points = current_points + total_completed_points - total_created_points
 
@@ -324,13 +255,9 @@ def calculate_scope_metrics(
         f"{initial_items} items, {initial_points:.2f} points"
     )
 
-    # Calculate net change:
-    # Current - Initial = (Current) - (Current + Completed - Created)
-    # = Created - Completed
     items_change = current_items - initial_items
     points_change = current_points - initial_points
 
-    # Calculate creation/completion ratios
     items_ratio = (
         round(total_created_items / total_completed_items, 2)
         if total_completed_items > 0
@@ -342,8 +269,6 @@ def calculate_scope_metrics(
         else 0
     )
 
-    # Scope health badge — derived from items_ratio (created / completed).
-    # Guard: if nothing was completed but items were created, treat as growing.
     _no_completions = total_completed_items == 0 and total_created_items > 0
     if _no_completions or items_ratio >= 1.1:
         scope_health = "Scope Growing"
@@ -392,30 +317,13 @@ def calculate_flow_metrics(
     weeks_count: int,
     week_labels: list[str] | None = None,
 ) -> dict[str, Any]:
-    """
-    Load Flow metrics from snapshots (matches app implementation).
-
-    Uses the same snapshot reading logic as callbacks/dora_flow_metrics.py
-    to ensure identical calculations with aggregation across the period.
-
-    Args:
-        snapshots: Filtered weekly snapshots (NOT USED - we read directly from cache)
-        weeks_count: Number of weeks to load from snapshots
-        week_labels: Pre-filtered week labels to use
-            (ensures consistency with statistics filtering)
-
-    Returns:
-        Dictionary with Flow metrics matching app display
-    """
 
     logger.info(f"Loading Flow metrics from snapshots for {weeks_count} weeks")
 
-    # Use provided week labels if available (ensures same time window as statistics)
     if week_labels:
-        week_labels = list(week_labels)  # Use pre-filtered labels
+        week_labels = list(week_labels)
         logger.info(f"[FLOW METRICS] Using provided week labels: {week_labels}")
     else:
-        # Fallback: Generate week labels (same as app)
         weeks = []
         current_date = datetime.now()
         for _i in range(weeks_count):
@@ -423,14 +331,13 @@ def calculate_flow_metrics(
             week_label = format_year_week(year, week)
             weeks.append(week_label)
             current_date = current_date - timedelta(days=7)
-        week_labels = list(reversed(weeks))  # Oldest to newest
+        week_labels = list(reversed(weeks))
         logger.warning(
             f"[FLOW METRICS] Generated week labels (should use provided): {week_labels}"
         )
 
     current_week_label = week_labels[-1] if week_labels else ""
 
-    # Check if any data exists
     available_weeks = get_available_weeks()
     has_any_data = any(week in available_weeks for week in week_labels)
 
@@ -438,9 +345,6 @@ def calculate_flow_metrics(
         logger.warning("No Flow metrics snapshots found")
         return {"has_data": False, "weeks_count": weeks_count}
 
-    # Load weekly values from snapshots (same as app)
-
-    # Note: flow_load (WIP) is loaded separately as point-in-time snapshot below
     flow_time_values = get_metric_weekly_values(week_labels, "flow_time", "median_days")
     flow_efficiency_values = get_metric_weekly_values(
         week_labels, "flow_efficiency", "overall_pct"
@@ -449,11 +353,8 @@ def calculate_flow_metrics(
         week_labels, "flow_velocity", "completed_count"
     )
 
-    # AGGREGATE metrics across period (same as app)
-    # Flow Velocity: Average items/week
     avg_velocity = sum(velocity_values) / len(velocity_values) if velocity_values else 0
 
-    # Flow Time: Median of weekly medians (exclude zeros = weeks with no completions)
     non_zero_flow_times = [v for v in flow_time_values if v > 0]
     if non_zero_flow_times:
         sorted_times = sorted(non_zero_flow_times)
@@ -466,7 +367,6 @@ def calculate_flow_metrics(
     else:
         median_flow_time = 0
 
-    # Flow Efficiency: Average efficiency across period (exclude zeros)
     non_zero_efficiency = [v for v in flow_efficiency_values if v > 0]
     avg_efficiency = (
         sum(non_zero_efficiency) / len(non_zero_efficiency)
@@ -474,11 +374,9 @@ def calculate_flow_metrics(
         else 0
     )
 
-    # Flow Load (WIP): Current week snapshot (point-in-time metric)
     flow_load_snapshot = get_metric_snapshot(current_week_label, "flow_load")
     if not flow_load_snapshot and available_weeks:
-        # Find most recent week with data
-        for week in week_labels[::-1]:  # Start from most recent
+        for week in week_labels[::-1]:
             flow_load_snapshot = get_metric_snapshot(week, "flow_load")
             if flow_load_snapshot:
                 logger.info(
@@ -488,7 +386,6 @@ def calculate_flow_metrics(
                 break
     wip_count = flow_load_snapshot.get("wip_count", 0) if flow_load_snapshot else 0
 
-    # Collect distribution data across ALL weeks for aggregated totals
     total_feature = 0
     total_defect = 0
     total_tech_debt = 0
@@ -506,7 +403,6 @@ def calculate_flow_metrics(
             week_risk = week_dist.get("risk", 0)
             week_total = week_snapshot.get("completed_count", 0)
 
-            # Accumulate totals
             total_feature += week_feature
             total_defect += week_defect
             total_tech_debt += week_tech_debt
@@ -541,22 +437,18 @@ def calculate_flow_metrics(
         f"{median_flow_time:.2f}d, Efficiency={avg_efficiency:.2f}%, WIP={wip_count}"
     )
 
-    # Check if there's any meaningful data (not all zeros)
-    # has_data should be True only if at least ONE metric has real values
     has_meaningful_data = (
-        (avg_velocity > 0)  # At least some velocity
-        or (median_flow_time > 0)  # Flow time exists
-        or (avg_efficiency > 0)  # Efficiency exists
-        or (wip_count > 0)  # WIP exists
-        or (total_completed > 0)  # Any completed work in distribution
+        (avg_velocity > 0)
+        or (median_flow_time > 0)
+        or (avg_efficiency > 0)
+        or (wip_count > 0)
+        or (total_completed > 0)
     )
 
     if not has_meaningful_data:
         logger.info("No meaningful Flow data - all metrics are zero")
         return {"has_data": False, "weeks_count": weeks_count}
 
-    # Compute overall Flow performance level using the same thresholds as the
-    # report_macros.html color helpers (single canonical source per metric).
     _fv_score = (
         3
         if avg_velocity >= 20
@@ -607,11 +499,10 @@ def calculate_flow_metrics(
 
     return {
         "has_data": True,
-        "velocity": avg_velocity,  # Average items/week
-        "flow_time": round(median_flow_time, 1),  # Median days
-        "efficiency": avg_efficiency,  # Average percentage
-        "wip": wip_count,  # Current WIP count
-        # Overall performance level derived from all four flow metric tiers
+        "velocity": avg_velocity,
+        "flow_time": round(median_flow_time, 1),
+        "efficiency": avg_efficiency,
+        "wip": wip_count,
         "performance_level": _flow_meta["label"],
         "performance_level_color": _flow_meta["color"],
         "performance_level_icon": _flow_meta["icon"],
@@ -629,55 +520,30 @@ def calculate_flow_metrics(
 
 
 def calculate_dora_metrics(profile_id: str, weeks_count: int) -> dict[str, Any]:
-    """
-    Load DORA metrics from cache (matches app implementation).
-
-    Uses the same load_dora_metrics_from_cache() function as the app's
-    callbacks/dora_flow_metrics.py to ensure identical calculations.
-
-    Args:
-        profile_id: Active profile ID for cache access
-            (not currently used by load function)
-        weeks_count: Number of weeks to load from cache
-
-    Returns:
-        Dictionary with DORA metrics matching app display
-    """
 
     logger.info(f"Loading DORA metrics from cache for {weeks_count} weeks")
 
-    # Load from cache using the same function as the app
     cached_metrics = load_dora_metrics_from_cache(n_weeks=weeks_count)
 
     if not cached_metrics:
         logger.warning("No DORA metrics found in cache")
         return {"has_data": False, "weeks_count": weeks_count}
 
-    # Extract values matching app structure
-    # Deployment Frequency: Use release count (unique fixVersions) as primary
     deploy_data = cached_metrics.get("deployment_frequency", {})
-    deployment_freq = deploy_data.get("release_value", 0)  # Primary: unique releases
-    deployment_freq_tasks = deploy_data.get("value", 0)  # Secondary: task count
+    deployment_freq = deploy_data.get("release_value", 0)
+    deployment_freq_tasks = deploy_data.get("value", 0)
 
-    # Lead Time: value is already in days, value_hours is in hours
     lead_time_data = cached_metrics.get("lead_time_for_changes", {})
-    lead_time_days = lead_time_data.get(
-        "value"
-    )  # Already in days (median of weekly medians)
-    lead_time_hours = lead_time_data.get(
-        "value_hours"
-    )  # In hours for secondary display
+    lead_time_days = lead_time_data.get("value")
+    lead_time_hours = lead_time_data.get("value_hours")
 
-    # Change Failure Rate: Percentage
     cfr_data = cached_metrics.get("change_failure_rate", {})
-    change_failure_rate = cfr_data.get("value", 0)  # Percentage
+    change_failure_rate = cfr_data.get("value", 0)
 
-    # MTTR: value is already in hours (median of weekly medians), convert to days
     mttr_data = cached_metrics.get("mean_time_to_recovery", {})
-    mttr_hours = mttr_data.get("value")  # Already in hours (median of weekly medians)
+    mttr_hours = mttr_data.get("value")
     mttr_days = mttr_hours / 24 if mttr_hours else None
 
-    # Get weekly values for trend analysis
     weekly_labels = deploy_data.get("weekly_labels", [])
 
     logger.info(
@@ -685,23 +551,16 @@ def calculate_dora_metrics(profile_id: str, weeks_count: int) -> dict[str, Any]:
         f"LT={lead_time_days}d, CFR={change_failure_rate}%, MTTR={mttr_days}d"
     )
 
-    # Check if there's any meaningful data (not all zeros/None)
-    # has_data should be True only if at least ONE metric has real values
     has_meaningful_data = (
-        (deployment_freq > 0)  # At least one deployment
-        or (lead_time_days is not None and lead_time_days > 0)  # Lead time exists
-        or (mttr_days is not None and mttr_days > 0)  # MTTR exists
-        # CFR can be legitimately 0% (no failures),
-        # so we check if deployment count exists
-        or (deployment_freq_tasks > 0)  # Has tasks for CFR calculation
+        (deployment_freq > 0)
+        or (lead_time_days is not None and lead_time_days > 0)
+        or (mttr_days is not None and mttr_days > 0)
+        or (deployment_freq_tasks > 0)
     )
 
     if not has_meaningful_data:
         logger.info("No meaningful DORA data - all metrics are zero or None")
         return {"has_data": False, "weeks_count": weeks_count}
-
-    # Compute overall DORA tier using the same classify function as the app.
-    # Deployment frequency is per-week here; thresholds are per-day -> divide by 7.
 
     _tier_order = ["elite", "high", "medium", "low"]
     _df_tier = _classify_performance_tier(
@@ -755,24 +614,19 @@ def calculate_dora_metrics(profile_id: str, weeks_count: int) -> dict[str, Any]:
 
     return {
         "has_data": True,
-        "deployment_frequency": deployment_freq,  # Releases per week
-        "deployment_frequency_tasks": deployment_freq_tasks,  # Tasks per week
-        "lead_time": lead_time_days
-        or 0,  # CRITICAL: Map to 'lead_time' for health calculator (app uses this key)
-        "lead_time_days": lead_time_days,  # Days (None if no data)
-        # Keep for report charts
-        "lead_time_hours": lead_time_hours,  # Hours (None if no data)
-        "change_failure_rate": change_failure_rate,  # Percentage
-        "mttr_hours": mttr_hours
-        or 0,  # CRITICAL: Health calculator expects hours, not days
-        "mttr_days": mttr_days,  # Days (None if no data) - keep for report charts
-        "weekly_labels": weekly_labels,  # For charts
+        "deployment_frequency": deployment_freq,
+        "deployment_frequency_tasks": deployment_freq_tasks,
+        "lead_time": lead_time_days or 0,
+        "lead_time_days": lead_time_days,
+        "lead_time_hours": lead_time_hours,
+        "change_failure_rate": change_failure_rate,
+        "mttr_hours": mttr_hours or 0,
+        "mttr_days": mttr_days,
+        "weekly_labels": weekly_labels,
         "weeks_count": weeks_count,
-        # Overall tier (worst single-metric tier across all four DORA metrics)
         "overall_tier": _dora_tier_meta["label"],
         "overall_tier_color": _dora_tier_meta["color"],
         "overall_tier_icon": _dora_tier_meta["icon"],
         "overall_tier_desc": _dora_tier_meta["desc"],
-        # Include full cached data for detailed reporting
         "_raw": cached_metrics,
     }

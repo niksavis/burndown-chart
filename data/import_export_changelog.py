@@ -1,5 +1,3 @@
-"""Changelog helpers for import/export flows."""
-
 from __future__ import annotations
 
 import logging
@@ -14,7 +12,6 @@ def collect_changelog_entries(
     query_id: str,
     sprint_field: str | None,
 ) -> list[dict]:
-    """Collect changelog entries for export, filtered to tracked fields."""
     tracked_fields = ["status", "Sprint"]
     if sprint_field:
         tracked_fields.append(sprint_field)
@@ -45,10 +42,7 @@ def collect_changelog_entries(
 
 
 def normalize_imported_changelog_entries(entries: list[dict]) -> list[dict]:
-    """Normalize changelog entries for import.
 
-    Maps sprint field changes to the display name to avoid instance-specific IDs.
-    """
     normalized: list[dict] = []
 
     for entry in entries:

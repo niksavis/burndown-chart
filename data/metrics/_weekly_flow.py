@@ -1,5 +1,3 @@
-"""Flow metrics calculation for weekly snapshots."""
-
 import logging
 from datetime import UTC, datetime
 
@@ -24,7 +22,6 @@ def _compute_wip_at_week_end(
     completion_cutoff: datetime,
     week_label: str,
 ) -> dict:
-    """Build the Flow Load result dict from historical WIP reconstruction."""
 
     issues_in_wip_at_week_end = []
     week_end_check_time = completion_cutoff
@@ -121,7 +118,6 @@ def _compute_wip_at_week_end(
 
 
 def _compute_work_distribution(issues_completed: list, app_settings: dict) -> dict:
-    """Compute work distribution by flow type for completed issues."""
 
     field_mappings = app_settings.get("field_mappings", {})
     flow_mappings = field_mappings.get("flow", {})
@@ -205,10 +201,6 @@ def calculate_flow_metrics(
     week_label: str,
     report_progress,
 ) -> tuple[int, list[str]]:
-    """Calculate and save all Flow metrics for the given week.
-
-    Returns (metrics_saved, metrics_details).
-    """
 
     metrics_saved = 0
     metrics_details: list[str] = []
@@ -254,7 +246,6 @@ def calculate_flow_metrics(
         f"({week_start.date()} to {week_end.date()})"
     )
 
-    # Save Flow Time
     if flow_time_result is not None:
         flow_time_error = flow_time_result.get("error_state")
         if flow_time_error is None:
@@ -298,7 +289,6 @@ def calculate_flow_metrics(
         metrics_details.append("Flow Time: Skipped (no changelog data)")
         logger.info("Flow Time: Skipped (changelog not available)")
 
-    # Save Flow Efficiency
     if efficiency_result is not None:
         efficiency_error = efficiency_result.get("error_state")
         if efficiency_error is None:
@@ -347,7 +337,6 @@ def calculate_flow_metrics(
         metrics_details.append("Flow Efficiency: Skipped (no changelog data)")
         logger.info("Flow Efficiency: Skipped (changelog not available)")
 
-    # Save Flow Load
     load_error = load_result.get("error_state")
     if load_error == "success":
         wip = load_result.get("wip_count", 0)
@@ -365,7 +354,6 @@ def calculate_flow_metrics(
         metrics_details.append(f"Flow Load: [!] {error_msg}")
         logger.warning(f"Flow Load calculation failed: {load_error} - {error_msg}")
 
-    # Work Distribution and Velocity
     report_progress("[Stats] Categorizing work distribution...")
     logger.info(
         f"[Work Distribution] Starting calculation for week {week_label}: "

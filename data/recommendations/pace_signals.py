@@ -1,5 +1,3 @@
-"""Shared required pace recommendation signals."""
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -15,16 +13,7 @@ def build_required_pace_signals(
     deadline: str | None,
     time_unit: str = "week",
 ) -> list[dict[str, Any]]:
-    """Build required pace signals from statistics data and deadline.
 
-    Args:
-        statistics_df: Project statistics with remaining/completed columns.
-        deadline: Deadline date string.
-        time_unit: Time unit for velocity calculations.
-
-    Returns:
-        List of signal dictionaries with severity and metrics.
-    """
     if statistics_df.empty or not deadline:
         return []
 

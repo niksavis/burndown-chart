@@ -1,5 +1,3 @@
-"""Issue preparation utilities for weekly metrics calculation."""
-
 import logging
 from datetime import UTC, datetime, timedelta
 
@@ -15,10 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 def check_metrics_cached(week_label: str) -> bool:
-    """Return True if both Flow and DORA metrics already exist for this week.
-
-    Historical weeks only - current week always recalculates as a running total.
-    """
 
     if week_label == get_current_iso_week():
         logger.info(
@@ -55,13 +49,7 @@ def load_and_filter_issues(
     active_query_id: str,
     app_settings: dict,
 ) -> tuple[list, list]:
-    """Load issues from database and apply parent/project/type filters.
 
-    Returns (all_issues, all_issues_raw) where all_issues_raw is unfiltered
-    by project (needed for DORA operational task classification).
-
-    Raises ValueError if no JIRA data is available.
-    """
     all_issues_raw = backend.get_issues(active_profile_id, active_query_id)
     if not all_issues_raw:
         raise ValueError("No JIRA data available. Please update data first.")
@@ -107,7 +95,7 @@ def load_and_filter_issues(
 
 
 def _build_changelog_map(changelog_entries: list) -> dict:
-    """Convert flat changelog records to JIRA format keyed by issue_key."""  # noqa: E501
+    # noqa: E501
     changelog_map: dict = {}
     for entry in changelog_entries:
         issue_key = entry.get("issue_key")
@@ -135,11 +123,7 @@ def load_and_merge_changelog(
     active_profile_id: str,
     active_query_id: str,
 ) -> tuple[list, bool]:
-    """Load changelog from database and merge into issues in-place.
 
-    Returns (all_issues, changelog_available) where changelog_available is
-    False if no changelog data exists or merging fails.
-    """
     changelog_entries = backend.get_changelog_entries(
         active_profile_id, active_query_id
     )
@@ -216,10 +200,7 @@ def load_and_merge_changelog(
 def compute_week_boundaries(
     week_label: str,
 ) -> tuple[datetime, datetime, bool, datetime]:
-    """Parse week_label and return (week_start, week_end, is_current_week, cutoff).
 
-    Raises ValueError for invalid week label formats.
-    """
     week_label_clean = week_label.replace("W", "").replace("-W", "-")
     try:
         year, week_num = map(int, week_label_clean.split("-"))
@@ -244,7 +225,6 @@ def filter_completed_in_week(
     week_start: datetime,
     completion_cutoff: datetime,
 ) -> list:
-    """Return issues with completion timestamp in [week_start, completion_cutoff)."""
 
     issues_completed_this_week = []
 

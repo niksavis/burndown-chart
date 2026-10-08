@@ -1,41 +1,20 @@
-"""JIRA Issue Adapter for Dict-to-Object conversion.
-
-Converts plain dict JIRA issues from database cache into objects
-that match the JIRA SDK Issue structure expected by calculator functions.
-
-This allows calculators to work with cached data without requiring
-the JIRA SDK to be connected.
-"""
-
 from types import SimpleNamespace
 from typing import Any
 
 
 def adapt_jira_issue(issue_dict: dict[str, Any]) -> Any:
-    """Convert a dict JIRA issue to an object with .fields attribute.
 
-    Args:
-        issue_dict: Dict representation of JIRA issue from database cache
-
-    Returns:
-        Object with .key and .fields attributes matching JIRA SDK structure
-    """
-    # Create the main issue object
     issue = SimpleNamespace()
     issue.key = issue_dict.get("key")
     issue.id = issue_dict.get("id")
 
-    # Create fields object
     fields_dict = issue_dict.get("fields", {})
     fields = SimpleNamespace()
 
-    # Map all top-level fields
     for field_name, field_value in fields_dict.items():
         if isinstance(field_value, dict):
-            # Convert nested dicts to objects (like status, issuetype)
             setattr(fields, field_name, SimpleNamespace(**field_value))
         elif isinstance(field_value, list):
-            # Convert lists of dicts to lists of objects (like fixVersions)
             if field_value and isinstance(field_value[0], dict):
                 setattr(
                     fields,
@@ -49,7 +28,6 @@ def adapt_jira_issue(issue_dict: dict[str, Any]) -> Any:
 
     issue.fields = fields
 
-    # Add changelog if present
     if "changelog" in issue_dict:
         changelog_data = issue_dict["changelog"]
         changelog = SimpleNamespace(histories=[])
@@ -77,12 +55,5 @@ def adapt_jira_issue(issue_dict: dict[str, Any]) -> Any:
 
 
 def adapt_jira_issues(issues: list[dict[str, Any]]) -> list[Any]:
-    """Convert a list of dict JIRA issues to objects.
 
-    Args:
-        issues: List of dict representations from database cache
-
-    Returns:
-        List of objects with .fields attributes
-    """
     return [adapt_jira_issue(issue) for issue in issues]

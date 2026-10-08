@@ -1,5 +1,3 @@
-"""Shared scope recommendation signals."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -8,14 +6,7 @@ import pandas as pd
 
 
 def build_scope_signals(statistics_df: pd.DataFrame) -> list[dict[str, Any]]:
-    """Build scope-related signals from statistics data.
 
-    Args:
-        statistics_df: Project statistics with created/completed columns.
-
-    Returns:
-        List of signal dictionaries with severity and metrics.
-    """
     if statistics_df.empty:
         return []
 

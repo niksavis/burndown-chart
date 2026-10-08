@@ -1,5 +1,3 @@
-"""Metrics operations mixin for SQLiteBackend."""
-
 from __future__ import annotations
 
 import json
@@ -14,9 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class MetricsMixin:
-    """Mixin for metrics data operations."""
-
-    db_path: Path  # Set by composition class (SQLiteBackend)
+    db_path: Path
 
     def get_metric_values(
         self,
@@ -28,7 +24,6 @@ class MetricsMixin:
         end_date: str | None = None,
         limit: int | None = None,
     ) -> list[dict]:
-        """Query normalized metric data points."""
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -92,7 +87,6 @@ class MetricsMixin:
         profile_id: str,
         query_id: str,
     ) -> int:
-        """Delete all metrics for a specific profile/query combination."""
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -121,7 +115,6 @@ class MetricsMixin:
         query_id: str,
         metrics: list[dict],
     ) -> None:
-        """Batch UPSERT metric data points."""
         if not metrics:
             return
 
@@ -190,7 +183,6 @@ class MetricsMixin:
     def get_metrics_snapshots(
         self, profile_id: str, query_id: str, metric_type: str, limit: int = 52
     ) -> list[dict]:
-        """LEGACY: Get metrics snapshots - returns normalized metrics."""
         return self.get_metric_values(
             profile_id, query_id, metric_category=metric_type, limit=limit
         )
@@ -204,7 +196,6 @@ class MetricsMixin:
         metrics: dict,
         forecast: dict | None = None,
     ) -> None:
-        """LEGACY: Save metrics snapshot - converts to normalized metrics."""
         metric_list = []
         for metric_name, metric_value in metrics.items():
             if isinstance(metric_value, (dict, list)):

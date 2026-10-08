@@ -1,9 +1,3 @@
-"""Shared Sprint Tracker data loading with short-lived in-memory caching.
-
-This module centralizes repeated Sprint Tracker reads used by callbacks to reduce
-redundant backend calls during sprint/filters/chart interactions.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -67,17 +61,7 @@ def load_sprint_tracker_dataset(
     issue_type_filter: str = "all",
     force_refresh: bool = False,
 ) -> dict:
-    """Load sprint tracker dataset with short-lived caching.
 
-    Args:
-        active_profile_id: Active profile identifier
-        active_query_id: Active query identifier
-        issue_type_filter: all|Story|Task|Bug
-        force_refresh: bypass cache when True
-
-    Returns:
-        Dict containing settings, issues, snapshots, and changelog payloads.
-    """
     cache_key = (active_profile_id, active_query_id, issue_type_filter)
     cache_entry = _SPRINT_TRACKER_CACHE.get(cache_key)
     if (

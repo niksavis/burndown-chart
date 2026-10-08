@@ -1,5 +1,3 @@
-"""Budget operations mixin for SQLiteBackend."""
-
 from __future__ import annotations
 
 import logging
@@ -13,22 +11,12 @@ logger = logging.getLogger(__name__)
 
 
 class BudgetMixin:
-    """Mixin for budget settings and revisions operations."""
-
-    db_path: Path  # Set by composition class (SQLiteBackend)
+    db_path: Path
 
     def get_budget_settings(
         self, profile_id: str, query_id: str
     ) -> dict[str, Any] | None:
-        """Get budget settings for a query.
 
-        Args:
-            profile_id: Profile identifier
-            query_id: Query identifier
-
-        Returns:
-            Dict with budget settings, or None if not configured
-        """
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -67,15 +55,7 @@ class BudgetMixin:
     def get_budget_revisions(
         self, profile_id: str, query_id: str
     ) -> list[dict[str, Any]]:
-        """Get all budget revisions for a query.
 
-        Args:
-            profile_id: Profile identifier
-            query_id: Query identifier
-
-        Returns:
-            List of budget revision dicts
-        """
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -121,13 +101,7 @@ class BudgetMixin:
     def save_budget_settings(
         self, profile_id: str, query_id: str, budget_settings: dict[str, Any]
     ) -> None:
-        """Save budget settings for a query.
 
-        Args:
-            profile_id: Profile identifier
-            query_id: Query identifier
-            budget_settings: Budget configuration dict
-        """
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -171,13 +145,7 @@ class BudgetMixin:
     def save_budget_revisions(
         self, profile_id: str, query_id: str, revisions: list[dict[str, Any]]
     ) -> None:
-        """Save budget revisions for a query.
 
-        Args:
-            profile_id: Profile identifier
-            query_id: Query identifier
-            revisions: List of revision dicts
-        """
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()

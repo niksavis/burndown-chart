@@ -1,17 +1,3 @@
-"""Update Manager orchestration.
-
-Checks GitHub releases for available updates. Delegates download and
-installation to data.update_delivery, and model/platform logic to
-data.update_models and data.update_platform.
-
-Usage:
-    progress = check_for_updates()
-    if progress.state == UpdateState.AVAILABLE:
-        progress = download_update(progress)
-        if progress.state == UpdateState.READY:
-            launch_updater(progress.download_path)
-"""
-
 import logging
 from datetime import datetime
 
@@ -27,7 +13,7 @@ from data.update_models import (
     GITHUB_OWNER,
     GITHUB_REPO,
     LEGACY_WINDOWS_ZIP_PREFIX,
-    UPDATE_CHECK_TIMEOUT,
+    UPDATE_CHECK_TIMEOUT_SECONDS,
     WINDOWS_ZIP_PREFIX,
     UpdateProgress,
     UpdateState,
@@ -49,22 +35,7 @@ logger = logging.getLogger(__name__)
 
 
 def check_for_updates() -> UpdateProgress:
-    """Check for available updates from GitHub releases.
 
-    Queries the GitHub releases API for the latest version. Compares with current
-    version using semantic versioning. Non-blocking operation with timeout.
-
-    For source code deployments (non-frozen), returns MANUAL_UPDATE_REQUIRED state
-    with guidance on how to update.
-
-    Returns:
-        UpdateProgress with state AVAILABLE, UP_TO_DATE,
-            MANUAL_UPDATE_REQUIRED, or ERROR
-
-    Note:
-        This function should be called from a background thread to avoid blocking
-        the UI. Network errors are caught and returned as ERROR state.
-    """
     current_version = get_current_version()
     deployment_type = get_deployment_type()
     is_git_repo = is_git_repository()
@@ -86,7 +57,6 @@ def check_for_updates() -> UpdateProgress:
     )
 
     try:
-        # Query GitHub releases API
         api_url = GITHUB_API_URL.format(owner=GITHUB_OWNER, repo=GITHUB_REPO)
 
         logger.debug(
@@ -96,21 +66,19 @@ def check_for_updates() -> UpdateProgress:
 
         response = requests.get(
             api_url,
-            timeout=UPDATE_CHECK_TIMEOUT,
+            timeout=UPDATE_CHECK_TIMEOUT_SECONDS,
             headers={
                 "Accept": "application/vnd.github+json",
                 "User-Agent": f"{APP_NAME}/{current_version}",
             },
         )
 
-        # Check for HTTP errors
         response.raise_for_status()
 
         release_data = response.json()
 
-        # Extract version information
         tag_name = release_data.get("tag_name", "")
-        available_version = tag_name.lstrip("v")  # Remove 'v' prefix if present
+        available_version = tag_name.lstrip("v")
 
         logger.info(
             "GitHub API query successful",
@@ -121,7 +89,6 @@ def check_for_updates() -> UpdateProgress:
             },
         )
 
-        # Skip prereleases
         if release_data.get("prerelease", False):
             logger.info(
                 "Skipping prerelease version",
@@ -130,11 +97,9 @@ def check_for_updates() -> UpdateProgress:
             progress.state = UpdateState.UP_TO_DATE
             return progress
 
-        # Compare versions
         version_comparison = compare_versions(current_version, available_version)
 
         if version_comparison < 0:
-            # Update available
             logger.info(
                 "Update available",
                 extra={
@@ -145,7 +110,6 @@ def check_for_updates() -> UpdateProgress:
                 },
             )
 
-            # Check if running from source (not frozen executable)
             if not is_frozen():
                 logger.info(
                     "Running from source - manual update required",
@@ -155,7 +119,6 @@ def check_for_updates() -> UpdateProgress:
                     },
                 )
 
-                # Provide appropriate guidance based on deployment type
                 if is_git_repo:
                     update_instructions = (
                         "You are running from a git repository. To update:\n\n"
@@ -177,10 +140,9 @@ def check_for_updates() -> UpdateProgress:
                 progress.state = UpdateState.MANUAL_UPDATE_REQUIRED
                 progress.available_version = available_version
                 progress.release_notes = update_instructions
-                progress.error_message = update_instructions  # For compatibility
+                progress.error_message = update_instructions
                 return progress
 
-            # Find Windows ZIP asset (only for executable mode)
             assets = release_data.get("assets", [])
             prefer_legacy = _is_legacy_install()
             preferred_prefix = (
@@ -211,7 +173,6 @@ def check_for_updates() -> UpdateProgress:
                 )
                 return progress
 
-            # Update progress with available version info
             progress.state = UpdateState.AVAILABLE
             progress.available_version = available_version
             progress.download_url = windows_asset.get("browser_download_url")
@@ -221,7 +182,6 @@ def check_for_updates() -> UpdateProgress:
             return progress
 
         else:
-            # Up to date or current is newer
             logger.info(
                 "App is up to date",
                 extra={
@@ -236,14 +196,18 @@ def check_for_updates() -> UpdateProgress:
     except requests.exceptions.Timeout:
         logger.warning(
             "GitHub API request timed out",
-            extra={"operation": "check_for_updates", "timeout": UPDATE_CHECK_TIMEOUT},
+            extra={
+                "operation": "check_for_updates",
+                "timeout": UPDATE_CHECK_TIMEOUT_SECONDS,
+            },
         )
         progress.state = UpdateState.ERROR
-        progress.error_message = f"Update check timed out after {UPDATE_CHECK_TIMEOUT}s"
+        progress.error_message = (
+            f"Update check timed out after {UPDATE_CHECK_TIMEOUT_SECONDS}s"
+        )
         return progress
 
     except requests.exceptions.HTTPError as e:
-        # HTTP errors (4xx, 5xx)
         status_code = e.response.status_code if e.response else "unknown"
         logger.warning(
             "GitHub API HTTP error",
@@ -258,7 +222,6 @@ def check_for_updates() -> UpdateProgress:
         return progress
 
     except requests.exceptions.ConnectionError as e:
-        # Network connectivity issues
         logger.info(
             "Cannot connect to GitHub API (network offline or unavailable)",
             extra={"operation": "check_for_updates", "error": str(e)},
@@ -268,7 +231,6 @@ def check_for_updates() -> UpdateProgress:
         return progress
 
     except requests.exceptions.RequestException as e:
-        # Other request errors
         logger.warning(
             "GitHub API request failed",
             extra={

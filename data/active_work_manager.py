@@ -1,18 +1,3 @@
-"""Active Work Timeline Manager for Epic/Feature tracking.
-
-This module provides functions for the Active Work tab showing:
-- Timeline visualization of active epics/features
-- Issue lists for last week and this week (2-week window)
-- Health indicators on individual issues (blocked, aging, at-risk)
-
-Focuses on items being actively worked on, not just updated.
-
-Key Functions:
-    get_active_work_data() -> Dict: Main function returning timeline + issue lists
-    add_health_indicators() -> List[Dict]: Add health signals to issues
-    filter_recent_activity() -> List[Dict]: Filter issues to recent updates
-"""
-
 import logging
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
@@ -29,21 +14,7 @@ def filter_active_issues(
     flow_end_statuses: list[str] | None = None,
     flow_wip_statuses: list[str] | None = None,
 ) -> list[dict]:
-    """Filter issues to data points date range.
 
-    Returns:
-    - All issues with activity (created or updated) within data_points_count weeks
-    - Includes both WIP and completed issues
-
-    Args:
-        issues: List of JIRA issues
-        data_points_count: Number of weeks to look back (from Data Points slider)
-        flow_end_statuses: Completion statuses
-        flow_wip_statuses: WIP statuses
-
-    Returns:
-        List of filtered issues
-    """
     if not flow_end_statuses:
         flow_end_statuses = ["Done", "Closed", "Resolved"]
     if not flow_wip_statuses:
@@ -60,12 +31,10 @@ def filter_active_issues(
     filtered_issues = []
 
     for issue in issues:
-        # Check both created and updated dates
         created_str = issue.get("created")
         updated_str = issue.get("updated")
 
         try:
-            # Parse created date
             created_dt = None
             if created_str:
                 if created_str.endswith("Z"):
@@ -74,7 +43,6 @@ def filter_active_issues(
                 if created_dt.tzinfo is None:
                     created_dt = created_dt.replace(tzinfo=UTC)
 
-            # Parse updated date
             updated_dt = None
             if updated_str:
                 if updated_str.endswith("Z"):
@@ -83,7 +51,6 @@ def filter_active_issues(
                 if updated_dt.tzinfo is None:
                     updated_dt = updated_dt.replace(tzinfo=UTC)
 
-            # Include if created or updated within data points range
             if (created_dt and created_dt >= cutoff_date) or (
                 updated_dt and updated_dt >= cutoff_date
             ):
@@ -112,34 +79,7 @@ def get_active_work_data(
     parent_issue_types: list[str] | None = None,
     filter_parents: bool = True,
 ) -> dict:
-    """Get active work data with nested epic timeline.
 
-    Returns:
-    {
-        "timeline": [
-            {
-                "epic_key": "A942-3407",
-                "epic_summary": "Feature Name",
-                "total_issues": 9,
-                "completed_issues": 5,
-                "completion_pct": 55.6,
-                "child_issues": [issues sorted by priority],  # New: nested issues
-            }
-        ]
-    }
-
-    Args:
-        issues: List of JIRA issues
-        data_points_count: Number of weeks to look back (from Data Points slider)
-        parent_field: Field name for parent/epic
-        flow_end_statuses: Completion statuses
-        flow_wip_statuses: WIP statuses
-        filter_parents: If True, filter out parent issues from timeline
-            (they're for display only)
-
-    Returns:
-        Dict with nested epic timeline
-    """
     logger.info(
         f"[ACTIVE WORK MGR] Building active work data from {len(issues)} issues"
     )
@@ -148,16 +88,12 @@ def get_active_work_data(
         f"data_points_count={data_points_count}, parent_field={parent_field}"
     )
 
-    # Filter to date range first (includes parents + children)
     filtered_all_issues = filter_active_issues(
         issues, data_points_count, flow_end_statuses, flow_wip_statuses
     )
 
-    # Keep filtered issues list (including parents) for parent summary lookup
     all_issues_unfiltered = filtered_all_issues
 
-    # CRITICAL: Filter out parent issues dynamically (don't hardcode "Epic")
-    # Use parent field mapping to detect which issues are parents
     filtered_issues = filtered_all_issues
     if filter_parents and parent_field:
         filtered_issues = filter_parent_issues(
@@ -173,7 +109,6 @@ def get_active_work_data(
         logger.warning("[ACTIVE WORK MGR] No issues found after filtering")
         return {"timeline": []}
 
-    # Add health indicators to each issue
     issues_with_health = [
         _add_health_indicators(
             issue, backend, profile_id, query_id, flow_end_statuses, flow_wip_statuses
@@ -181,8 +116,6 @@ def get_active_work_data(
         for issue in filtered_issues
     ]
 
-    # Build epic timeline with nested issues
-    # Pass unfiltered list so we can find parent summaries
     timeline = _build_epic_timeline(
         issues_with_health,
         backend,
@@ -203,31 +136,7 @@ def calculate_epic_progress(
     flow_end_statuses: list[str] | None = None,
     flow_wip_statuses: list[str] | None = None,
 ) -> dict:
-    """Calculate progress metrics for an epic based on child issues.
 
-    Args:
-        child_issues: List of issues that belong to the epic
-        flow_end_statuses: Statuses that indicate completion (default: ["Done"])
-        flow_wip_statuses: Statuses that indicate work in progress
-
-    Returns:
-        Dict with progress metrics:
-        {
-            "total_issues": 8,
-            "completed_issues": 3,
-            "in_progress_issues": 4,
-            "todo_issues": 1,
-            "total_points": 21.0,
-            "completed_points": 8.0,
-            "completion_pct": 38.1,
-            "by_status": {
-                "Done": {"count": 3, "points": 8.0},
-                "In Progress": {"count": 4, "points": 12.0},
-                "To Do": {"count": 1, "points": 1.0}
-            }
-        }
-    """
-    # Default statuses if not provided
     if flow_end_statuses is None:
         flow_end_statuses = ["Done", "Closed", "Resolved"]
 
@@ -255,7 +164,6 @@ def calculate_epic_progress(
         status = issue.get("status", "Unknown")
         points = issue.get("points", 0.0) or 0.0
 
-        # Categorize by status
         if status in flow_end_statuses:
             completed_issues += 1
             completed_points += points
@@ -264,14 +172,11 @@ def calculate_epic_progress(
         else:
             todo_issues += 1
 
-        # Aggregate totals
         total_points += points
 
-        # Breakdown by status
         by_status[status]["count"] += 1
         by_status[status]["points"] += points
 
-    # Calculate completion percentage
     completion_pct = 0.0
     if total_points > 0:
         completion_pct = round(100.0 * completed_points / total_points, 1)
@@ -298,25 +203,7 @@ def _add_health_indicators(
     flow_end_statuses: list[str] | None = None,
     flow_wip_statuses: list[str] | None = None,
 ) -> dict:
-    """Add health indicators based on status change velocity.
 
-    Health indicators:
-    - is_blocked: Status unchanged for 5+ days (not done)
-    - is_aging: Status unchanged for 3-5 days (not done, not blocked)
-    - is_wip: In WIP status and status changed in last 2 days
-    - is_completed: In completion status
-
-    Args:
-        issue: Issue dict
-        backend: Database backend for changelog access
-        profile_id: Profile ID
-        query_id: Query ID
-        flow_end_statuses: Completion statuses
-        flow_wip_statuses: WIP statuses
-
-    Returns:
-        Issue dict with health_indicators added
-    """
     if flow_end_statuses is None:
         flow_end_statuses = ["Done", "Closed", "Resolved"]
     if flow_wip_statuses is None:
@@ -326,21 +213,17 @@ def _add_health_indicators(
     status = issue.get("status", "Unknown")
     is_completed = status in flow_end_statuses
 
-    # Check if in WIP status
     is_in_wip_status = _is_wip_status_check(status, flow_wip_statuses)
 
-    # Default values
     is_blocked = False
     is_aging = False
     is_wip = False
     days_since_status_change = None
 
-    # Get last status change from changelog
     if backend and profile_id and query_id and not is_completed:
         try:
             issue_key = issue.get("issue_key")
             if issue_key:
-                # Get status changes for this issue
                 changelog = backend.get_changelog_entries(
                     profile_id=profile_id,
                     query_id=query_id,
@@ -349,8 +232,7 @@ def _add_health_indicators(
                 )
 
                 if changelog:
-                    # Get most recent status change
-                    latest_change = changelog[0]  # Already ordered by change_date DESC
+                    latest_change = changelog[0]
                     change_date_str = latest_change.get("change_date")
 
                     if change_date_str:
@@ -363,13 +245,12 @@ def _add_health_indicators(
 
                             days_since_status_change = (now - change_dt).days
 
-                            # Apply new logic based on status change velocity
                             if is_in_wip_status and days_since_status_change >= 5:
-                                is_blocked = True  # Stuck for 5+ days
+                                is_blocked = True
                             elif is_in_wip_status and days_since_status_change >= 3:
-                                is_aging = True  # Approaching blocked (3-5 days)
+                                is_aging = True
                             elif is_in_wip_status and days_since_status_change <= 2:
-                                is_wip = True  # Active work (changed recently)
+                                is_wip = True
 
                         except (ValueError, AttributeError) as e:
                             logger.debug(
@@ -377,7 +258,6 @@ def _add_health_indicators(
                                 f"for {issue_key}: {e}"
                             )
                 else:
-                    # No status changes in changelog - use created date as fallback
                     created_str = issue.get("created")
                     if created_str:
                         try:
@@ -397,10 +277,8 @@ def _add_health_indicators(
 
         except Exception as e:
             logger.warning(f"Failed to get changelog for {issue.get('issue_key')}: {e}")
-            # Fallback to old logic if changelog fails
             pass
 
-    # Add health indicators to issue (don't modify original)
     issue_with_health = {**issue}
     issue_with_health["health_indicators"] = {
         "is_blocked": is_blocked,
@@ -413,20 +291,10 @@ def _add_health_indicators(
 
 
 def _is_wip_status_check(status: str, flow_wip_statuses: list[str]) -> bool:
-    """Check if status is work-in-progress.
 
-    Args:
-        status: Issue status
-        flow_wip_statuses: List of configured WIP statuses
-
-    Returns:
-        True if status is considered WIP
-    """
-    # First check configured WIP statuses
     if flow_wip_statuses and status in flow_wip_statuses:
         return True
 
-    # Fallback: check for WIP keywords in status name
     status_lower = status.lower()
     wip_keywords = [
         "progress",
@@ -450,23 +318,7 @@ def _build_epic_timeline(
     all_issues_unfiltered: list[dict] | None = None,
     parent_issue_types: list[str] | None = None,
 ) -> list[dict]:
-    """Build epic timeline aggregation from issues.
 
-    Args:
-        issues: All active issues (filtered, without parents)
-        backend: Database backend for fetching epic details
-        profile_id: Profile ID
-        query_id: Query ID
-        parent_field: Field name for parent/epic
-        flow_end_statuses: Completion statuses
-        flow_wip_statuses: WIP statuses
-        all_issues_unfiltered: Original unfiltered issues list
-            (includes parents for summary lookup)
-
-    Returns:
-        List of epic summaries for timeline visualization
-    """
-    # Use unfiltered list if provided, fallback to filtered list
     if all_issues_unfiltered is None:
         all_issues_unfiltered = issues
     epics = defaultdict(list)
@@ -477,12 +329,9 @@ def _build_epic_timeline(
         if isinstance(issue_type, str)
     }
 
-    # Group by parent
     for issue in issues:
-        # Parent field can be at top level or in custom_fields
         parent = issue.get(parent_field)
         if not parent and parent_field.startswith("customfield_"):
-            # Check in custom_fields dict for JIRA custom fields
             custom_fields = issue.get("custom_fields", {})
             parent = custom_fields.get(parent_field)
 
@@ -490,10 +339,8 @@ def _build_epic_timeline(
 
         if parent:
             if isinstance(parent, dict):
-                # Parent is dict like {"key": "PROJ-123", "summary": "Epic Name"}
                 parent_key = parent.get("key")
             elif isinstance(parent, str):
-                # Parent is string like "PROJ-123"
                 parent_key = parent
 
         if not parent_key:
@@ -506,8 +353,6 @@ def _build_epic_timeline(
             )
             issue_key = issue.get("issue_key")
 
-            # Parent-level issues with no children should still render as their
-            # own cards instead of being grouped under "Other".
             if issue_key and normalized_issue_type in normalized_parent_issue_types:
                 parent_key = issue_key
                 standalone_parent_summaries[parent_key] = (
@@ -520,7 +365,6 @@ def _build_epic_timeline(
 
         epics[parent_key].append(issue)
 
-    # Build epic summaries with sorted child issues
     timeline = []
     for epic_key, child_issues in epics.items():
         if not child_issues and epic_key not in standalone_parent_summaries:
@@ -530,8 +374,7 @@ def _build_epic_timeline(
             child_issues, flow_end_statuses, flow_wip_statuses
         )
 
-        # Get epic summary (from first child's parent field)
-        epic_summary = epic_key  # Default to key
+        epic_summary = epic_key
         if epic_key in standalone_parent_summaries:
             epic_summary = standalone_parent_summaries[epic_key]
         elif epic_key != "No Parent":
@@ -547,7 +390,6 @@ def _build_epic_timeline(
             )
 
             if isinstance(parent, dict):
-                # Extract summary from parent dict (try multiple paths)
                 epic_summary = (
                     parent.get("summary")
                     or parent.get("fields", {}).get("summary")
@@ -556,12 +398,10 @@ def _build_epic_timeline(
                 )
                 logger.debug(f"[EPIC] From parent dict: {epic_summary}")
             elif isinstance(parent, str):
-                # Parent is just a key string - look in unfiltered list first
                 logger.debug(
                     f"[EPIC] Parent is string '{parent}', looking up summary..."
                 )
 
-                # First: Check unfiltered list (includes parents)
                 epic_issue = next(
                     (
                         issue
@@ -576,7 +416,6 @@ def _build_epic_timeline(
                         f"[EPIC] Found {parent} in unfiltered list: '{epic_summary}'"
                     )
                 elif backend and profile_id and query_id:
-                    # Fallback: Query database (parents stored during "Update Data")
                     try:
                         all_issues_db = backend.get_issues(profile_id, query_id)
                         logger.debug(
@@ -615,24 +454,18 @@ def _build_epic_timeline(
                 logger.warning(f"[EPIC] Unexpected parent type: {type(parent)}")
                 epic_summary = epic_key
 
-        # Sort child issues: Blocked → Aging → WIP → To Do → Completed
         def sort_priority(issue):
             status = issue.get("status", "Unknown")
             health = issue.get("health_indicators", {})
 
-            # Priority 1: Blocked (highest alert)
             if health.get("is_blocked"):
                 return (1, status)
-            # Priority 2: Aging (needs attention)
             elif health.get("is_aging"):
                 return (2, status)
-            # Priority 3: WIP statuses
             elif flow_wip_statuses and status in flow_wip_statuses:
                 return (3, status)
-            # Priority 4: To Do (not WIP, not completed)
             elif not (flow_end_statuses and status in flow_end_statuses):
                 return (4, status)
-            # Priority 5: Completed (lowest priority)
             else:
                 return (5, status)
 
@@ -649,11 +482,10 @@ def _build_epic_timeline(
                 "total_points": progress["total_points"],
                 "completed_points": progress["completed_points"],
                 "completion_pct": progress["completion_pct"],
-                "child_issues": sorted_child_issues,  # Include sorted child issues
+                "child_issues": sorted_child_issues,
             }
         )
 
-    # Sort epics by completion %, health priority, and completion bucket
     timeline.sort(key=get_epic_sort_key)
 
     logger.info(f"Built timeline with {len(timeline)} epics")

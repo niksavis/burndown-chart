@@ -1,9 +1,3 @@
-"""Update system startup utilities.
-
-Provides helpers for restoring pending update state on app startup and
-launching the background update check thread.
-"""
-
 import logging
 import threading
 from collections.abc import Callable
@@ -22,22 +16,10 @@ logger = logging.getLogger(__name__)
 
 
 def restore_pending_update() -> UpdateProgress | None:
-    """Restore pending update state from database.
 
-    If the app was closed or crashed after downloading an update but before
-    installation, this restores the download state. Handles graceful fallback
-    if temp files were deleted by Windows.
-
-    Also invalidates stale state if current version >= pending version
-    (e.g., after manual upgrade or development version bump).
-
-    Returns:
-        Restored UpdateProgress or None if nothing to restore.
-    """
     try:
         restored_progress = _restore_download_state()
         if restored_progress:
-            # Invalidate stale state if current version >= pending version
             if not restored_progress.available_version:
                 logger.warning("Restored state missing available_version, clearing")
                 clear_download_state()
@@ -66,7 +48,6 @@ def restore_pending_update() -> UpdateProgress | None:
                 clear_download_state()
                 return None
 
-            # Valid pending update - restore state
             logger.info(
                 "Restored pending update from previous session",
                 extra={
@@ -88,17 +69,6 @@ def start_update_check(
     result_setter: Callable[[UpdateProgress], None],
     current_result: UpdateProgress | None = None,
 ) -> threading.Thread:
-    """Start background update check thread.
-
-    Spawns a daemon thread to query GitHub releases API. Calls result_setter
-    with the UpdateProgress result when complete. Skips the check if
-    current_result already indicates a pending or available update.
-
-    Args:
-        result_setter: Callback invoked with the UpdateProgress result.
-        current_result: Current VERSION_CHECK_RESULT to decide whether
-            to skip the check.
-    """
 
     def _background() -> None:
         if current_result and current_result.state in (

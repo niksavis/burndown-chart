@@ -1,5 +1,3 @@
-"""DORA metric calculations for weekly snapshots."""
-
 import logging
 from datetime import datetime
 
@@ -18,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 
 def save_metric_snapshot(*args, **kwargs):  # noqa: PLC0415
-    """Lazy wrapper: breaks circular data.metrics -> metrics_snapshots."""
     from data.metrics_snapshots import save_metric_snapshot as _save  # noqa: PLC0415
 
     return _save(*args, **kwargs)
@@ -31,7 +28,6 @@ def _calculate_lead_time(
     week_end: datetime,
     week_label: str,
 ) -> dict:
-    """Calculate Lead Time for Changes snapshot for the given week."""
 
     try:
         week_dev_issues = filter_issues_deployed_in_week(
@@ -96,7 +92,6 @@ def _calculate_deployment_frequency(
     development_fix_versions: set,
     fixversion_release_map: dict,
 ) -> dict:
-    """Calculate Deployment Frequency snapshot for the given week."""
 
     try:
         weekly_deployments = count_deployments_for_week(
@@ -112,8 +107,6 @@ def _calculate_deployment_frequency(
         release_count = week_data.get("releases", 0)
         release_names = week_data.get("release_names", [])
 
-        # Fallback for datasets where Operational Tasks are not loaded in the query.
-        # Use release dates directly from the shared fixVersion release map.
         if deployment_count == 0 and fixversion_release_map:
             fallback_release_names = sorted(
                 release_name
@@ -153,7 +146,6 @@ def _calculate_cfr(
     week_start: datetime,
     week_end: datetime,
 ) -> dict:
-    """Calculate Change Failure Rate snapshot for the given week."""
 
     try:
         week_operational_tasks = filter_issues_deployed_in_week(
@@ -204,7 +196,6 @@ def _calculate_mttr(
     week_start: datetime,
     week_end: datetime,
 ) -> dict:
-    """Calculate Mean Time To Recovery snapshot for the given week."""
 
     try:
         incident_resolved_field = dora_mappings.get(
@@ -271,15 +262,10 @@ def calculate_dora_metrics(
     week_end: datetime,
     report_progress,
 ) -> tuple[int, list[str]]:
-    """Calculate and save all DORA metrics for the given week.
-
-    Returns (metrics_saved, metrics_details).
-    """
 
     metrics_saved = 0
     metrics_details: list[str] = []
 
-    # Lead Time for Changes
     lead_time_snapshot = _calculate_lead_time(
         development_issues, fixversion_release_map, week_start, week_end, week_label
     )
@@ -300,7 +286,6 @@ def calculate_dora_metrics(
         metrics_details.append("DORA Lead Time: No Data")
         logger.info(f"DORA Lead Time: No data for week {week_label}")
 
-    # Deployment Frequency
     deployment_snapshot = _calculate_deployment_frequency(
         operational_tasks,
         flow_end_statuses,
@@ -323,7 +308,6 @@ def calculate_dora_metrics(
         f"{deployment_count} deployments, {release_count} releases"
     )
 
-    # Change Failure Rate
     cfr_snapshot = _calculate_cfr(
         operational_tasks,
         production_bugs,
@@ -343,7 +327,6 @@ def calculate_dora_metrics(
     )
     logger.info(f"Saved DORA CFR: {cfr_percent:.1f}% ({failed_deps}/{total_deps})")
 
-    # Mean Time To Recovery
     mttr_snapshot = _calculate_mttr(
         production_bugs,
         fixversion_release_map,

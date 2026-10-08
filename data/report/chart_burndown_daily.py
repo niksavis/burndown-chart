@@ -1,15 +1,8 @@
-"""Daily burndown chart generator.
-
-Generates the Chart.js cumulative burndown chart with forecast projection lines.
-Part of data/report/chart_burndown.py split.
-"""
-
 import json
 from datetime import datetime
 
 
 def _iso_week_str(date_str: str) -> str | None:
-    """Convert a YYYY-MM-DD date string to ISO week label 'YYYY-WWW'."""
     try:
         import pandas as pd  # noqa: PLC0415
 
@@ -29,31 +22,12 @@ def generate_burndown_chart(
     statistics: list[dict] | None = None,
     pert_factor: int = 3,
 ) -> str:
-    """Generate Chart.js script for burndown chart with forecasts and
-    milestone/forecast/deadline lines.
-
-    The x-axis is a sorted, unified timeline of all ISO weeks: historical data
-    weeks plus the milestone, forecast, and deadline weeks. Historical data is
-    padded with null for weeks beyond the last known data point, and a linear
-    forecast projection line is drawn from the last known remaining count to
-    zero at the forecast week.
-
-    Args:
-        burndown_metrics: Historical burndown data
-        milestone: Milestone date string (YYYY-MM-DD)
-        forecast_date: Forecast completion date string (YYYY-MM-DD)
-        deadline: Deadline date string (YYYY-MM-DD)
-        show_points: Whether to show points data
-        statistics: Statistics data (unused, kept for signature compatibility)
-        pert_factor: PERT factor (unused, kept for signature compatibility)
-    """
 
     historical = burndown_metrics.get("historical_data", {})
     raw_dates = historical.get("dates", [])
     items = historical.get("remaining_items", [])
     points = historical.get("remaining_points", [])
 
-    # Build mapping: iso_week -> (remaining_items, remaining_points)
     hist_map: dict[str, tuple] = {}
     for i, date_str in enumerate(raw_dates):
         week = _iso_week_str(date_str)
@@ -62,7 +36,6 @@ def generate_burndown_chart(
             pt = points[i] if i < len(points) else None
             hist_map[week] = (it, pt)
 
-    # Collect all special date weeks (milestone, forecast, deadline)
     special: dict[str, dict] = {}
     for key, date_str, color, text_color, dash in [
         ("milestone", milestone, "#ffc107", "#000", [10, 5]),
@@ -86,24 +59,19 @@ def generate_burndown_chart(
             "dash": dash,
         }
 
-    # Build unified, chronologically sorted labels array
     all_weeks_set = set(hist_map.keys()) | {v["week"] for v in special.values()}
     all_weeks = sorted(all_weeks_set)
     dates_js = json.dumps(all_weeks)
 
-    # Build padded data arrays: null for weeks outside historical range
     items_padded = [hist_map.get(w, (None, None))[0] for w in all_weeks]
     points_padded = [hist_map.get(w, (None, None))[1] for w in all_weeks]
 
-    # Build forecast projection line: from last known remaining → 0 at forecast week
-    # Uses linear interpolation between last data point and forecast week
     forecast_items_proj: list = [None] * len(all_weeks)
     forecast_points_proj: list = [None] * len(all_weeks)
     has_forecast_line = False
 
     if special.get("forecast") and hist_map:
         forecast_week = special["forecast"]["week"]
-        # Find last historical week index
         hist_weeks = sorted(hist_map.keys())
         last_hist_week = hist_weeks[-1]
         last_items = hist_map[last_hist_week][0]
@@ -126,8 +94,6 @@ def generate_burndown_chart(
                     forecast_points_proj[idx] = round(last_points * (1 - frac), 1)
             has_forecast_line = True
 
-    # Annotation vertical lines: sorted chronologically to assign yAdjust top-to-bottom
-    # Sort special entries by week so labels stack in timeline order
     sorted_special = sorted(special.items(), key=lambda kv: kv[1]["week"])
     base_y = -90
     spacing = 30
@@ -152,7 +118,6 @@ def generate_burndown_chart(
         f"{k}: {v}" for k, v in annotations.items()
     )
 
-    # Datasets
     datasets = [
         {
             "label": "Remaining Items",

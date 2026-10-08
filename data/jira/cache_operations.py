@@ -1,9 +1,3 @@
-"""
-JIRA cache operations module.
-
-This module handles loading and saving JIRA response data to database cache.
-"""
-
 import logging
 from datetime import UTC, datetime, timedelta
 
@@ -25,29 +19,9 @@ def cache_jira_response(
     config: dict | None = None,
     generate_config_hash_func=None,
 ) -> bool:
-    """
-    Save JIRA response to DATABASE using persistence backend.
 
-    After database migration, this function:
-    1. Saves normalized issues to database (backend.save_issues_batch())
-    2. Maintains legacy JSON file for backward compatibility
-    3. Saves cache metadata for audit trail
-
-    Args:
-        data: JIRA issues to cache
-        jql_query: JQL query used
-        fields_requested: Fields requested in API call
-        cache_file: Legacy parameter (maintains backward compatibility)
-        config: JIRA configuration for generating cache key and hash
-        generate_config_hash_func: Function to generate config hash
-
-    Returns:
-        True if cached successfully
-    """
     try:
-        # PHASE 1: Save to DATABASE (primary storage after migration)
         try:
-            # circular import guard
             from data.persistence.factory import get_backend  # noqa: PLC0415
 
             backend = get_backend()
@@ -55,20 +29,16 @@ def cache_jira_response(
             active_query_id = backend.get_app_state("active_query_id")
 
             if active_profile_id and active_query_id:
-                # Generate cache key for database storage
                 field_mappings = config.get("field_mappings", {}) if config else {}
                 cache_key = generate_cache_key(
                     jql_query=jql_query,
                     field_mappings=field_mappings,
-                    time_period_days=30,  # Default time period
+                    time_period_days=30,
                 )
 
-                # Set expiration (24 hours)
                 utc_now = datetime.now(UTC)
                 expires_at = utc_now + timedelta(hours=24)
 
-                # Save issues to database using backend
-                # This normalizes data and stores in jira_issues table
                 backend.save_issues_batch(
                     profile_id=active_profile_id,
                     query_id=active_query_id,
@@ -83,11 +53,9 @@ def cache_jira_response(
                     f"{active_profile_id}/{active_query_id}"
                 )
 
-                # Save cache metadata to app settings for audit trail
                 if config and generate_config_hash_func:
                     config_hash = generate_config_hash_func(config, fields_requested)
                     try:
-                        # circular import guard
                         from data.persistence import (  # noqa: PLC0415
                             load_app_settings,
                             save_app_settings,
@@ -166,43 +134,22 @@ def load_jira_cache(
     cache_version: str = "1.0",
     cache_expiration_hours: int = 24,
 ) -> tuple[bool, list[dict]]:
-    """
-    Load cached JIRA JSON response using new cache_manager.
 
-    Args:
-        current_jql_query: Current JQL query for cache validation
-        current_fields: Current fields for cache validation
-        cache_file: Legacy parameter (now uses cache/ directory)
-        config: JIRA configuration for generating cache key and hash
-        generate_config_hash_func: Function to generate config hash
-        cache_version: Cache version for validation
-        cache_expiration_hours: Cache expiration time in hours
-
-    Returns:
-        Tuple of (cache_hit: bool, issues: List[Dict])
-    """
-    # If no config provided, cannot validate cache
     if not config:
         logger.debug("[Cache] No config provided, cache miss")
         return False, []
 
     try:
-        # Generate cache key from configuration
-        # CRITICAL FIX: Use generate_jira_data_cache_key() which excludes field_mappings
-        # This allows field mapping changes (like WIP states) to reuse cached JIRA data
-
         cache_key = generate_jira_data_cache_key(
             jql_query=current_jql_query,
-            time_period_days=30,  # Default time period for now
+            time_period_days=30,
         )
 
-        # Generate config hash for validation (but it doesn't affect cache key anymore)
         if generate_config_hash_func:
             config_hash = generate_config_hash_func(config, current_fields)
         else:
             config_hash = ""
 
-        # Try to load from new cache system
         is_valid, cached_data = load_cache_with_validation(
             cache_key=cache_key,
             config_hash=config_hash,
@@ -214,7 +161,6 @@ def load_jira_cache(
             logger.info(f"[Cache] Hit: Loaded {len(cached_data)} issues from cache")
             return True, cached_data
 
-        # No cache available
         logger.debug("[Cache] Miss: No valid cache found")
         return False, []
 
@@ -230,25 +176,8 @@ def load_changelog_cache(
     changelog_cache_version: str = "1.0",
     cache_expiration_hours: int = 24,
 ) -> tuple[bool, list[dict]]:
-    """
-    Load cached JIRA issues with changelog from DATABASE.
 
-    Cache is invalidated if:
-    - Cache is older than cache_expiration_hours
-    - No issues found in database
-
-    Args:
-        current_jql_query: Ignored (for backward compatibility)
-        current_fields: Ignored (for backward compatibility)
-        cache_file: Ignored (legacy parameter)
-        changelog_cache_version: Ignored (for backward compatibility)
-        cache_expiration_hours: Cache expiration time in hours
-
-    Returns:
-        Tuple of (cache_loaded: bool, issues: List[Dict])
-    """
     try:
-        # circular import guard
         from data.persistence.factory import get_backend  # noqa: PLC0415
 
         backend = get_backend()
@@ -259,7 +188,6 @@ def load_changelog_cache(
             logger.debug("[Cache] No active profile/query for changelog")
             return False, []
 
-        # Load issues with changelog from database
         issues = backend.get_issues(
             profile_id=active_profile_id, query_id=active_query_id
         )
@@ -268,7 +196,6 @@ def load_changelog_cache(
             logger.debug("[Cache] No issues with changelog in database")
             return False, []
 
-        # Check cache age from first issue's fetched_at timestamp
         first_issue = issues[0]
         if "fetched_at" in first_issue:
             cache_timestamp = datetime.fromisoformat(first_issue["fetched_at"])

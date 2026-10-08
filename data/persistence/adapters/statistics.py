@@ -1,16 +1,11 @@
-"""Data persistence adapters - Statistics save/load operations."""
-
-# Standard library imports
 import logging
 import sqlite3
 from datetime import datetime
 from datetime import datetime as dt_module
 from typing import Any
 
-# Third-party library imports
 import pandas as pd
 
-# Application imports
 from data.exceptions import PersistenceError
 from data.iso_week_bucketing import get_week_label
 from data.persistence.adapters.core import (
@@ -26,12 +21,6 @@ logger = logging.getLogger(__name__)
 
 
 def save_statistics(data: list[dict[str, Any]]) -> None:
-    """
-    Save statistics data to unified JSON file.
-
-    Args:
-        data: List of dictionaries containing statistics data
-    """
 
     logger.info(
         f"[Persistence] save_statistics called with {len(data) if data else 0} rows"
@@ -41,22 +30,16 @@ def save_statistics(data: list[dict[str, Any]]) -> None:
         df = pd.DataFrame(data)
         logger.debug(f"[Persistence] Created DataFrame with {len(df)} rows")
 
-        # Ensure date column is in proper datetime format for sorting
         df["date"] = pd.to_datetime(df["date"], errors="coerce")
 
-        # Sort by date in ascending order (oldest first)
         df = df.sort_values("date", ascending=True)
 
-        # Convert back to string format for storage
         df.loc[:, "date"] = df["date"].apply(
             lambda x: x.strftime("%Y-%m-%d") if pd.notna(x) else ""
         )
 
-        # Convert back to list of dictionaries
         statistics_data = df.to_dict("records")  # type: ignore[assignment]
 
-        # CRITICAL FIX: Ensure week_label exists for all statistics
-        # This prevents NULL week_labels in database
         for stat in statistics_data:
             if "week_label" not in stat or not stat["week_label"]:
                 if stat.get("date"):
@@ -69,24 +52,18 @@ def save_statistics(data: list[dict[str, Any]]) -> None:
                             f"{stat.get('date')}: {e}"
                         )
 
-        # Ensure any remaining Timestamp objects are converted to strings
         statistics_data = convert_timestamps_to_strings(statistics_data)
 
-        # Load current unified data
         unified_data = load_unified_project_data()
 
-        # Update statistics in unified data
         unified_data["statistics"] = statistics_data
 
-        # Update metadata - preserve existing source and jira_query unless
-        # explicitly overriding
         unified_data["metadata"].update(
             {
                 "last_updated": datetime.now().isoformat(),
             }
         )
 
-        # Save the unified data
         save_unified_project_data(unified_data)
 
         logger.info(
@@ -109,33 +86,20 @@ def save_statistics(data: list[dict[str, Any]]) -> None:
 
 
 def save_statistics_from_csv_import(data: list[dict[str, Any]]) -> None:
-    """
-    Save statistics data from CSV import to unified JSON file.
-    This function specifically handles CSV imports and sets appropriate metadata.
-
-    Args:
-        data: List of dictionaries containing statistics data
-    """
 
     try:
         df = pd.DataFrame(data)
 
-        # Ensure date column is in proper datetime format for sorting
         df["date"] = pd.to_datetime(df["date"], errors="coerce")
 
-        # Sort by date in ascending order (oldest first)
         df = df.sort_values("date", ascending=True)
 
-        # Convert back to string format for storage
         df.loc[:, "date"] = df["date"].apply(
             lambda x: x.strftime("%Y-%m-%d") if pd.notna(x) else ""
         )
 
-        # Convert back to list of dictionaries
         statistics_data = df.to_dict("records")  # type: ignore[assignment]
 
-        # CRITICAL FIX: Ensure week_label exists for all statistics from CSV import
-        # This prevents NULL week_labels in database
         for stat in statistics_data:
             if "week_label" not in stat or not stat["week_label"]:
                 if stat.get("date"):
@@ -148,22 +112,18 @@ def save_statistics_from_csv_import(data: list[dict[str, Any]]) -> None:
                             f"{stat.get('date')}: {e}"
                         )
 
-        # Load current unified data
         unified_data = load_unified_project_data()
 
-        # Update statistics in unified data
         unified_data["statistics"] = statistics_data
 
-        # Update metadata specifically for CSV import
         unified_data["metadata"].update(
             {
-                "source": "csv_import",  # Set proper source for CSV uploads
+                "source": "csv_import",
                 "last_updated": datetime.now().isoformat(),
-                "jira_query": "",  # Clear JIRA-specific fields for CSV import
+                "jira_query": "",
             }
         )
 
-        # Save the unified data
         save_unified_project_data(unified_data)
 
         logger.info("[Cache] Statistics from CSV import saved to database")
@@ -184,14 +144,7 @@ def save_statistics_from_csv_import(data: list[dict[str, Any]]) -> None:
 
 
 def load_statistics() -> tuple:
-    """
-    Load statistics data via repository pattern (database).
 
-    Returns:
-        Tuple (data, is_sample) where:
-        - data: List of dictionaries containing statistics data
-        - is_sample: Boolean indicating if sample data is being used
-    """
     try:
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")
@@ -204,36 +157,26 @@ def load_statistics() -> tuple:
         if not stats_rows:
             return [], False
 
-        # Convert to DataFrame for processing
         statistics_df = pd.DataFrame(stats_rows)
 
-        # Rename stat_date to date for compatibility
         if "stat_date" in statistics_df.columns:
             statistics_df["date"] = statistics_df["stat_date"]
 
-        # Parse dates once for consistency
         statistics_df["date"] = pd.to_datetime(
             statistics_df["date"], errors="coerce", format="mixed"
         )
 
-        # CRITICAL FIX: Remove duplicate dates from legacy data
-        # Normalize dates and keep only the most recent entry per date
         if "date" in statistics_df.columns and not statistics_df.empty:
-            # Normalize dates to YYYY-MM-DD format using apply to avoid
-            # type checker issues
             statistics_df["date_normalized"] = statistics_df["date"].apply(
                 lambda x: x.strftime("%Y-%m-%d") if pd.notna(x) else None
             )
 
-            # Sort by date descending and drop duplicates, keeping the first
-            # (most recent)
             statistics_df = statistics_df.sort_values("date", ascending=False)
             statistics_df = statistics_df.drop_duplicates(
                 subset=["date_normalized"], keep="first"
             )
             statistics_df = statistics_df.sort_values("date", ascending=True)
 
-            # Clean up temporary column
             statistics_df = statistics_df.drop(columns=["date_normalized"])
         statistics_df = statistics_df.sort_values("date", ascending=True)
         statistics_df["date"] = (

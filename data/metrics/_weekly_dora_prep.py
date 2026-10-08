@@ -1,5 +1,3 @@
-"""DORA issue classification and filter helpers for weekly snapshots."""
-
 import logging
 from datetime import datetime
 
@@ -9,7 +7,6 @@ logger = logging.getLogger(__name__)
 
 
 def _normalize_issue_type_name(issue_type: str | None) -> str:
-    """Normalize issue type names for case-insensitive comparison."""
     if not issue_type:
         return ""
     return issue_type.strip().lower()
@@ -23,13 +20,7 @@ def count_deployments_for_week(
     week_end: datetime,
     valid_fix_versions: set | None = None,
 ) -> dict:
-    """Count deployment issues with releaseDate in the specified week.
 
-    Filters issues by completed status and fixVersion.releaseDate within range.
-    If valid_fix_versions is provided, only counts matching fixVersion names.
-
-    Returns a dict keyed by week_label with deployment/release counts.
-    """
     deployment_count = 0
     releases: set[str] = set()
 
@@ -72,7 +63,6 @@ def count_deployments_for_week(
 def filter_issues_by_deployment_week(
     issues: list, week_start: datetime, week_end: datetime
 ) -> list:
-    """Filter issues where fixVersions.releaseDate falls within the week."""
     filtered = []
     for issue in issues:
         if "fields" in issue and isinstance(issue.get("fields"), dict):
@@ -98,7 +88,6 @@ def filter_issues_by_deployment_week(
 def filter_bugs_by_resolution_week(
     bugs: list, week_start: datetime, week_end: datetime
 ) -> list:
-    """Filter bugs where resolutiondate falls within the week."""
     filtered = []
     for bug in bugs:
         if "fields" in bug and isinstance(bug.get("fields"), dict):
@@ -127,10 +116,6 @@ def classify_dora_issues(
     all_issues_raw: list,
     app_settings: dict,
 ) -> tuple[list, list, list]:
-    """Classify issues into operational tasks, development issues, and production bugs.
-
-    Returns (operational_tasks, development_issues, production_bugs).
-    """
 
     devops_task_types = app_settings.get("devops_task_types", [])
     bug_types = app_settings.get("bug_types", ["Bug"])
@@ -194,7 +179,6 @@ def classify_dora_issues(
 
 
 def collect_development_fix_versions(all_issues: list) -> set:
-    """Collect unique fixVersion names from development project issues."""
     development_fix_versions: set[str] = set()
 
     for issue in all_issues:

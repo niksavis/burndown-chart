@@ -1,5 +1,3 @@
-"""JIRA cache operations mixin for SQLiteBackend."""
-
 from __future__ import annotations
 
 import logging
@@ -21,15 +19,12 @@ class _ChangelogSaver(Protocol):
         entries: list[dict],
         expires_at: datetime,
     ) -> None:
-        """Save changelog entries to persistence."""
+        pass
 
 
 class IssuesCacheMixin:
-    """Mixin for JIRA cache operations (save, retrieve, cleanup)."""
+    db_path: Path
 
-    db_path: Path  # Set by composition class (SQLiteBackend)
-
-    # Method stubs for cross-mixin calls
     def get_issues(
         self,
         profile_id: str,
@@ -53,7 +48,6 @@ class IssuesCacheMixin:
     def get_jira_cache(
         self, profile_id: str, query_id: str, cache_key: str
     ) -> dict | None:
-        """Get JIRA cache - returns aggregated normalized data with metadata."""
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -99,7 +93,6 @@ class IssuesCacheMixin:
         response: dict,
         expires_at: datetime,
     ) -> None:
-        """Save JIRA cache - saves issues and changelog."""
         issues = response.get("issues", [])
 
         self.save_issues_batch(profile_id, query_id, cache_key, issues, expires_at)
@@ -117,7 +110,6 @@ class IssuesCacheMixin:
             logger.debug(f"No changelog data found in {len(issues)} issues")
 
     def _extract_changelog_from_issues(self, issues: list[dict]) -> list[dict]:
-        """Extract changelog entries from issues with expanded changelog."""
         changelog_entries = []
 
         for issue in issues:
@@ -180,7 +172,6 @@ class IssuesCacheMixin:
         return changelog_entries
 
     def cleanup_expired_cache(self) -> int:
-        """Remove expired JIRA cache entries (issues + changelog)."""
         try:
             cutoff = datetime.now()
             issues_deleted = self.delete_expired_issues(cutoff)

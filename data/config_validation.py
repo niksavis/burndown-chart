@@ -1,9 +1,3 @@
-"""
-Configuration Validation Helpers
-
-Provides validation functions for comprehensive JIRA mappings configuration.
-"""
-
 import logging
 from typing import Any
 
@@ -13,20 +7,9 @@ logger = logging.getLogger(__name__)
 def validate_subset(
     subset: list[str], superset: list[str], subset_name: str, superset_name: str
 ) -> tuple[bool, str]:
-    """
-    Validate that one list is a subset of another.
 
-    Args:
-        subset: List that should be contained in superset
-        superset: List that should contain all subset elements
-        subset_name: Human-readable name for subset (for error messages)
-        superset_name: Human-readable name for superset (for error messages)
-
-    Returns:
-        Tuple of (is_valid, warning_message)
-    """
     if not subset:
-        return True, ""  # Empty subset is valid
+        return True, ""
 
     if not superset:
         return False, f"{superset_name} is empty but {subset_name} has values"
@@ -37,7 +20,6 @@ def validate_subset(
     if subset_set.issubset(superset_set):
         return True, ""
 
-    # Find elements not in superset
     missing = subset_set - superset_set
     return (
         False,
@@ -48,16 +30,7 @@ def validate_subset(
 def validate_project_overlap(
     development_projects: list[str], devops_projects: list[str]
 ) -> tuple[bool, str]:
-    """
-    Check if there's overlap between development and devops projects.
 
-    Args:
-        development_projects: List of development project keys
-        devops_projects: List of devops project keys
-
-    Returns:
-        Tuple of (has_overlap, warning_message)
-    """
     dev_set = set(development_projects)
     devops_set = set(devops_projects)
 
@@ -76,22 +49,12 @@ def validate_project_overlap(
 def validate_required_fields(
     config: dict[str, Any], required_keys: list[str]
 ) -> tuple[bool, list[str]]:
-    """
-    Validate that required configuration keys are present and non-empty.
 
-    Args:
-        config: Configuration dictionary
-        required_keys: List of required key names
-
-    Returns:
-        Tuple of (is_valid, list_of_missing_keys)
-    """
     missing_keys = []
 
     for key in required_keys:
         value = config.get(key)
 
-        # Check if key exists and has a value
         if value is None:
             missing_keys.append(key)
         elif isinstance(value, (list, str)) and not value:
@@ -103,18 +66,7 @@ def validate_required_fields(
 def validate_active_wip_subset(
     active_statuses: list[str], wip_statuses: list[str]
 ) -> tuple[bool, str]:
-    """
-    Validate that active statuses are a subset of WIP statuses.
 
-    This is critical for metric accuracy - active work should always be part of WIP.
-
-    Args:
-        active_statuses: List of active status names
-        wip_statuses: List of WIP status names
-
-    Returns:
-        Tuple of (is_valid, warning_message)
-    """
     return validate_subset(
         active_statuses, wip_statuses, "Active statuses", "WIP statuses"
     )
@@ -123,18 +75,7 @@ def validate_active_wip_subset(
 def validate_wip_excludes_completion(
     wip_statuses: list[str], flow_end_statuses: list[str]
 ) -> tuple[bool, str]:
-    """
-    Validate that WIP statuses don't include completion statuses.
 
-    This is critical for Flow Load accuracy - completed items should not count as WIP.
-
-    Args:
-        wip_statuses: List of WIP status names
-        flow_end_statuses: List of completion status names
-
-    Returns:
-        Tuple of (is_valid, warning_message)
-    """
     if not wip_statuses or not flow_end_statuses:
         return True, ""
 
@@ -155,47 +96,30 @@ def validate_wip_excludes_completion(
 
 
 def validate_comprehensive_config(config: dict[str, Any]) -> dict[str, list[str]]:
-    """
-    Comprehensive validation of all configuration elements.
 
-    Args:
-        config: Complete configuration dictionary
-
-    Returns:
-        Dictionary with 'errors' and 'warnings' keys containing lists of messages
-    """
     errors = []
     warnings = []
 
-    # Field mappings validation - distinguish between required and optional
-    # CRITICAL: Only Flow metrics baseline fields are truly required
-    # DORA fields are optional since not all JIRA setups support them
-    # Note: Flow Time uses flow_start_statuses and flow_end_statuses lists
-    # from project_classification - no field mappings needed.
     required_flow_fields = [
-        "flow_item_type",  # Required for Flow metrics
+        "flow_item_type",
     ]
 
-    # Optional DORA fields - warn if missing but don't block saving
     optional_dora_fields = [
-        "deployment_date",  # DORA: Deployment Frequency
-        "change_failure",  # DORA: Change Failure Rate
-        "affected_environment",  # DORA: MTTR production filtering
-        "incident_detected_at",  # DORA: MTTR
-        "incident_resolved_at",  # DORA: MTTR
+        "deployment_date",
+        "change_failure",
+        "affected_environment",
+        "incident_detected_at",
+        "incident_resolved_at",
     ]
 
-    # Access nested field mappings (flow and dora are sub-objects)
     field_mappings = config.get("field_mappings", {})
     flow_mappings = field_mappings.get("flow", {})
     dora_mappings = field_mappings.get("dora", {})
 
-    # Check required FLOW fields (errors)
     for field in required_flow_fields:
         if not flow_mappings.get(field):
             errors.append(f"Required field mapping missing: {field}")
 
-    # Check optional DORA fields (warnings only)
     missing_dora_fields = []
     for field in optional_dora_fields:
         if not dora_mappings.get(field):
@@ -208,14 +132,12 @@ def validate_comprehensive_config(config: dict[str, Any]) -> dict[str, list[str]
             "Some DORA metrics may be unavailable."
         )
 
-    # Project validation
     dev_projects = config.get("development_projects", [])
     devops_projects = config.get("devops_projects", [])
 
     if not dev_projects:
         errors.append("At least one development project is required")
 
-    # MODE 1 vs MODE 2 guidance
     if not devops_projects:
         warnings.append(
             "DevOps projects empty - using MODE 2 (field-based DORA detection). "
@@ -226,7 +148,6 @@ def validate_comprehensive_config(config: dict[str, Any]) -> dict[str, list[str]
     if has_overlap:
         warnings.append(overlap_msg)
 
-    # Issue type validation
     devops_task_types = config.get("devops_task_types", [])
     bug_types = config.get("bug_types", [])
 
@@ -241,7 +162,6 @@ def validate_comprehensive_config(config: dict[str, Any]) -> dict[str, list[str]
             "without production incident issue types"
         )
 
-    # Status validation
     flow_end_statuses = config.get("flow_end_statuses", [])
     active_statuses = config.get("active_statuses", [])
     wip_statuses = config.get("wip_statuses", [])
@@ -255,18 +175,15 @@ def validate_comprehensive_config(config: dict[str, Any]) -> dict[str, list[str]
             f"Active statuses should be subset of WIP statuses. {warning_msg}"
         )
 
-    # CRITICAL: Check that WIP doesn't include completion statuses
     is_valid, warning_msg = validate_wip_excludes_completion(
         wip_statuses, flow_end_statuses
     )
     if not is_valid:
-        errors.append(warning_msg)  # This is an ERROR, not just a warning
+        errors.append(warning_msg)
 
-    # Environment validation
     prod_env_values = config.get("production_environment_values", [])
     affected_env_field = dora_mappings.get("affected_environment", "")
 
-    # Only warn about production values if affected_environment is configured
     if affected_env_field and not prod_env_values:
         warnings.append(
             "Production environment values empty - MTTR will include all bugs "
@@ -277,15 +194,7 @@ def validate_comprehensive_config(config: dict[str, Any]) -> dict[str, list[str]
 
 
 def format_validation_messages(validation_result: dict[str, list[str]]) -> str:
-    """
-    Format validation results into a human-readable message.
 
-    Args:
-        validation_result: Dictionary with 'errors' and 'warnings' keys
-
-    Returns:
-        Formatted string with validation messages
-    """
     messages = []
 
     errors = validation_result.get("errors", [])
@@ -297,7 +206,7 @@ def format_validation_messages(validation_result: dict[str, list[str]]) -> str:
     warnings = validation_result.get("warnings", [])
     if warnings:
         if messages:
-            messages.append("")  # Blank line separator
+            messages.append("")
         messages.append("[!] Warnings:")
         for warning in warnings:
             messages.append(f"  • {warning}")

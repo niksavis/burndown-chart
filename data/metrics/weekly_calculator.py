@@ -1,12 +1,3 @@
-"""Weekly metrics calculation orchestrator.
-
-Delegates to focused sub-modules:
-- _weekly_issue_prep: issue loading, filtering, changelog, week boundaries
-- _weekly_flow: Flow metric family (Time, Efficiency, Load, Velocity)
-- _weekly_dora_prep: DORA issue classification and filter helpers
-- _weekly_dora_calc: DORA metric family (Lead Time, Deploy Freq, CFR, MTTR)
-"""
-
 import logging
 from datetime import UTC, datetime
 
@@ -38,33 +29,20 @@ def calculate_and_save_weekly_metrics(
     progress_callback=None,
     profile_id: str | None = None,
 ) -> tuple[bool, str]:
-    """Calculate all Flow/DORA metrics for a week and save to snapshots.
 
-    Args:
-        week_label: ISO week (e.g., "2025-44"). Defaults to current week.
-        progress_callback: Optional callback(message: str) for progress updates.
-        profile_id: Optional profile ID; defaults to active profile.
-
-    Returns:
-        Tuple of (success: bool, message: str)
-    """
     try:
-        # Default to current week
         if not week_label:
             week_label = get_current_iso_week()
 
         logger.info(f"Starting metric calculation for week {week_label}")
 
-        # Helper function for progress updates
         def report_progress(message: str):
             logger.info(message)
             if progress_callback:
                 progress_callback(message)
 
-        # Load profile configuration for status lists and field mappings
         report_progress("Loading profile configuration...")
         try:
-            # Load active profile or use specified profile_id
             metrics_config = MetricsConfig(profile_id=profile_id)
             logger.info(f"Loaded profile: {metrics_config.profile_id}")
 
@@ -76,13 +54,11 @@ def calculate_and_save_weekly_metrics(
                 "Please configure JIRA mappings in the UI.",
             )
 
-        # Load configuration
         app_settings = load_app_settings()
 
         if not app_settings:
             return False, "Failed to load app settings"
 
-        # Check if JIRA data exists in database
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")
@@ -90,14 +66,12 @@ def calculate_and_save_weekly_metrics(
         if not active_profile_id or not active_query_id:
             return False, "No active profile/query selected."
 
-        # Check cache - skip recalculation for up-to-date historical weeks
         if check_metrics_cached(week_label):
             report_progress(
                 f"[OK] Week {week_label} already calculated - using cached metrics"
             )
             return True, f"[OK] Metrics for week {week_label} already up-to-date"
 
-        # Load and filter issues from database
         try:
             all_issues, all_issues_raw = load_and_filter_issues(
                 backend, active_profile_id, active_query_id, app_settings
@@ -105,12 +79,10 @@ def calculate_and_save_weekly_metrics(
         except ValueError as e:
             return False, str(e)
 
-        # Load changelog and merge into issues in-place
         all_issues, changelog_available = load_and_merge_changelog(
             backend, all_issues, active_profile_id, active_query_id
         )
 
-        # Compute week date boundaries
         try:
             week_start, week_end, is_current_week, completion_cutoff = (
                 compute_week_boundaries(week_label)
@@ -133,7 +105,6 @@ def calculate_and_save_weekly_metrics(
             ],
         )
 
-        # Filter issues completed within this week
         report_progress(
             f"[Filter] Filtering issues completed in week {week_label}"
             + (" (running total)" if is_current_week else "")
@@ -147,7 +118,6 @@ def calculate_and_save_weekly_metrics(
             + (" (running total)" if is_current_week else " (full week)")
         )
 
-        # Calculate and save Flow metrics
         flow_saved, flow_details = calculate_flow_metrics(
             issues_completed,
             all_issues,
@@ -166,7 +136,6 @@ def calculate_and_save_weekly_metrics(
         metrics_saved = flow_saved
         metrics_details = flow_details
 
-        # Calculate and save DORA metrics
         report_progress(
             "[Stats] Calculating DORA metrics (Lead Time, Deployment Frequency)..."
         )
@@ -218,7 +187,6 @@ def calculate_and_save_weekly_metrics(
         metrics_saved += dora_saved
         metrics_details.extend(dora_details)
 
-        # Save trend metadata
         trends = {
             "flow_time_trend": "stable",
             "flow_efficiency_trend": "stable",
@@ -226,7 +194,6 @@ def calculate_and_save_weekly_metrics(
         }
         save_metric_snapshot(week_label, "trends", trends)
 
-        # Build result message
         if metrics_saved == 0:
             message = (
                 f"[!] No metrics calculated for week {week_label}. Details:\n"

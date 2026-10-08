@@ -1,20 +1,3 @@
-"""
-Post-migration validation for data integrity verification.
-
-Validates that JSON-to-SQLite migration preserved all data correctly.
-Compares record counts, samples data, checks referential integrity.
-
-Usage:
-    from data.migration.validator import validate_migration
-
-    # After migration
-    is_valid, report = validate_migration("kafka")
-    if is_valid:
-        print("Migration validated successfully")
-    else:
-        print(f"Validation failed: {report}")
-"""
-
 import logging
 from pathlib import Path
 from typing import Any
@@ -27,32 +10,7 @@ def validate_migration(
     profiles_path: Path = Path("profiles"),
     db_path: Path = Path("profiles/burndown.db"),
 ) -> tuple[bool, dict[str, Any]]:
-    """
-    Validate migration for a single profile.
 
-    Checks:
-    1. Profile record exists in database
-    2. Queries count matches JSON
-    3. Issues count matches JSON cache
-    4. Changelog entries count matches JSON
-    5. Statistics records present
-    6. Metrics data points present
-    7. Referential integrity (FKs valid)
-
-    Args:
-        profile_id: Profile to validate
-        profiles_path: Path to JSON profiles directory
-        db_path: Path to SQLite database
-
-    Returns:
-        Tuple[bool, dict]: (is_valid, validation_report)
-
-    Example:
-        >>> from data.migration.validator import validate_migration
-        >>> valid, report = validate_migration("kafka")
-        >>> if valid:
-        ...     print(f"Validated {report['issues_count']} issues")
-    """
     logger.info(f"Validating migration for profile: {profile_id}")
 
     report = {
@@ -67,10 +25,8 @@ def validate_migration(
     try:
         from data.persistence.factory import get_backend  # noqa: PLC0415
 
-        # Get backends
         sqlite_backend = get_backend("sqlite", str(db_path))
 
-        # Check 1: Profile exists in database
         try:
             db_profile = sqlite_backend.get_profile(profile_id)
             if db_profile:
@@ -85,7 +41,6 @@ def validate_migration(
             report["errors"].append(f"Profile check failed: {e}")
             report["details"]["profile_exists"] = False
 
-        # Check 2: Compare queries count
         json_queries_dir = profiles_path / profile_id / "queries"
         if json_queries_dir.exists():
             json_query_count = len(
@@ -111,9 +66,7 @@ def validate_migration(
                     "db": db_query_count,
                 }
 
-        # Check 3: Verify basic referential integrity
         try:
-            # Get all queries and verify they reference valid profile
             queries = sqlite_backend.list_queries(profile_id)
             for query in queries:
                 if query["profile_id"] != profile_id:
@@ -125,7 +78,6 @@ def validate_migration(
             report["checks_failed"] += 1
             report["errors"].append(f"Referential integrity check failed: {e}")
 
-        # Determine overall validity
         report["valid"] = report["checks_failed"] == 0 and report["checks_passed"] > 0
 
         if report["valid"]:
@@ -150,21 +102,7 @@ def validate_all_profiles(
     profiles_path: Path = Path("profiles"),
     db_path: Path = Path("profiles/burndown.db"),
 ) -> tuple[bool, dict[str, Any]]:
-    """
-    Validate migration for all profiles.
 
-    Args:
-        profiles_path: Path to JSON profiles directory
-        db_path: Path to SQLite database
-
-    Returns:
-        Tuple[bool, dict]: (all_valid, summary_report)
-
-    Example:
-        >>> from data.migration.validator import validate_all_profiles
-        >>> valid, report = validate_all_profiles()
-        >>> print(f"Validated {report['profiles_count']} profiles")
-    """
     logger.info("Validating migration for all profiles")
 
     summary = {
@@ -176,7 +114,6 @@ def validate_all_profiles(
     }
 
     try:
-        # Find all JSON profile directories
         profile_dirs = [
             d
             for d in profiles_path.iterdir()
@@ -184,7 +121,6 @@ def validate_all_profiles(
         ]
         summary["profiles_count"] = len(profile_dirs)
 
-        # Validate each profile
         for profile_dir in profile_dirs:
             profile_id = profile_dir.name
             is_valid, report = validate_migration(profile_id, profiles_path, db_path)
@@ -196,7 +132,6 @@ def validate_all_profiles(
             else:
                 summary["profiles_invalid"] += 1
 
-        # Overall success if all profiles valid
         summary["all_valid"] = (
             summary["profiles_invalid"] == 0 and summary["profiles_count"] > 0
         )

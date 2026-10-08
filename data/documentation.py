@@ -1,18 +1,3 @@
-"""
-T008: Documentation System Integration
-
-Integrates contextual documentation that adapts to the user's current setup progress.
-Documentation is shown at the right time with the right level of detail, reducing
-cognitive load while providing comprehensive guidance when needed.
-
-Key Features:
-- Progressive documentation disclosure based on setup step
-- Interactive help tooltips and guided tours
-- Context-sensitive help panels that adapt to current state
-- Integration with T006 smart defaults and T007 error handling
-- Mobile-friendly help system with quick access patterns
-"""
-
 import logging
 from dataclasses import dataclass
 from typing import Any
@@ -22,36 +7,20 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class HelpContent:
-    """Structured help content for T008 documentation system."""
-
     title: str
     summary: str
     content: str
-    level: str  # "beginner", "intermediate", "advanced"
+    level: str
     tags: list[str]
     related_topics: list[str]
     examples: list[dict[str, str]] | None = None
     troubleshooting: list[dict[str, str]] | None = None
 
 
-# ============================================================================
-# T008: Progressive Documentation System
-# ============================================================================
-
-
 def get_contextual_documentation(
     setup_step: str, setup_status: dict[str, Any], user_level: str = "beginner"
 ) -> dict[str, Any]:
-    """Get contextual documentation for current setup step (T008).
 
-    Args:
-        setup_step: Current setup step
-        setup_status: Profile setup status
-        user_level: User experience level (beginner/intermediate/advanced)
-
-    Returns:
-        Documentation content adapted to context
-    """
     documentation = {
         "profile_creation": _get_profile_creation_docs(user_level),
         "jira_connection": _get_jira_connection_docs(user_level, setup_status),
@@ -61,14 +30,12 @@ def get_contextual_documentation(
 
     current_docs = documentation.get(setup_step, _get_default_docs())
 
-    # Add contextual enhancements based on setup status
     current_docs = _enhance_docs_with_context(current_docs, setup_status, user_level)
 
     return current_docs
 
 
 def _get_profile_creation_docs(user_level: str) -> dict[str, Any]:
-    """Documentation for profile creation step."""
     if user_level == "beginner":
         return {
             "title": "[Start] Creating Your First Workspace",
@@ -152,7 +119,6 @@ def _get_profile_creation_docs(user_level: str) -> dict[str, Any]:
 def _get_jira_connection_docs(
     user_level: str, setup_status: dict[str, Any]
 ) -> dict[str, Any]:
-    """Documentation for JIRA connection step."""
     base_docs = {
         "title": "Connecting to JIRA",
         "summary": "Securely connect to your JIRA instance for data analysis",
@@ -207,7 +173,6 @@ def _get_jira_connection_docs(
         ],
     }
 
-    # Add advanced sections for experienced users
     if user_level in ["intermediate", "advanced"]:
         base_docs["sections"].append(
             {
@@ -226,7 +191,6 @@ def _get_jira_connection_docs(
 def _get_field_mapping_docs(
     user_level: str, setup_status: dict[str, Any]
 ) -> dict[str, Any]:
-    """Documentation for field mapping step."""
     return {
         "title": " Mapping JIRA Fields",
         "summary": "Configure custom fields to enable DORA and Flow metrics",
@@ -280,7 +244,6 @@ def _get_field_mapping_docs(
 def _get_query_creation_docs(
     user_level: str, setup_status: dict[str, Any]
 ) -> dict[str, Any]:
-    """Documentation for query creation step."""
     jira_connected = setup_status.get("jira_connected", False)
 
     docs = {
@@ -330,7 +293,6 @@ def _get_query_creation_docs(
         ],
     }
 
-    # Add connection-specific guidance
     if not jira_connected:
         docs["prerequisites"] = {
             "title": "[!] JIRA Connection Required",
@@ -346,7 +308,6 @@ def _get_query_creation_docs(
 
 
 def _get_default_docs() -> dict[str, Any]:
-    """Default documentation when step is unknown."""
     return {
         "title": "Setup Guide",
         "summary": "Follow the step-by-step setup process",
@@ -366,8 +327,6 @@ def _get_default_docs() -> dict[str, Any]:
 def _enhance_docs_with_context(
     docs: dict[str, Any], setup_status: dict[str, Any], user_level: str
 ) -> dict[str, Any]:
-    """Enhance documentation with contextual information."""
-    # Add progress indicator
     completed_steps = sum(
         1
         for key, value in setup_status.items()
@@ -384,7 +343,6 @@ def _enhance_docs_with_context(
         "percentage": int((completed_steps / 4) * 100),
     }
 
-    # Add next steps guidance
     current_step = setup_status.get("current_step", "profile_creation")
     docs["next_action"] = _get_next_action_guidance(current_step, setup_status)
 
@@ -394,7 +352,6 @@ def _enhance_docs_with_context(
 def _get_next_action_guidance(
     current_step: str, setup_status: dict[str, Any]
 ) -> dict[str, str]:
-    """Get guidance for next action based on current step."""
     actions = {
         "profile_creation": {
             "title": "Create Your Profile",
@@ -426,23 +383,10 @@ def _get_next_action_guidance(
     return actions.get(current_step, actions["profile_creation"])
 
 
-# ============================================================================
-# T008: Interactive Help System
-# ============================================================================
-
-
 def get_tooltip_content(
     element_id: str, context: dict[str, Any]
 ) -> dict[str, str] | None:
-    """Get tooltip content for UI elements (T008).
 
-    Args:
-        element_id: ID of UI element needing tooltip
-        context: Current application context
-
-    Returns:
-        Tooltip content or None if not available
-    """
     tooltips = {
         "jira-url-input": {
             "title": "JIRA Instance URL",
@@ -473,14 +417,7 @@ def get_tooltip_content(
 
 
 def get_guided_tour_steps(setup_status: dict[str, Any]) -> list[dict[str, Any]]:
-    """Get guided tour steps based on current setup progress (T008).
 
-    Args:
-        setup_status: Current profile setup status
-
-    Returns:
-        List of tour steps for current context
-    """
     current_step = setup_status.get("current_step", "profile_creation")
 
     tour_sequences = {
@@ -542,20 +479,8 @@ def get_guided_tour_steps(setup_status: dict[str, Any]) -> list[dict[str, Any]]:
     return tour_sequences.get(current_step, [])
 
 
-# ============================================================================
-# T008: Mobile-Friendly Help System
-# ============================================================================
-
-
 def get_mobile_help_content(setup_step: str) -> dict[str, Any]:
-    """Get mobile-optimized help content (T008).
 
-    Args:
-        setup_step: Current setup step
-
-    Returns:
-        Mobile-friendly help content
-    """
     mobile_help = {
         "jira_connection": {
             "title": "Connect JIRA",
@@ -603,11 +528,7 @@ def get_mobile_help_content(setup_step: str) -> dict[str, Any]:
 
 
 def generate_help_search_index() -> dict[str, list[str]]:
-    """Generate search index for help content (T008).
 
-    Returns:
-        Search index mapping terms to help topics
-    """
     return {
         "jira": ["jira_connection", "api_token", "connection_test"],
         "connection": ["jira_connection", "network_issues", "authentication"],

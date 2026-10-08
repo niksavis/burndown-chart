@@ -1,9 +1,3 @@
-"""JIRA changelog HTTP utilities.
-
-Provides header construction, retry-aware HTTP fetching, and error detail
-extraction for JIRA REST API requests.
-"""
-
 import logging
 from collections.abc import Callable
 
@@ -13,20 +7,12 @@ logger = logging.getLogger(__name__)
 
 
 def _build_headers(config: dict) -> dict[str, str]:
-    """
-    Build HTTP headers for JIRA API request.
 
-    Args:
-        config: Configuration dictionary with token
-
-    Returns:
-        Dictionary of HTTP headers
-    """
     headers = {
         "Accept": "application/json",
-        "Content-Type": "application/json",  # Required for POST with JSON body
+        "Content-Type": "application/json",
     }
-    if config.get("token"):  # Use .get() to safely handle missing token
+    if config.get("token"):
         headers["Authorization"] = f"Bearer {config['token']}"
     return headers
 
@@ -41,36 +27,19 @@ def _fetch_with_retry(
     total_issues: int | None,
     progress_callback: Callable[[str], None] | None,
 ) -> requests.Response | None:
-    """
-    Fetch with retry logic for network failures.
 
-    Args:
-        api_endpoint: JIRA API endpoint
-        headers: HTTP headers
-        body: Request body
-        max_retries: Maximum number of retries
-        start_at: Current pagination offset
-        all_issues: List of issues fetched so far
-        total_issues: Total number of issues (if known)
-        progress_callback: Optional progress callback
-
-    Returns:
-        Response object or None if all retries failed
-    """
     retry_count = 0
     response = None
 
     while retry_count < max_retries:
         try:
-            # POST method avoids URL length limits (HTTP 414 errors)
-            # Parameters go in request body instead of URL
             response = requests.post(
                 api_endpoint,
                 headers=headers,
-                json=body,  # Send parameters in body, not URL
-                timeout=90,  # Increased from 30s to 90s
+                json=body,
+                timeout=90,
             )
-            break  # Success, exit retry loop
+            break
         except requests.exceptions.Timeout as e:
             retry_count += 1
             if retry_count < max_retries:
@@ -87,7 +56,6 @@ def _fetch_with_retry(
                     f"[JIRA] Fetch failed at {start_at} "
                     f"after {max_retries} retries: {e}"
                 )
-                # Return partial results instead of complete failure
                 logger.warning(
                     f"[JIRA] Returning partial results: "
                     f"{len(all_issues)}/{total_issues or 'unknown'}"
@@ -110,7 +78,6 @@ def _fetch_with_retry(
                     f"[JIRA] Fetch failed at {start_at} "
                     f"after {max_retries} retries: {e}"
                 )
-                # Return partial results instead of complete failure
                 logger.warning(
                     f"[JIRA] Returning partial results: "
                     f"{len(all_issues)}/{total_issues or 'unknown'}"
@@ -121,15 +88,7 @@ def _fetch_with_retry(
 
 
 def _extract_error_details(response: requests.Response) -> str:
-    """
-    Extract error details from JIRA API response.
 
-    Args:
-        response: Failed response object
-
-    Returns:
-        Error details string
-    """
     error_details = ""
     try:
         error_json = response.json()

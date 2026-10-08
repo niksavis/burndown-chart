@@ -1,26 +1,3 @@
-"""Data persistence adapters - REFACTORED for maintainability.
-
-This module is now split into focused submodules for better organization.
-All imports from 'data.persistence.adapters' continue to work via re-exports.
-
-New structure:
-    data/persistence/adapters/
-    ├── core.py              # File locking, JSON encoding, helpers
-    ├── app_settings.py      # App settings save/load
-    ├── project_data.py      # Project data save/load
-    ├── settings.py          # Settings save/load (legacy)
-    ├── statistics.py        # Statistics save/load
-    ├── sample_data.py       # Sample data generation
-    ├── unified_data.py      # Unified project data operations
-    ├── legacy_data.py       # Legacy data migration
-    ├── jira_config.py       # JIRA configuration management
-    ├── metrics_history.py   # Metrics history and snapshots
-    └── parameter_panel.py   # Parameter panel state
-
-All imports from 'data.persistence.adapters' are preserved for backwards compatibility.
-"""
-
-# Re-export all public functions from submodules
 from data.persistence.adapters.app_settings import (
     load_app_settings,
     save_app_settings,

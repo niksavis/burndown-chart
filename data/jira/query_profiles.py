@@ -1,25 +1,3 @@
-"""
-JIRA Query Profile Management
-
-Handles saving, loading, and managing JQL query profiles.
-Users can save multiple JIRA queries with names and descriptions for easy reuse.
-
-Architecture:
-- File-based storage: jira_query_profiles.json (in profiles directory)
-- Schema validation: Ensures profile structure integrity
-- CRUD operations: Create, read, update, delete query profiles
-- Default query management: Mark one query as default
-
-Usage:
-    from data.jira.query_profiles import load_query_profiles, save_query_profile
-
-    # Load profiles
-    profiles = load_query_profiles()
-
-    # Save new profile
-    profile = save_query_profile("My Query", "project = PROJ AND status = Open")
-"""
-
 import json
 import logging
 import os
@@ -32,23 +10,11 @@ from data.types import QueryProfile
 
 logger = logging.getLogger(__name__)
 
-#######################################################################
-# CONSTANTS
-#######################################################################
 QUERY_PROFILES_FILE = "jira_query_profiles.json"
-
-#######################################################################
-# QUERY PROFILE MANAGEMENT FUNCTIONS
-#######################################################################
 
 
 def _load_profiles_from_disk() -> list[dict[str, Any]]:
-    """
-    Load query profiles from disk.
 
-    Returns:
-        List of query profile dictionaries
-    """
     if not os.path.exists(QUERY_PROFILES_FILE):
         return []
 
@@ -62,15 +28,7 @@ def _load_profiles_from_disk() -> list[dict[str, Any]]:
 
 
 def _save_profiles_to_disk(profiles: list[dict[str, Any]]) -> bool:
-    """
-    Save query profiles to disk.
 
-    Args:
-        profiles: List of query profile dictionaries
-
-    Returns:
-        bool: True if saved successfully, False otherwise
-    """
     try:
         with open(QUERY_PROFILES_FILE, "w", encoding="utf-8") as f:
             json.dump(profiles, f, indent=2, ensure_ascii=False)
@@ -81,26 +39,12 @@ def _save_profiles_to_disk(profiles: list[dict[str, Any]]) -> bool:
 
 
 def load_query_profiles() -> list[QueryProfile]:
-    """
-    Load all query profiles from disk.
 
-    Returns:
-        List of query profile dictionaries from jira_query_profiles.json
-    """
-    # Load user-created profiles from disk
     return cast(list[QueryProfile], _load_profiles_from_disk())
 
 
 def get_query_profile_by_id(profile_id: str) -> QueryProfile | None:
-    """
-    Get a specific query profile by ID.
 
-    Args:
-        profile_id: UUID or default profile ID
-
-    Returns:
-        Query profile dictionary or None if not found
-    """
     all_profiles = load_query_profiles()
 
     for profile in all_profiles:
@@ -118,7 +62,6 @@ def _build_query_profile(
     last_used: str,
     profile_id: str | None = None,
 ) -> QueryProfile:
-    """Construct a normalized query profile payload."""
     return {
         "id": profile_id or str(uuid.uuid4()),
         "name": name.strip(),
@@ -133,19 +76,7 @@ def _build_query_profile(
 def save_query_profile(
     name: str, jql: str, description: str = "", profile_id: str | None = None
 ) -> dict[str, Any] | None:
-    """
-    Save a new query profile or update existing one.
 
-    Args:
-        name: User-friendly name for the query
-        jql: JQL query string
-        description: Optional description
-        profile_id: Optional ID for update, None for new profile
-
-    Returns:
-        Saved profile dictionary or None if validation failed
-    """
-    # Validate inputs
     if not name or not name.strip():
         logger.error("Query profile name cannot be empty")
         return None
@@ -154,10 +85,8 @@ def save_query_profile(
         logger.error("JQL query must be a string")
         return None
 
-    # Load existing user profiles
     user_profiles = _load_profiles_from_disk()
 
-    # Check for duplicate names (only for new profiles or rename)
     for profile in user_profiles:
         if profile.get("name") == name.strip():
             if profile_id is None or profile.get("id") != profile_id:
@@ -167,7 +96,6 @@ def save_query_profile(
     now = datetime.now().isoformat()
 
     if profile_id:
-        # Update existing profile
         for i, profile in enumerate(user_profiles):
             if profile.get("id") == profile_id:
                 user_profiles[i].update(
@@ -184,7 +112,6 @@ def save_query_profile(
             logger.error(f"Profile with ID '{profile_id}' not found")
             return None
     else:
-        # Create new profile
         updated_profile = cast(
             dict[str, Any],
             _build_query_profile(
@@ -197,12 +124,10 @@ def save_query_profile(
         )
         user_profiles.append(updated_profile)
 
-    # Validate profile
     if not validate_query_profile(updated_profile):
         logger.error("Invalid query profile structure")
         return None
 
-    # Save to disk
     if _save_profiles_to_disk(user_profiles):
         logger.info(f"Saved query profile: {name}")
         return updated_profile
@@ -211,31 +136,19 @@ def save_query_profile(
 
 
 def delete_query_profile(profile_id: str) -> bool:
-    """
-    Delete a query profile.
 
-    Args:
-        profile_id: UUID of the profile to delete
-
-    Returns:
-        bool: True if deleted successfully, False otherwise
-    """
-    # Cannot delete default profiles
     if profile_id.startswith("default-"):
         logger.error("Cannot delete default query profiles")
         return False
 
-    # Load user profiles
     user_profiles = _load_profiles_from_disk()
 
-    # Find and remove profile
     updated_profiles = [p for p in user_profiles if p.get("id") != profile_id]
 
     if len(updated_profiles) == len(user_profiles):
         logger.error(f"Profile with ID '{profile_id}' not found")
         return False
 
-    # Save updated list
     if _save_profiles_to_disk(updated_profiles):
         logger.info(f"Deleted query profile: {profile_id}")
         return True
@@ -246,32 +159,12 @@ def delete_query_profile(profile_id: str) -> bool:
 def update_query_profile(
     profile_id: str, name: str, jql: str, description: str = ""
 ) -> dict[str, Any] | None:
-    """
-    Update an existing query profile.
 
-    Args:
-        profile_id: UUID of the profile to update
-        name: Updated name
-        jql: Updated JQL query
-        description: Updated description
-
-    Returns:
-        Updated profile dictionary or None if update failed
-    """
     return save_query_profile(name, jql, description, profile_id)
 
 
 def update_profile_last_used(profile_id: str) -> bool:
-    """
-    Update the last_used timestamp for a profile.
 
-    Args:
-        profile_id: UUID of the profile
-
-    Returns:
-        bool: True if updated successfully, False otherwise
-    """
-    # Skip updating default profiles timestamps
     if profile_id.startswith("default-"):
         return True
 
@@ -286,27 +179,13 @@ def update_profile_last_used(profile_id: str) -> bool:
 
 
 def get_profile_names() -> list[str]:
-    """
-    Get a list of all query profile names.
 
-    Returns:
-        List of profile names
-    """
     profiles = load_query_profiles()
     return [p.get("name", "") for p in profiles if p.get("name")]
 
 
 def validate_profile_name_unique(name: str, exclude_id: str | None = None) -> bool:
-    """
-    Check if a profile name is unique.
 
-    Args:
-        name: Name to check
-        exclude_id: Optional profile ID to exclude from check (for updates)
-
-    Returns:
-        bool: True if name is unique, False otherwise
-    """
     profiles = load_query_profiles()
 
     for profile in profiles:
@@ -318,23 +197,12 @@ def validate_profile_name_unique(name: str, exclude_id: str | None = None) -> bo
 
 
 def set_default_query(profile_id: str) -> bool:
-    """
-    Set a query profile as the default query.
-    Only one query can be default at a time.
 
-    Args:
-        profile_id: ID of the profile to set as default
-
-    Returns:
-        bool: True if set successfully, False otherwise
-    """
     profiles = _load_profiles_from_disk()
 
-    # Remove default flag from all profiles first
     for profile in profiles:
         profile["is_default"] = False
 
-    # Set the specified profile as default
     for profile in profiles:
         if profile.get("id") == profile_id:
             profile["is_default"] = True
@@ -350,12 +218,7 @@ def set_default_query(profile_id: str) -> bool:
 
 
 def get_default_query() -> dict[str, Any] | None:
-    """
-    Get the current default query profile.
 
-    Returns:
-        Default query profile dictionary or None if no default is set
-    """
     profiles = _load_profiles_from_disk()
 
     for profile in profiles:
@@ -366,15 +229,9 @@ def get_default_query() -> dict[str, Any] | None:
 
 
 def remove_default_query() -> bool:
-    """
-    Remove the default flag from all query profiles.
 
-    Returns:
-        bool: True if updated successfully, False otherwise
-    """
     profiles = _load_profiles_from_disk()
 
-    # Remove default flag from all profiles
     changed = False
     for profile in profiles:
         if profile.get("is_default", False):
@@ -387,4 +244,4 @@ def remove_default_query() -> bool:
             logger.info("Removed default query setting")
         return success
 
-    return True  # No change needed
+    return True

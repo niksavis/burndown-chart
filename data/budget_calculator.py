@@ -1,15 +1,3 @@
-"""
-Budget Calculator - Re-export shim for backward compatibility.
-
-All logic has been split into focused modules:
-- data.budget_calculator_core: Budget config reading and velocity helpers
-- data.budget_calculator_consumption: Consumption, breakdown, and runway calculations
-- data.budget_calculator_comparison: Baseline vs actual comparison and health tiers
-
-Migration status: Callers may continue importing from this module.
-New code should import from the canonical modules directly.
-"""
-
 from data.budget_calculator_comparison import (  # noqa: F401
     _calculate_health_tier,
     _empty_baseline_comparison,

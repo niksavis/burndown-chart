@@ -1,11 +1,3 @@
-"""Actionable recommendations generator for HTML reports.
-
-Generates project health insights from velocity, budget, scope, deadline,
-and quality metrics. Large inline sections are delegated to
-generator_recommendation_signals for size compliance.
-Part of data/report/generator.py split.
-"""
-
 from typing import Any
 
 from data.recommendations.budget_signals import build_budget_health_signals
@@ -31,22 +23,7 @@ def calculate_recommendations(
     settings: dict[str, Any],
     time_period_weeks: int,
 ) -> dict[str, Any]:
-    """
-    Generate actionable recommendations based on project metrics.
 
-    This uses a simplified subset of the insights engine logic from the app,
-    focusing on critical/high severity insights only for report conciseness.
-
-    Args:
-        statistics: List of project statistics dicts
-        dashboard_metrics: Dashboard metrics (velocity, health, forecast)
-        extended_metrics: Extended metrics (DORA, Flow, Bug, Budget)
-        settings: Project settings
-        time_period_weeks: Analysis window in weeks
-
-    Returns:
-        Dictionary with insights list and metadata
-    """
     import pandas as pd  # noqa: PLC0415
 
     insights = []
@@ -55,7 +32,6 @@ def calculate_recommendations(
     if statistics_df.empty:
         return {"insights": [], "data_points_count": time_period_weeks}
 
-    # === VELOCITY TRENDS ===
     velocity_signals = build_velocity_trend_signals(statistics_df)
     for signal in velocity_signals:
         metrics = signal["metrics"]
@@ -89,7 +65,6 @@ def calculate_recommendations(
                 }
             )
 
-    # === THROUGHPUT EFFICIENCY ===
     throughput_signals = build_throughput_signals(statistics_df)
     for signal in throughput_signals:
         metrics = signal["metrics"]
@@ -111,7 +86,6 @@ def calculate_recommendations(
                 }
             )
 
-    # === BUDGET HEALTH ===
     if "budget" in extended_metrics:
         budget = extended_metrics["budget"]
         if budget.get("has_data"):
@@ -187,7 +161,6 @@ def calculate_recommendations(
                         }
                     )
 
-    # === SCOPE MANAGEMENT ===
     if not statistics_df.empty:
         scope_signals = build_scope_signals(statistics_df)
         scope_warning_added = False
@@ -260,13 +233,9 @@ def calculate_recommendations(
                     )
                     scope_warning_added = True
 
-    # === DEADLINE SCENARIOS ===
-    # CRITICAL: Use same calculation method as app (insights_engine.py lines 233-239)
-    # Calculate from current time, not from pre-calculated forecast_date string
     deadline = dashboard_metrics.get("deadline")
     _build_deadline_scenario_insights(dashboard_metrics, deadline, insights)
 
-    # === VELOCITY CONSISTENCY ===
     consistency_signals = build_velocity_consistency_signals(statistics_df)
     for signal in consistency_signals:
         metrics = signal["metrics"]
@@ -284,14 +253,10 @@ def calculate_recommendations(
                 }
             )
 
-    # === BUDGET VS FORECAST MISALIGNMENT ===
     _build_budget_forecast_insights(
         extended_metrics, dashboard_metrics, deadline, insights
     )
 
-    # === CROSS-DOMAIN CORRELATION SIGNALS ===
-    # Construct pert_data from dashboard_metrics (same approximation used for
-    # deadline scenarios above: optimistic = 70%, pessimistic = 130%)
     _pert_base = dashboard_metrics.get("pert_time_items", 0) or 0
     _pert_data_for_signals = (
         {
@@ -320,7 +285,6 @@ def calculate_recommendations(
             }
         )
 
-    # === REQUIRED PACE (if deadline set) ===
     if deadline and len(statistics_df) > 0:
         try:
             pace_signals = build_required_pace_signals(statistics_df, deadline)
@@ -373,7 +337,6 @@ def calculate_recommendations(
         except Exception:
             pass
 
-    # === QUALITY ISSUES ===
     if "bug_analysis" in extended_metrics:
         bug_metrics = extended_metrics["bug_analysis"]
         if bug_metrics.get("has_data"):
@@ -395,14 +358,9 @@ def calculate_recommendations(
                     }
                 )
 
-    # Sort by severity (danger > warning > info > success)
     severity_priority = {"danger": 0, "warning": 1, "info": 2, "success": 3}
     insights.sort(key=lambda x: severity_priority.get(x["severity"], 2))
 
-    # Balanced filtering: Include critical risks AND positive signals
-    # for stakeholder confidence
-    # Take top 3 danger/warning + top 2 success (max 5 total)
-    # If fewer successes, allow more danger/warning up to 5 total.
     danger_warning_all = [i for i in insights if i["severity"] in ("danger", "warning")]
     success_insights = [i for i in insights if i["severity"] == "success"][:2]
     danger_limit = (
@@ -410,7 +368,6 @@ def calculate_recommendations(
     )
     danger_warning = danger_warning_all[:danger_limit]
 
-    # Combine: dangers/warnings first, then successes
     balanced_insights = danger_warning + success_insights
 
     return {"insights": balanced_insights, "data_points_count": time_period_weeks}

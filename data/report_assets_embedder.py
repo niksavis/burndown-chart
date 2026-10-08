@@ -1,5 +1,3 @@
-"""Utility to embed external CSS/JS dependencies into HTML reports for offline use."""
-
 import base64
 import re
 import sys
@@ -7,20 +5,12 @@ from pathlib import Path
 
 
 def embed_report_dependencies() -> dict:
-    """
-    Read and prepare CSS/JS dependencies for embedding in HTML reports.
 
-    Returns:
-        dict with keys: 'bootstrap_css', 'chartjs', 'chartjs_annotation',
-        'fontawesome_css'
-    """
-    # Handle PyInstaller frozen executable path
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
         assets_dir = Path(sys._MEIPASS) / "report_assets"  # type: ignore[attr-defined]
     else:
         assets_dir = Path(__file__).parent.parent / "report_assets"
 
-    # Read CSS files, stripping source map comments (map files not included)
     bootstrap_css = _strip_source_map_comments(
         (assets_dir / "bootstrap.min.css").read_text(encoding="utf-8")
     )
@@ -28,7 +18,6 @@ def embed_report_dependencies() -> dict:
         (assets_dir / "font-awesome.min.css").read_text(encoding="utf-8")
     )
 
-    # Read JS files, stripping source map comments
     chartjs = _strip_source_map_comments(
         (assets_dir / "chart.umd.min.js").read_text(encoding="utf-8")
     )
@@ -36,7 +25,6 @@ def embed_report_dependencies() -> dict:
         (assets_dir / "chartjs-plugin-annotation.min.js").read_text(encoding="utf-8")
     )
 
-    # Embed fonts as base64 in Font Awesome CSS
     fontawesome_css = _embed_fonts_in_css(fontawesome_css, assets_dir / "webfonts")
 
     return {
@@ -48,52 +36,26 @@ def embed_report_dependencies() -> dict:
 
 
 def _strip_source_map_comments(content: str) -> str:
-    """
-    Remove sourceMappingURL comments from CSS and JS content.
 
-    Browsers attempt to fetch map files referenced in embedded assets, producing
-    NetworkError warnings in offline reports where map files are not included.
-
-    Args:
-        content: CSS or JS file content
-
-    Returns:
-        Content with sourceMappingURL comments removed
-    """
-    # CSS: /*# sourceMappingURL=... */
     content = re.sub(r"/\*#\s*sourceMappingURL=[^\*]+\*/", "", content)
-    # JS: //# sourceMappingURL=...
     content = re.sub(r"//# sourceMappingURL=\S+", "", content)
     return content
 
 
 def _embed_fonts_in_css(css_content: str, fonts_dir: Path) -> str:
-    """
-    Replace url(../webfonts/...) references in CSS with base64 data URIs.
 
-    Args:
-        css_content: CSS file content
-        fonts_dir: Directory containing font files
-
-    Returns:
-        Modified CSS with embedded fonts
-    """
-    # Find all url() references to font files
     url_pattern = r"url\((\.\.\/webfonts\/[^)]+)\)"
 
     def replace_url(match):
-        rel_path = match.group(1)  # e.g., "../webfonts/fa-solid-900.woff2"
-        filename = rel_path.split("/")[-1]  # e.g., "fa-solid-900.woff2"
+        rel_path = match.group(1)
+        filename = rel_path.split("/")[-1]
 
         font_path = fonts_dir / filename
         if not font_path.exists():
-            # Keep original if font file not found
             return match.group(0)
 
-        # Read font file as binary
         font_data = font_path.read_bytes()
 
-        # Determine MIME type
         if filename.endswith(".woff2"):
             mime_type = "font/woff2"
         elif filename.endswith(".woff"):
@@ -103,13 +65,10 @@ def _embed_fonts_in_css(css_content: str, fonts_dir: Path) -> str:
         else:
             mime_type = "application/octet-stream"
 
-        # Encode as base64
         b64_data = base64.b64encode(font_data).decode("ascii")
 
-        # Return data URI
         return f"url(data:{mime_type};base64,{b64_data})"
 
-    # Replace all font URLs with data URIs
     modified_css = re.sub(url_pattern, replace_url, css_content)
 
     return modified_css

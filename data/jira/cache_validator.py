@@ -1,9 +1,3 @@
-"""
-JIRA Cache Validation
-
-Handles cache file validation, size checks, and status reporting.
-"""
-
 import json
 import logging
 import os
@@ -21,21 +15,11 @@ logger = logging.getLogger(__name__)
 def validate_cache_file(
     cache_file: str = JIRA_CACHE_FILE, max_size_mb: int = DEFAULT_CACHE_MAX_SIZE_MB
 ) -> bool:
-    """
-    Validate cache file size and integrity.
 
-    Args:
-        cache_file: Path to cache file
-        max_size_mb: Maximum allowed file size in MB
-
-    Returns:
-        True if cache is valid or doesn't exist
-    """
     try:
         if not os.path.exists(cache_file):
-            return True  # No cache file is valid
+            return True
 
-        # Check file size
         file_size_mb = os.path.getsize(cache_file) / (1024 * 1024)
         if file_size_mb > max_size_mb:
             logger.warning(
@@ -43,7 +27,6 @@ def validate_cache_file(
             )
             return False
 
-        # Check file integrity
         with open(cache_file) as f:
             json.load(f)
 
@@ -57,15 +40,7 @@ def validate_cache_file(
 
 
 def get_cache_status(cache_file: str = JIRA_CACHE_FILE) -> str:
-    """
-    Get detailed cache status information.
 
-    Args:
-        cache_file: Path to cache file
-
-    Returns:
-        Human-readable cache status string
-    """
     try:
         if not os.path.exists(cache_file):
             return "No cache file found"
@@ -77,7 +52,6 @@ def get_cache_status(cache_file: str = JIRA_CACHE_FILE) -> str:
 
         timestamp = cache_data.get("timestamp", "Unknown")
 
-        # Count issues per project
         issues = cache_data.get("issues", [])
         project_counts = {}
         for issue in issues:
@@ -85,7 +59,6 @@ def get_cache_status(cache_file: str = JIRA_CACHE_FILE) -> str:
             if project_key:
                 project_counts[project_key] = project_counts.get(project_key, 0) + 1
 
-        # Format project counts
         project_status = ", ".join(
             [f"{proj}: {count} issues" for proj, count in project_counts.items()]
         )
@@ -102,18 +75,7 @@ def get_cache_status(cache_file: str = JIRA_CACHE_FILE) -> str:
 
 
 def invalidate_changelog_cache(cache_file: str = JIRA_CHANGELOG_CACHE_FILE) -> bool:
-    """
-    Invalidate (delete) changelog cache when issue cache is refreshed.
 
-    This ensures changelog cache stays in sync with issue cache.
-    When issues are refreshed, changelog must also be refreshed.
-
-    Args:
-        cache_file: Path to changelog cache file
-
-    Returns:
-        True if cache was invalidated (deleted or didn't exist)
-    """
     try:
         if os.path.exists(cache_file):
             os.remove(cache_file)

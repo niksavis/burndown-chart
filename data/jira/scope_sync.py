@@ -1,15 +1,3 @@
-"""
-JIRA scope sync module.
-
-This module handles the main JIRA data synchronization and scope calculation:
-- Fetch issues from JIRA (with caching and delta fetch optimization)
-- Fetch changelog for Flow/DORA metrics
-- Calculate project scope (total issues, story points, velocity)
-- Filter DevOps vs Development issues
-- Save to unified database structure
-- Progress tracking and atomic database operations
-"""
-
 import hashlib
 import json
 import logging
@@ -40,21 +28,18 @@ logger = logging.getLogger(__name__)
 
 
 def get_backend():  # noqa: PLC0415
-    """Lazy import wrapper to break circular: data.persistence.adapters -> data.jira."""
     from data.persistence.factory import get_backend as _get_backend  # noqa: PLC0415
 
     return _get_backend()
 
 
 def load_app_settings():  # noqa: PLC0415
-    """Lazy import wrapper to break circular: data.persistence.adapters -> data.jira."""
     from data.persistence import load_app_settings as _load  # noqa: PLC0415
 
     return _load()
 
 
 def save_jira_data_unified(*args, **kwargs):  # noqa: PLC0415
-    """Lazy import wrapper to break circular: data.persistence.adapters -> data.jira."""
     from data.persistence import save_jira_data_unified as _save  # noqa: PLC0415
 
     return _save(*args, **kwargs)
@@ -65,26 +50,14 @@ def sync_jira_scope_and_data(
     ui_config: dict | None = None,
     force_refresh: bool = False,
 ) -> tuple[bool, str, dict]:
-    """
-    Main sync function to get JIRA scope calculation and replace CSV data.
 
-    Args:
-        jql_query: JQL query to use (overrides config)
-        ui_config: UI configuration dictionary (overrides file config)
-        force_refresh: If True, bypass cache and force fresh JIRA fetch
-
-    Returns:
-        Tuple of (success, message, scope_data)
-    """
     try:
-        # CRITICAL: Log function entry to verify code is being executed
         logger.warning("=" * 80)
         logger.warning(
             "[SCOPE_SYNC] sync_jira_scope_and_data STARTED - CODE VERSION 2026-02-04"
         )
         logger.warning("=" * 80)
 
-        # Update progress to show we're starting
         try:
             TaskProgress.update_progress(
                 "update_data",
@@ -94,24 +67,19 @@ def sync_jira_scope_and_data(
                 "Connecting to JIRA...",
             )
         except AttributeError, RuntimeError, TypeError, ValueError:
-            pass  # Progress update is optional
+            pass
 
-        # Load configuration with JQL query from settings or use provided UI config
         if ui_config:
             config = ui_config.copy()
-            # Ensure jql_query parameter takes precedence if provided
             if jql_query:
                 config["jql_query"] = jql_query
         else:
             config = get_jira_config(jql_query)
 
-        # Validate configuration
         is_valid, message = validate_jira_config(config)
         if not is_valid:
             return False, f"Configuration invalid: {message}", {}
 
-        # Modify JQL to include parent issue types (Epic, Initiative, etc.)
-        # Parent types are fetched but excluded from calculations via parent_filter.py
         parent_types = extract_parent_types_from_config(config)
         if parent_types:
             original_jql = config.get("jql_query", "")
@@ -122,20 +90,15 @@ def sync_jira_scope_and_data(
                 f"{', '.join(parent_types)}"
             )
 
-        # Validate cache file
         if not validate_cache_file(max_size_mb=config["cache_max_size_mb"]):
             return False, "Cache file validation failed", {}
 
-        # Calculate current fields that would be requested
-        # (MUST match fetch_jira_issues logic)
         base_fields = (
             "key,summary,project,created,updated,resolutiondate,status,"
             "issuetype,assignee,priority,resolution,labels,components,"
             "fixVersions"
         )
 
-        # Add parent field if configured
-        # (either standard 'parent' or Epic Link custom field)
         parent_field = (
             config.get("field_mappings", {}).get("general", {}).get("parent_field")
         )
@@ -144,57 +107,40 @@ def sync_jira_scope_and_data(
 
         additional_fields = []
 
-        # Add story points field
         points_field = config.get("story_points_field", "")
         if points_field and isinstance(points_field, str) and points_field.strip():
             additional_fields.append(points_field)
 
-        # Add field mappings for DORA and Flow metrics
-        # field_mappings has structure:
-        # {"dora": {"field_name": "field_id"}, "flow": {...}}
-        # CRITICAL: Strip =Value filter syntax
-        # (e.g., "customfield_11309=PROD" -> "customfield_11309")
         field_mappings = config.get("field_mappings", {})
         for _category, mappings in field_mappings.items():
             if isinstance(mappings, dict):
                 for _field_name, field_id in mappings.items():
-                    # Extract clean field ID
-                    # (strips =Value filter, skips changelog syntax)
                     clean_field_id = extract_jira_field_id(field_id)
                     if clean_field_id and clean_field_id not in base_fields:
                         additional_fields.append(clean_field_id)
 
-        # Build final fields string (must match fetch_jira_issues exactly)
-        # Sort additional fields to ensure consistent ordering for cache validation
         if additional_fields:
             current_fields = f"{base_fields},{','.join(sorted(set(additional_fields)))}"
         else:
             current_fields = base_fields
 
-        # SMART CACHING LOGIC
         logger.debug(f"[JIRA] Sync starting: force_refresh={force_refresh}")
         logger.debug(f"[JIRA] JQL: {config['jql_query'][:50]}...")
         logger.debug(f"[JIRA] Fields: {current_fields}")
 
-        # Step 1: Check if force refresh is requested
         if force_refresh:
             logger.debug("[JIRA] Force refresh - bypassing cache and clearing database")
 
-            # CRITICAL: Clear database cache for this query on force refresh
-            # This ensures old issues that no longer match the JQL are removed
             try:
                 backend = get_backend()
                 active_profile_id = backend.get_app_state("active_profile_id")
                 active_query_id = backend.get_app_state("active_query_id")
 
                 if active_profile_id and active_query_id:
-                    # Delete all data for this query ATOMICALLY (single transaction)
-                    # This prevents intermediate states where UI reads partial data
                     db_path = getattr(backend, "db_path", Path("profiles/burndown.db"))
                     with get_db_connection(Path(db_path)) as conn:
                         cursor = conn.cursor()
 
-                        # Execute all deletions in one transaction
                         cursor.execute(
                             "DELETE FROM jira_issues "
                             "WHERE profile_id = ? AND query_id = ?",
@@ -208,9 +154,6 @@ def sync_jira_scope_and_data(
                             (active_profile_id, active_query_id),
                         )
                         stats_deleted = cursor.rowcount
-
-                        # Note: jira_cache table removed - cache metadata
-                        # derived from jira_issues
 
                         cursor.execute(
                             "DELETE FROM jira_changelog_entries "
@@ -240,7 +183,6 @@ def sync_jira_scope_and_data(
                         )
                         task_deleted = cursor.rowcount
 
-                        # Single commit for all deletions (atomic operation)
                         conn.commit()
 
                         logger.info(
@@ -261,11 +203,6 @@ def sync_jira_scope_and_data(
             ) as e:
                 logger.warning(f"[JIRA] Failed to clear database cache: {e}")
 
-        # Step 2: Fetch from JIRA (includes built-in delta fetch optimization)
-        # fetch_jira_issues() handles all caching logic internally:
-        # - Loads cache and checks if data changed
-        # - Does delta fetch (fetch only updated issues) if count unchanged
-        # - Does full fetch only if cache invalid or delta fetch fails
         logger.debug(
             "[JIRA] Calling fetch_jira_issues (handles cache/delta internally)"
         )
@@ -276,20 +213,11 @@ def sync_jira_scope_and_data(
 
         logger.info(f"[JIRA] Fetch complete: {len(issues)} issues")
 
-        # PARENT FETCH: Get parent issues referenced by children for display
-        # (NOT counted in metrics)
-        # Parents are stored in database but filtered from calculations
-        # using parent_filter.py
-        # DEPRECATED: Parent types now included in main query via query_builder.py
-        # This code kept for backward compatibility when
-        # parent_issue_types not configured.
         try:
             logger.info("[PARENT] Starting parent fetch...")
             parent_types = extract_parent_types_from_config(config)
 
             if not parent_types:
-                # Legacy behavior: Fetch parent issues via separate API call
-                # This runs only when parent_issue_types not configured
                 logger.info(
                     "[PARENT] Calling fetch_epics_for_display "
                     f"(legacy) with {len(issues)} issues"
@@ -300,9 +228,6 @@ def sync_jira_scope_and_data(
                         f"[PARENT] Fetched {len(parents)} parent issues "
                         "for display (legacy path)"
                     )
-                    # Add parents to issues list - they'll be stored in database
-                    # CRITICAL: All calculation code must use
-                    # parent_filter.py to filter them out
                     issues.extend(parents)
                     logger.info(
                         f"[PARENT] Extended issues list to {len(issues)} "
@@ -311,7 +236,6 @@ def sync_jira_scope_and_data(
                 else:
                     logger.info("[PARENT] No parent issues to fetch (legacy)")
             else:
-                # New behavior: Parent types already included in main query
                 logger.info(
                     "[PARENT] Skipping separate parent fetch - "
                     f"{len(parent_types)} parent "
@@ -329,9 +253,7 @@ def sync_jira_scope_and_data(
                 f"[PARENT] Failed to fetch parent issues (non-fatal): {e}",
                 exc_info=True,
             )
-            # Continue without parents - they're for display only
 
-        # Update progress: Issues fetched, now starting changelog
         try:
             TaskProgress.update_progress(
                 "update_data",
@@ -355,29 +277,13 @@ def sync_jira_scope_and_data(
         if not force_refresh and last_delta_key:
             last_delta_count = backend.get_app_state(last_delta_key)
             if last_delta_count == "0":
-                # Check if field mappings have changed since last update
-                # If they have, we MUST recalculate metrics even with no new data
                 current_settings = load_app_settings()
-                # Hash ALL settings that affect metrics calculation
-                # These correspond to all tabs in Configure JIRA Mappings modal:
-                # - Projects tab: development_projects, devops_projects
-                # - Fields tab: field_mappings (dora, flow, general namespaces)
-                # - Types tab: flow_type_mappings, devops_task_types,
-                #   bug_types, story_types, task_types
-                # - Status tab: flow_start_statuses, wip_statuses,
-                #   flow_end_statuses, active_statuses
-                # - Environment tab: production_environment_values,
-                #   affected_environment_values,
-                #   target_environment_values
                 relevant_settings = {
-                    # Projects tab
                     "development_projects": current_settings.get(
                         "development_projects", []
                     ),
                     "devops_projects": current_settings.get("devops_projects", []),
-                    # Fields tab
                     "field_mappings": current_settings.get("field_mappings", {}),
-                    # Types tab
                     "flow_type_mappings": current_settings.get(
                         "flow_type_mappings", {}
                     ),
@@ -385,14 +291,12 @@ def sync_jira_scope_and_data(
                     "bug_types": current_settings.get("bug_types", []),
                     "story_types": current_settings.get("story_types", []),
                     "task_types": current_settings.get("task_types", []),
-                    # Status tab
                     "flow_start_statuses": current_settings.get(
                         "flow_start_statuses", []
                     ),
                     "wip_statuses": current_settings.get("wip_statuses", []),
                     "flow_end_statuses": current_settings.get("flow_end_statuses", []),
                     "active_statuses": current_settings.get("active_statuses", []),
-                    # Environment tab
                     "production_environment_values": current_settings.get(
                         "production_environment_values", []
                     ),
@@ -408,14 +312,12 @@ def sync_jira_scope_and_data(
                     usedforsecurity=False,
                 ).hexdigest()
 
-                # Check if settings hash has changed
                 settings_hash_key = (
                     f"settings_hash:{active_profile_id}:{active_query_id}"
                 )
                 last_hash = backend.get_app_state(settings_hash_key)
 
                 if last_hash and last_hash == current_hash:
-                    # No data changes AND no settings changes - can skip
                     logger.info(
                         "[JIRA] Delta fetch found no changes and "
                         "settings unchanged, skipping metrics"
@@ -429,34 +331,22 @@ def sync_jira_scope_and_data(
                         },
                     )
                 else:
-                    # Settings changed - must recalculate metrics
                     logger.info(
                         "[JIRA] No new data but settings changed - "
                         "will recalculate metrics"
                     )
-                    # Store the new hash for next time
                     backend.set_app_state(settings_hash_key, current_hash)
 
-        # CRITICAL: Invalidate changelog cache when we fetch from JIRA
-        # Changelog must stay in sync with issue cache
         invalidate_changelog_cache()
 
-        # CRITICAL FIX: Save issues to database BEFORE fetching changelog
-        # fetch_changelog_on_demand() reads from database to determine
-        # which issues need changelog
-        # If we haven't saved issues yet, it will see 0 issues and skip the fetch
         logger.info("[JIRA] Saving issues to database before changelog fetch...")
 
-        # Quick save: Just save issues to database (minimal processing)
-        # Full save with statistics and scope will happen later
         try:
             backend = get_backend()
             active_profile_id = backend.get_app_state("active_profile_id")
             active_query_id = backend.get_app_state("active_query_id")
 
             if active_profile_id and active_query_id:
-                # Save ALL issues to database (including DevOps projects)
-                # DevOps filtering happens later for statistics calculation
                 utc_now = datetime.now(UTC)
                 expires_at = utc_now + timedelta(hours=24)
                 cache_key = f"issues:{active_profile_id}:{active_query_id}"
@@ -485,14 +375,7 @@ def sync_jira_scope_and_data(
                 f"[JIRA] Failed to save issues before changelog fetch: {e}",
                 exc_info=True,
             )
-            # Continue anyway - changelog fetch will handle missing issues gracefully
 
-        # PHASE 2: Changelog data fetch
-        # Changelog is needed for Flow Time and DORA metrics
-        # No need to delete file cache - using database exclusively
-
-        # Fetch it now so metrics calculation has the data it needs
-        # CRITICAL: Get profile/query IDs before calling fetch to avoid race condition
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")
 
@@ -530,7 +413,6 @@ def sync_jira_scope_and_data(
                 f"[JIRA] Changelog fetch failed (non-critical): {changelog_message}"
             )
 
-        # Update progress: Changelog done, now calculating scope
         try:
             TaskProgress.update_progress(
                 "update_data",
@@ -542,20 +424,12 @@ def sync_jira_scope_and_data(
         except AttributeError, RuntimeError, TypeError, ValueError:
             pass
 
-        # CRITICAL: Filter out parent issues dynamically
-        # based on parent field mapping
-        # Parents stored for display (Active Work Timeline)
-        # but excluded from ALL calculations
-        # Don't hardcode "Epic" - use parent field to detect what keys are parents
         parent_field = (
             config.get("field_mappings", {}).get("general", {}).get("parent_field")
         )
         if parent_field:
             issues = filter_parent_issues(issues, parent_field, log_prefix="JIRA SYNC")
 
-        # CRITICAL: Filter to only configured development project issues
-        # for burndown/velocity/statistics
-        # DevOps issues are ONLY used for DORA metrics metadata extraction
         development_projects = config.get("development_projects", [])
         devops_projects = config.get("devops_projects", [])
 
@@ -585,7 +459,6 @@ def sync_jira_scope_and_data(
                     "development projects"
                 )
         else:
-            # No project classification configured, use all issues
             logger.warning(
                 "[JIRA] NO PROJECT FILTERING: "
                 f"Using all {len(issues)} issues "
@@ -594,9 +467,6 @@ def sync_jira_scope_and_data(
             )
             issues_for_metrics = issues
 
-        # Exclude parent issue types from metrics (if configured)
-        # Parent types are included in the fetch (via query_builder) to get their data
-        # but excluded from scope calculations to prevent double-counting
         if parent_types:
             total_before_parent_filter = len(issues_for_metrics)
             issues_for_metrics = filter_out_parent_types(
@@ -611,11 +481,7 @@ def sync_jira_scope_and_data(
                     f"(types: {', '.join(parent_types)})"
                 )
 
-        # Calculate JIRA-based project scope
-        # (using ONLY development project issues, excluding parents)
-        # Only use story_points_field if it's configured and not empty
         points_field_raw = config.get("story_points_field", "")
-        # Defensive: Ensure points_field is a string, not a dict
         if isinstance(points_field_raw, dict):
             logger.warning(
                 "[JIRA] story_points_field is a dict, "
@@ -632,8 +498,6 @@ def sync_jira_scope_and_data(
             points_field = ""
 
         if not points_field:
-            # When no points field is configured, pass empty string instead
-            # of defaulting to "votes"
             points_field = ""
         scope_data = calculate_jira_project_scope(
             issues_for_metrics, points_field, config
@@ -641,11 +505,8 @@ def sync_jira_scope_and_data(
         if not scope_data:
             return False, "Failed to calculate JIRA project scope", {}
 
-        # Transform to CSV format for statistics (using ONLY development project issues)
         csv_data = jira_to_csv_format(issues_for_metrics, config)
-        # Note: Empty list is valid when there are no issues, only None indicates error
 
-        # Update progress: Scope calculated, now saving to database
         try:
             TaskProgress.update_progress(
                 "update_data",
@@ -657,7 +518,6 @@ def sync_jira_scope_and_data(
         except AttributeError, RuntimeError, TypeError, ValueError:
             pass
 
-        # Save both statistics and project scope to unified data structure
         if save_jira_data_unified(csv_data, scope_data, config):
             logger.info("[JIRA] Scope calculation and data sync completed successfully")
             return (
@@ -684,7 +544,6 @@ def sync_jira_scope_and_data(
 def sync_jira_data(
     jql_query: str | None = None, ui_config: dict | None = None
 ) -> tuple[bool, str]:
-    """Legacy sync function - calls new scope sync and returns just success/message."""
     try:
         success, message, scope_data = sync_jira_scope_and_data(jql_query, ui_config)
         return success, message

@@ -1,5 +1,3 @@
-"""Forecast helpers for DORA and Flow dashboard callbacks."""
-
 from __future__ import annotations
 
 import logging
@@ -20,7 +18,6 @@ DURATION_METRICS = {
 def _select_weeks_for_forecast(
     weekly_values: list[float], metric_name: str
 ) -> list[float] | None:
-    """Select weeks used for forecast based on metric type."""
     if metric_name in DURATION_METRICS:
         non_zero_weeks = [value for value in weekly_values if value > 0]
         selected_weeks = (
@@ -48,7 +45,6 @@ def calculate_dynamic_forecast(
     metric_type: str,
     metric_name: str = "",
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
-    """Calculate dynamic forecast and trend metadata for dashboard cards."""
     if not weekly_values or len(weekly_values) < 4:
         week_count = len(weekly_values) if weekly_values else 0
         logger.debug(

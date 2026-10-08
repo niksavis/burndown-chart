@@ -1,10 +1,5 @@
-"""Data persistence adapters - Settings save/load operations (legacy)."""
-
-# Standard library imports
 import logging
 
-# Third-party library imports
-# Application imports
 from data.persistence.adapters.app_settings import load_app_settings, save_app_settings
 
 logger = logging.getLogger(__name__)
@@ -22,12 +17,7 @@ def save_settings(
     milestone=None,
     show_points=None,
 ):
-    """
-    DEPRECATED: Legacy function for single-file mode (not used with profiles).
-    Use save_app_settings() instead for profile-based persistence.
 
-    This function is kept for backward compatibility only.
-    """
     from configuration.settings import (  # noqa: PLC0415  - breaks configuration ↔ persistence cycle
         DEFAULT_DATA_POINTS_COUNT,
         DEFAULT_ESTIMATED_ITEMS,
@@ -39,7 +29,6 @@ def save_settings(
         "for profile-based storage"
     )
 
-    # Delegate to save_app_settings with proper structure
     settings_dict = {
         "forecast_settings": {
             "pert_factor": pert_factor,
@@ -66,12 +55,7 @@ def save_settings(
 
 
 def load_settings():
-    """
-    DEPRECATED: Legacy function for single-file mode (not used with profiles).
-    Use load_app_settings() instead for profile-based persistence.
 
-    This function is kept for backward compatibility only.
-    """
     from configuration.settings import (  # noqa: PLC0415  - breaks configuration ↔ persistence cycle
         DEFAULT_DATA_POINTS_COUNT,
         DEFAULT_DEADLINE,
@@ -87,7 +71,6 @@ def load_settings():
         "for profile-based storage"
     )
 
-    # Delegate to load_app_settings and flatten the structure
     app_settings = load_app_settings()
     forecast = app_settings.get("forecast_settings", {})
 

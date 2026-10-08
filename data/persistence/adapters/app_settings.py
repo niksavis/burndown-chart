@@ -1,13 +1,8 @@
-"""Data persistence adapters - App settings save/load operations."""
-
-# Standard library imports
 import logging
 import sqlite3
 from datetime import datetime
 from typing import Any
 
-# Third-party library imports
-# Application imports
 from data.exceptions import PersistenceError
 from data.persistence.factory import get_backend
 
@@ -40,39 +35,6 @@ def save_app_settings(
     flow_type_mappings=None,
     cache_metadata=None,
 ):
-    """
-    Save app-level settings to JSON file.
-
-    Note: JIRA configuration is now managed separately via save_jira_configuration().
-    This function no longer handles individual JIRA settings.
-
-    Args:
-        pert_factor: PERT factor value
-        deadline: Deadline date string
-        data_points_count: Number of data points to use for calculations
-        show_milestone: Whether to show milestone on charts
-        milestone: Milestone date string
-        show_points: Whether to show points tracking and forecasting
-        jql_query: JQL query for JIRA integration
-        last_used_data_source: Last selected data source (JIRA or CSV)
-        active_jql_profile_id: ID of the currently active JQL query profile
-        jira_config: JIRA configuration dictionary
-        field_mappings: Field mappings configuration
-        development_projects: List of development project keys
-        devops_projects: List of devops project keys
-        devops_task_types: List of DevOps task type names
-        bug_types: List of bug type names
-        story_types: List of story type names
-        task_types: List of task type names
-        production_environment_values: List of production environment identifiers
-        flow_end_statuses: List of completion status names
-        active_statuses: List of active status names
-        flow_start_statuses: List of flow start status names
-        wip_statuses: List of WIP status names
-        flow_type_mappings: Dict with Flow type classifications (Feature, Defect, etc.)
-        cache_metadata: Dict with cache tracking info (last_cache_key,
-            last_cache_timestamp, cache_config_hash)
-    """
 
     from configuration.settings import (  # noqa: PLC0415
         DEFAULT_DATA_POINTS_COUNT,
@@ -91,13 +53,12 @@ def save_app_settings(
         "jql_query": jql_query if jql_query is not None else "project = JRASERVER",
         "last_used_data_source": last_used_data_source
         if last_used_data_source is not None
-        else "JIRA",  # Default to JIRA (swapped order)
+        else "JIRA",
         "active_jql_profile_id": active_jql_profile_id
         if active_jql_profile_id is not None
         else "",
     }
 
-    # Add comprehensive mappings configuration if provided
     if jira_config is not None:
         settings["jira_config"] = jira_config
     if field_mappings is not None:
@@ -127,11 +88,9 @@ def save_app_settings(
     if flow_type_mappings is not None:
         settings["flow_type_mappings"] = flow_type_mappings
 
-    # Add cache metadata for audit trail (Feature 008 - T057)
     if cache_metadata is not None:
         settings["cache_metadata"] = cache_metadata
 
-    # Preserve DORA/Flow configuration and other settings if they exist
     try:
         existing_settings = load_app_settings()
         logger.debug(
@@ -139,7 +98,6 @@ def save_app_settings(
             f"{list(existing_settings.keys())}"
         )
 
-        # Keys to preserve from existing settings (if not explicitly provided)
         preserve_keys = [
             "jira_config",
             "field_mappings",
@@ -150,21 +108,20 @@ def save_app_settings(
             "story_types",
             "task_types",
             "production_environment_values",
-            "production_environment_value",  # Legacy support
+            "production_environment_value",
             "flow_end_statuses",
             "active_statuses",
             "flow_start_statuses",
             "wip_statuses",
             "flow_type_mappings",
             "field_mapping_notes",
-            "cache_metadata",  # Feature 008 - T057
+            "cache_metadata",
         ]
 
         for key in preserve_keys:
             if key in existing_settings and key not in settings:
                 settings[key] = existing_settings[key]
                 logger.debug(f"[Config] Preserved existing {key}")
-                # Extra logging for field_mappings to debug config reversion issue
                 if key == "field_mappings":
                     logger.debug(
                         f"[Config] Preserving field_mappings: {existing_settings[key]}"
@@ -189,30 +146,23 @@ def save_app_settings(
         logger.debug("[Config] %s: %s", type(persistence_error).__name__, e)
 
     try:
-        # Use repository pattern - get backend and save via database
-
         backend = get_backend()
 
-        # Get active profile ID
         active_profile_id = backend.get_app_state("active_profile_id")
         if not active_profile_id:
             logger.error("[Config] No active profile to save settings to")
             return
 
-        # Load existing profile to preserve metadata and merge settings
         existing_profile = backend.get_profile(active_profile_id) or {}
 
-        # Build complete profile structure
         profile_data = {
-            # Profile metadata (preserve existing values)
             "id": existing_profile.get("id", active_profile_id),
             "name": existing_profile.get("name", "Default"),
             "description": existing_profile.get("description", ""),
             "created_at": existing_profile.get(
                 "created_at", datetime.now().isoformat()
             ),
-            "last_used": datetime.now().isoformat(),  # Always update last_used
-            # Settings (merged from function parameters)
+            "last_used": datetime.now().isoformat(),
             "jira_config": settings.get(
                 "jira_config", existing_profile.get("jira_config", {})
             ),
@@ -226,8 +176,6 @@ def save_app_settings(
                         "pert_factor", DEFAULT_PERT_FACTOR
                     ),
                 ),
-                # Use 'in' check for deadline/milestone to allow explicit None
-                # (clearing the value)
                 "deadline": settings["deadline"]
                 if "deadline" in settings
                 else existing_profile.get("forecast_settings", {}).get("deadline"),
@@ -310,7 +258,6 @@ def save_app_settings(
             ),
         }
 
-        # Save via backend (database) - profile_data already contains 'id' field
         backend.save_profile(profile_data)
         logger.info(
             f"[Config] Settings saved to database. Profile: {profile_data['name']}"
@@ -345,12 +292,6 @@ def save_app_settings(
 
 
 def load_app_settings() -> dict[str, Any]:
-    """
-    Load app-level settings via repository pattern (database-first).
-
-    Returns:
-        Dictionary containing app settings or default values if not found
-    """
 
     from configuration.settings import (  # noqa: PLC0415
         DEFAULT_DATA_POINTS_COUNT,
@@ -366,9 +307,9 @@ def load_app_settings() -> dict[str, Any]:
         "milestone": None,
         "show_points": False,
         "jql_query": "project = JRASERVER",
-        "last_used_data_source": "JIRA",  # Default to JIRA
-        "active_jql_profile_id": "",  # Empty means use custom query
-        "cache_metadata": {  # Feature 008 - T057: Cache audit trail
+        "last_used_data_source": "JIRA",
+        "active_jql_profile_id": "",
+        "cache_metadata": {
             "last_cache_key": None,
             "last_cache_timestamp": None,
             "cache_config_hash": None,
@@ -376,18 +317,14 @@ def load_app_settings() -> dict[str, Any]:
     }
 
     try:
-        # Use repository pattern - backend abstracts storage
+        backend = get_backend()
 
-        backend = get_backend()  # Returns SQLiteBackend by default
-
-        # Get active profile ID from app state
         active_id = backend.get_app_state("active_profile_id")
 
         if not active_id:
             logger.info("[Config] No active profile, using defaults")
             return default_settings
 
-        # Load profile from backend (handles SQLite/JSON/in-memory)
         profile_data = backend.get_profile(active_id)
 
         if not profile_data:
@@ -396,8 +333,6 @@ def load_app_settings() -> dict[str, Any]:
 
         logger.info(f"[Config] Settings loaded via backend for profile {active_id}")
 
-        # Transform backend data to legacy app_settings format for backward
-        # compatibility
         settings = {
             "pert_factor": profile_data.get("forecast_settings", {}).get(
                 "pert_factor", DEFAULT_PERT_FACTOR
@@ -411,7 +346,7 @@ def load_app_settings() -> dict[str, Any]:
             ),
             "show_milestone": profile_data.get("show_milestone", False),
             "show_points": profile_data.get("show_points", False),
-            "jql_query": "project = JRASERVER",  # Placeholder
+            "jql_query": "project = JRASERVER",
             "last_used_data_source": "JIRA",
             "active_jql_profile_id": "",
             "cache_metadata": {
@@ -419,11 +354,8 @@ def load_app_settings() -> dict[str, Any]:
                 "last_cache_timestamp": None,
                 "cache_config_hash": None,
             },
-            # JIRA configuration
             "jira_config": profile_data.get("jira_config", {}),
-            # Field mappings
             "field_mappings": profile_data.get("field_mappings", {}),
-            # Project classification
             "devops_projects": profile_data.get("project_classification", {}).get(
                 "devops_projects", []
             ),
@@ -451,11 +383,9 @@ def load_app_settings() -> dict[str, Any]:
             "wip_statuses": profile_data.get("project_classification", {}).get(
                 "wip_statuses", []
             ),
-            # Flow type mappings
             "flow_type_mappings": profile_data.get("flow_type_mappings", {}),
         }
 
-        # Add default values for any missing fields
         for key, default_value in default_settings.items():
             if key not in settings:
                 settings[key] = default_value

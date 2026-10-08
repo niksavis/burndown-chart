@@ -1,10 +1,3 @@
-"""Private helper functions for recommendation signal processing.
-
-Extracts large inline sections from calculate_recommendations into focused
-private helpers to keep module size within the 500-line limit.
-Part of data/report/generator.py split.
-"""
-
 from datetime import datetime
 from typing import Any
 
@@ -21,16 +14,7 @@ def _build_deadline_scenario_insights(
     deadline: str | None,
     insights: list[dict],
 ) -> None:
-    """Build PERT-based deadline scenario insights.
 
-    Uses the same calculation method as the app (insights_engine.py).
-    Appends insight dicts to the shared insights list in-place.
-
-    Args:
-        dashboard_metrics: Dashboard metrics dict (velocity, health, forecast)
-        deadline: Deadline date string (YYYY-MM-DD) or None
-        insights: Mutable list to append insight dicts to
-    """
     if deadline:
         try:
             deadline_date = pd.to_datetime(deadline)
@@ -40,13 +24,8 @@ def _build_deadline_scenario_insights(
                 )
                 days_to_deadline = max(0, (deadline_date - current_date).days)
 
-                # Use raw PERT days (same as app's pert_most_likely_days)
                 pert_most_likely_days = dashboard_metrics.get("pert_time_items", 0)
 
-                # Get PERT range for advanced scenarios
-                # Calculate optimistic/pessimistic using PERT formula
-                # Optimistic = pert_time * 0.7,
-                # Pessimistic = pert_time * 1.3 (approximate)
                 pert_optimistic_days = (
                     pert_most_likely_days * 0.7 if pert_most_likely_days else 0
                 )
@@ -54,7 +33,6 @@ def _build_deadline_scenario_insights(
                     pert_most_likely_days * 1.3 if pert_most_likely_days else 0
                 )
 
-                # A3: Deadline At Risk (CRITICAL)
                 if days_to_deadline > 0 and pert_most_likely_days > days_to_deadline:
                     days_over = pert_most_likely_days - days_to_deadline
                     weeks_over = days_over / 7.0
@@ -77,7 +55,6 @@ def _build_deadline_scenario_insights(
                         }
                     )
 
-                # G2: Optimistic Scenario Misses Deadline (CRITICAL)
                 elif (
                     days_to_deadline > 0
                     and pert_optimistic_days > 0
@@ -104,7 +81,6 @@ def _build_deadline_scenario_insights(
                         }
                     )
 
-                # G1: Pessimistic Scenario Still Meets Deadline (SUCCESS)
                 elif (
                     days_to_deadline > 0
                     and pert_pessimistic_days > 0
@@ -136,7 +112,6 @@ def _build_deadline_scenario_insights(
                         }
                     )
 
-                # A2: Forecast Confidence Warning (MEDIUM)
                 if (
                     pert_optimistic_days > 0
                     and pert_pessimistic_days > 0
@@ -173,16 +148,7 @@ def _build_budget_forecast_insights(
     deadline: str | None,
     insights: list[dict],
 ) -> None:
-    """Build budget vs forecast alignment insights.
 
-    Appends budget exhaustion or surplus insight dicts in-place.
-
-    Args:
-        extended_metrics: Extended metrics dict (DORA, Flow, Bug, Budget)
-        dashboard_metrics: Dashboard metrics dict
-        deadline: Deadline date string for context check
-        insights: Mutable list to append insight dicts to
-    """
     if "budget" in extended_metrics and deadline:
         try:
             budget = extended_metrics["budget"]

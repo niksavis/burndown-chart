@@ -1,45 +1,3 @@
-"""
-Cache management module with configuration-based invalidation.
-
-This module provides enhanced caching functionality with:
-- MD5 hash-based cache keys from configuration
-- Cache validation (age, config hash, version)
-- Automatic invalidation on configuration changes
-- Cache metadata tracking
-- **Database backend integration**: Uses SQLite database for persistent cache storage
-
-Usage:
-    from data.cache_manager import (
-        generate_cache_key,
-        load_cache_with_validation,
-        save_cache
-    )
-
-    # Generate cache key
-    cache_key = generate_cache_key(
-        jql_query="project = ACME",
-        field_mappings={"points": "customfield_10002"},
-        time_period_days=30
-    )
-
-    # Try to load from cache
-    cache_hit, data = load_cache_with_validation(
-        jql_query="project = ACME",
-        field_mappings={"points": "customfield_10002"},
-        time_period_days=30
-    )
-
-    if not cache_hit:
-        # Fetch fresh data and cache it
-        data = fetch_data()
-        save_cache(
-            jql_query="project = ACME",
-            field_mappings={"points": "customfield_10002"},
-            time_period_days=30,
-            data=data
-        )
-"""
-
 import hashlib
 import json
 import logging
@@ -55,16 +13,12 @@ from data.persistence.factory import get_backend
 logger = logging.getLogger(__name__)
 
 
-# Backend availability flag and lazy import
 _backend_available = None
 _backend_instance = None
 
 
 def _get_backend():
-    """Get persistence backend if available, otherwise return None.
 
-    Uses lazy import to avoid circular dependencies.
-    """
     global _backend_available, _backend_instance
 
     if _backend_available is False:
@@ -95,86 +49,20 @@ def _get_backend():
 def generate_cache_key(
     jql_query: str, field_mappings: dict[str, str], time_period_days: int
 ) -> str:
-    """
-    Generate deterministic cache key from configuration parameters.
 
-    DEPRECATED: Use generate_jira_data_cache_key() for JIRA data caching.
-    This function is kept for backward compatibility only.
-
-    The cache key is an MD5 hash of the normalized configuration:
-    - JQL query
-    - Field mappings (sorted for consistency)
-    - Time period
-
-    Same inputs always produce the same cache key.
-
-    Args:
-        jql_query: JIRA JQL query string
-        field_mappings: Mapping of logical names to JIRA custom fields
-        time_period_days: Time period for data fetch (30, 60, 90 days)
-
-    Returns:
-        32-character hexadecimal string (MD5 hash)
-
-    Example:
-        >>> cache_key = generate_cache_key(
-        ...     jql_query="project = ACME AND status = Done",
-        ...     field_mappings={"deployment_date": "customfield_10001"},
-        ...     time_period_days=30
-        ... )
-        >>> len(cache_key)
-        32
-    """
-    # Step 1: Build configuration dictionary with deterministic key ordering
-    # This ensures the same inputs always produce the same hash
     config_data = {
         "jql": jql_query,
-        # Sort field mappings by key name for consistent ordering
-        # Example: {"deployment_date": "cf_10001", "points": "cf_10002"}
-        # becomes: [("deployment_date", "cf_10001"), ("points", "cf_10002")]
         "fields": sorted(field_mappings.items()),
         "period": time_period_days,
     }
 
-    # Step 2: Serialize to JSON with sorted keys for deterministic string representation
-    # sort_keys=True ensures {"a": 1, "b": 2} always serializes the same way
-    # This prevents hash changes due to dictionary key ordering variations
     config_str = json.dumps(config_data, sort_keys=True)
 
-    # Step 3: Generate MD5 hash from the JSON string
-    # MD5 chosen for speed (not security) - provides 32-character unique identifier
-    # encode("utf-8") converts string to bytes for hashing
-    # hexdigest() returns lowercase hexadecimal string (e.g., "a3c7f8e9...")
     return hashlib.md5(config_str.encode("utf-8")).hexdigest()
 
 
 def generate_jira_data_cache_key(jql_query: str, time_period_days: int) -> str:
-    """
-    Generate cache key for JIRA raw data (independent of field mappings).
 
-    This key is ONLY based on what data we fetch from JIRA:
-    - JQL query (which issues to fetch)
-    - Time period (how far back to look)
-
-    Field mappings DO NOT affect this key because they only control how we
-    PROCESS the data, not what data we fetch. This allows field mapping changes
-    to reuse existing cached JIRA data without requiring re-download.
-
-    Args:
-        jql_query: JIRA JQL query string
-        time_period_days: Time period for data fetch (30, 60, 90 days)
-
-    Returns:
-        32-character hexadecimal string (MD5 hash)
-
-    Example:
-        >>> cache_key = generate_jira_data_cache_key(
-        ...     jql_query="project = ACME AND status = Done",
-        ...     time_period_days=30
-        ... )
-        >>> len(cache_key)
-        32
-    """
     config_data = {
         "jql": jql_query,
         "period": time_period_days,
@@ -185,30 +73,7 @@ def generate_jira_data_cache_key(jql_query: str, time_period_days: int) -> str:
 
 
 def generate_processing_config_hash(field_mappings: dict[str, str]) -> str:
-    """
-    Generate hash for processing configuration (field mappings, WIP states, etc.).
 
-    This hash changes when we modify HOW we process JIRA data:
-    - Field mappings (which JIRA fields map to which metrics)
-    - WIP states (which statuses count as "in progress")
-    - Completion statuses (which statuses count as "done")
-
-    This hash is stored WITH cached metrics to detect when metrics need
-    recalculation, but does NOT affect JIRA data cache keys.
-
-    Args:
-        field_mappings: Mapping of logical names to JIRA custom fields
-
-    Returns:
-        32-character hexadecimal string (MD5 hash)
-
-    Example:
-        >>> config_hash = generate_processing_config_hash(
-        ...     {"deployment_date": "customfield_10001"}
-        ... )
-        >>> len(config_hash)
-        32
-    """
     config_data = {
         "fields": sorted(field_mappings.items()),
     }
@@ -225,55 +90,18 @@ def load_cache_with_validation(
     profile_id: str | None = None,
     query_id: str | None = None,
 ) -> tuple[bool, list[dict[str, Any]] | None]:
-    """
-    Load cache data with validation checks.
 
-    **Backend Integration**: If backend is available, automatically retrieves
-    active profile/query from app state and loads from database.
-
-    Validates cache by checking:
-    - Record exists in database
-    - Not expired (within max_age_hours)
-    - Config hash matches (same configuration)
-
-    Args:
-        cache_key: MD5 hash identifying this cache
-        config_hash: Hash of current configuration
-        max_age_hours: Maximum age in hours before cache expires (default: 24)
-        cache_dir: Directory containing cache files (unused, kept for
-            backwards compatibility)
-        profile_id: Optional profile ID (auto-fetched if not provided)
-        query_id: Optional query ID (auto-fetched if not provided)
-
-    Returns:
-        Tuple of (is_valid, data):
-            - is_valid: True if cache is valid and fresh
-            - data: Cached data if valid, None otherwise
-
-    Example:
-        >>> is_valid, data = load_cache_with_validation(
-        ...     cache_key="abc123...",
-        ...     config_hash="def456...",
-        ...     max_age_hours=24
-        ... )
-        >>> if is_valid:
-        ...     print(f"Loaded {len(data)} items from cache")
-    """
-    # Try database backend first
     backend = _get_backend()
     if backend:
         try:
-            # Get profile/query IDs if not provided
             if not profile_id:
                 profile_id = backend.get_app_state("active_profile_id")
             if not query_id:
                 query_id = backend.get_app_state("active_query_id")
 
-            # Only use database if we have both IDs
             if profile_id and query_id:
                 cache_response = backend.get_jira_cache(profile_id, query_id, cache_key)
                 if cache_response:
-                    # Validate structure
                     if (
                         "issues" not in cache_response
                         or "metadata" not in cache_response
@@ -285,18 +113,12 @@ def load_cache_with_validation(
                     else:
                         metadata = cache_response["metadata"]
 
-                        # Check config hash (skip if empty - cache_key already
-                        # validates config)
-                        # Note: After jira_cache table removal,
-                        # config_hash is not stored
-                        # but cache_key matching already ensures config matches
                         cached_config_hash = metadata.get("config_hash", "")
                         if cached_config_hash and cached_config_hash != config_hash:
                             logger.debug(
                                 f"Database cache invalid: config mismatch ({cache_key})"
                             )
                         else:
-                            # Check timestamp
                             timestamp_str = metadata.get("timestamp")
                             if timestamp_str:
                                 cache_timestamp = datetime.fromisoformat(timestamp_str)
@@ -311,7 +133,6 @@ def load_cache_with_validation(
                                 ).total_seconds() / 3600
 
                                 if age_hours <= max_age_hours:
-                                    # Cache is valid
                                     logger.info(
                                         "Database cache hit: loaded "
                                         f"{len(cache_response['issues'])} items "
@@ -340,7 +161,6 @@ def load_cache_with_validation(
             cache_error = CacheError("Failed to load cache from database")
             logger.debug("%s: %s", type(cache_error).__name__, e)
 
-    # No cache available
     logger.debug(f"Cache miss: no valid cache found ({cache_key})")
     return False, None
 
@@ -353,50 +173,16 @@ def save_cache(
     profile_id: str | None = None,
     query_id: str | None = None,
 ) -> None:
-    """
-    Save data to cache with metadata.
 
-    **Backend Integration**: If backend is available, automatically retrieves
-    active profile/query from app state and saves to database. Falls back to JSON file.
-
-    Creates cache file with structure:
-    {
-        "metadata": {
-            "timestamp": "2025-11-09T10:00:00+00:00",
-            "cache_key": "abc123...",
-            "config_hash": "def456..."
-        },
-        "data": [...]
-    }
-
-    Args:
-        cache_key: MD5 hash identifying this cache
-        data: Data to cache (list of dictionaries)
-        config_hash: Hash of current configuration
-        cache_dir: Directory to store cache files (default: "cache")
-        profile_id: Optional profile ID (auto-fetched if not provided)
-        query_id: Optional query ID (auto-fetched if not provided)
-
-    Example:
-        >>> save_cache(
-        ...     cache_key="abc123...",
-        ...     data=[{"key": "TEST-1", "summary": "Test"}],
-        ...     config_hash="def456..."
-        ... )
-    """
-    # Try database backend first
     backend = _get_backend()
     if backend:
         try:
-            # Get profile/query IDs if not provided
             if not profile_id:
                 profile_id = backend.get_app_state("active_profile_id")
             if not query_id:
                 query_id = backend.get_app_state("active_query_id")
 
-            # Only use database if we have both IDs
             if profile_id and query_id:
-                # Save to database using legacy JSON blob method
                 cache_response = {
                     "issues": data,
                     "metadata": {
@@ -425,7 +211,6 @@ def save_cache(
             cache_error = CacheError("Failed to save cache to database")
             logger.debug("%s: %s", type(cache_error).__name__, e)
 
-    # If we reach here, cache save failed (no backend or no profile/query IDs)
     logger.warning(
         "Cache not saved: database backend unavailable or no active "
         f"profile/query ({cache_key})"
@@ -433,18 +218,7 @@ def save_cache(
 
 
 def invalidate_cache(cache_key: str, cache_dir: str = "cache") -> None:
-    """
-    [DEPRECATED] This function is no longer used.
 
-    Cache is now stored in database and is automatically invalidated
-    when configuration changes or queries are deleted.
-
-    Legacy JSON file-based cache invalidation - kept for backwards compatibility.
-
-    Args:
-        cache_key: MD5 hash identifying cache to invalidate (unused)
-        cache_dir: Directory containing cache files (unused)
-    """
     logger.debug(
         "invalidate_cache called but deprecated - cache managed by database "
         f"({cache_key})"
@@ -452,34 +226,13 @@ def invalidate_cache(cache_key: str, cache_dir: str = "cache") -> None:
 
 
 def invalidate_metrics_cache_only() -> None:
-    """
-    Invalidate ONLY metrics cache (snapshots and calculated metrics).
 
-    This preserves JIRA raw data cache files in cache/*.json, allowing
-    metrics to be recalculated from existing JIRA data when only field
-    mappings change.
-
-    Use this when:
-    - Field mappings change (WIP states, completion statuses, etc.)
-    - Metric calculation logic changes
-    - You want to recalculate metrics without re-downloading JIRA data
-
-    Files invalidated:
-    - metrics_snapshots.json
-    - metrics_cache.json (DORA/Flow metrics cache)
-
-    Files preserved:
-    - cache/*.json (JIRA raw issue data)
-    """
     try:
-        # Remove metrics snapshots
         if os.path.exists("metrics_snapshots.json"):
             os.remove("metrics_snapshots.json")
             logger.info("[OK] Invalidated metrics_snapshots.json")
 
-        # Remove DORA/Flow metrics cache
-
-        invalidate_metrics_cache_file()  # Removes metrics_cache.json
+        invalidate_metrics_cache_file()
         logger.info("[OK] Invalidated metrics_cache.json (DORA/Flow)")
 
         logger.info(
@@ -493,25 +246,8 @@ def invalidate_metrics_cache_only() -> None:
 
 
 def invalidate_all_cache() -> None:
-    """
-    Invalidate ALL cache files (JIRA data + metrics).
 
-    This forces a complete re-download of JIRA data and recalculation of metrics.
-
-    Use this when:
-    - JQL query changes
-    - Time period changes
-    - JIRA configuration changes (base URL, token, etc.)
-    - You suspect cache corruption
-
-    Files invalidated:
-    - cache/*.json (JIRA raw issue data)
-    - metrics_snapshots.json
-    - metrics_cache.json
-    - jira_cache.json (legacy)
-    """
     try:
-        # Remove JIRA data cache files
         import glob  # noqa: PLC0415
 
         cache_files = glob.glob("cache/*.json")
@@ -522,12 +258,10 @@ def invalidate_all_cache() -> None:
                 logger.debug(f"Could not remove cache file {cache_file}: {e}")
         logger.info(f"[OK] Invalidated {len(cache_files)} JIRA cache files")
 
-        # Remove legacy jira_cache.json
         if os.path.exists("jira_cache.json"):
             os.remove("jira_cache.json")
             logger.info("[OK] Invalidated jira_cache.json (legacy)")
 
-        # Remove metrics cache
         invalidate_metrics_cache_only()
 
         logger.info("[OK] All cache invalidated - full JIRA re-download required")
@@ -539,71 +273,29 @@ def invalidate_all_cache() -> None:
 
 
 class CacheInvalidationTrigger:
-    """
-    Detects when cache should be invalidated based on configuration changes.
-
-    Checks for changes in:
-    - JQL query
-    - Field mappings
-    - Time period
-    """
-
     def should_invalidate(
         self, old_config: dict[str, Any], new_config: dict[str, Any]
     ) -> bool:
-        """
-        Check if configuration changes require cache invalidation.
 
-        Args:
-            old_config: Previous configuration
-            new_config: Current configuration
-
-        Returns:
-            True if cache should be invalidated, False otherwise
-
-        Example:
-            >>> trigger = CacheInvalidationTrigger()
-            >>> old = {"jql_query": "project = TEST"}
-            >>> new = {"jql_query": "project = PROD"}
-            >>> trigger.should_invalidate(old, new)
-            True
-        """
-        # Check JQL query changes
         if old_config.get("jql_query") != new_config.get("jql_query"):
             logger.info("Cache invalidation: JQL query changed")
             return True
 
-        # Check field mappings changes
         old_fields = old_config.get("field_mappings", {})
         new_fields = new_config.get("field_mappings", {})
         if old_fields != new_fields:
             logger.info("Cache invalidation: field mappings changed")
             return True
 
-        # Check time period changes
         if old_config.get("time_period") != new_config.get("time_period"):
             logger.info("Cache invalidation: time period changed")
             return True
 
-        # No changes detected
         return False
 
 
 def has_jira_data_for_query(profile_id: str, query_id: str) -> bool:
-    """
-    Check if JIRA issues exist for the given profile and query.
 
-    Args:
-        profile_id: Profile ID
-        query_id: Query ID
-
-    Returns:
-        True if issues exist in database, False otherwise
-
-    Example:
-        >>> if has_jira_data_for_query("default", "q_abc123"):
-        ...     print("Data available")
-    """
     try:
         backend = get_backend()
         issues = backend.get_issues(profile_id, query_id, limit=1)

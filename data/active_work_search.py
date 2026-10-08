@@ -1,5 +1,3 @@
-"""Active Work Search filtering logic."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -8,8 +6,6 @@ from typing import Any
 
 @dataclass
 class SearchPredicate:
-    """Single predicate in a search expression."""
-
     field: str | None
     value_groups: list[list[str]]
     text_value: str | None
@@ -17,8 +13,6 @@ class SearchPredicate:
 
 @dataclass
 class SearchNode:
-    """Expression node (predicate, and, or)."""
-
     kind: str
     predicate: SearchPredicate | None = None
     left: SearchNode | None = None
@@ -26,14 +20,11 @@ class SearchNode:
 
 
 class _SearchParser:
-    """Recursive-descent parser for Active Work search grammar."""
-
     def __init__(self, tokens: list[str]) -> None:
         self._tokens = tokens
         self._index = 0
 
     def parse(self) -> SearchNode | None:
-        """Parse full expression."""
         if not self._tokens:
             return None
 
@@ -107,7 +98,6 @@ class _SearchParser:
 
 
 def _tokenize_query(query: str) -> list[str]:
-    """Tokenize query into operators, parentheses, and predicate chunks."""
     tokens: list[str] = []
     buffer: list[str] = []
 
@@ -129,7 +119,6 @@ def _tokenize_query(query: str) -> list[str]:
 
 
 def _parse_predicate_token(token: str) -> SearchPredicate | None:
-    """Parse a single predicate token into fielded or free-text predicate."""
     value = token.strip()
     if not value:
         return None
@@ -156,7 +145,6 @@ def _parse_predicate_token(token: str) -> SearchPredicate | None:
 
 
 def _parse_field_value_groups(raw_values: str) -> list[list[str]]:
-    """Parse value expression using ';' as OR and ',' as AND within a field."""
     groups: list[list[str]] = []
     for or_group in _split_unquoted(raw_values, ";"):
         and_values = [
@@ -170,15 +158,7 @@ def _parse_field_value_groups(raw_values: str) -> list[list[str]]:
 
 
 def parse_search_query(query: str) -> dict[str, Any]:
-    """Parse search query into expression tree.
 
-    Args:
-        query: Search query like
-            "(labels:backend;frontend | assignee:jack) & issuetype:bug"
-
-    Returns:
-        Dict containing parsed expression under "_expr"
-    """
     if not query or not query.strip():
         return {}
 
@@ -193,15 +173,7 @@ def parse_search_query(query: str) -> dict[str, Any]:
 
 
 def matches_all_filters(issue: dict[str, Any], filters: dict[str, Any]) -> bool:
-    """Check if issue matches all filters (AND logic across fields).
 
-    Args:
-        issue: Issue dict with fields
-        filters: Parsed expression dictionary
-
-    Returns:
-        True if issue matches all filters
-    """
     expression = filters.get("_expr")
     if expression is None:
         return True
@@ -209,7 +181,6 @@ def matches_all_filters(issue: dict[str, Any], filters: dict[str, Any]) -> bool:
 
 
 def _evaluate_expression(issue: dict[str, Any], node: SearchNode) -> bool:
-    """Evaluate parsed search expression against a single issue."""
     if node.kind == "predicate" and node.predicate is not None:
         return _evaluate_predicate(issue, node.predicate)
 
@@ -227,7 +198,6 @@ def _evaluate_expression(issue: dict[str, Any], node: SearchNode) -> bool:
 
 
 def _evaluate_predicate(issue: dict[str, Any], predicate: SearchPredicate) -> bool:
-    """Evaluate a single field/text predicate against issue values."""
     issue_value = get_issue_field_value(issue, predicate.field or "")
     if issue_value is None:
         return False
@@ -240,22 +210,12 @@ def _evaluate_predicate(issue: dict[str, Any], predicate: SearchPredicate) -> bo
 
 
 def matches_filter(issue: dict[str, Any], field: str, filter_values: list[str]) -> bool:
-    """Check if issue matches filter for a single field (OR logic within values).
 
-    Args:
-        issue: Issue dict
-        field: Field name to check
-        filter_values: List of values to match (OR logic)
-
-    Returns:
-        True if issue matches any of the filter values
-    """
     issue_value = get_issue_field_value(issue, field)
 
     if issue_value is None:
         return False
 
-    # OR logic - match if ANY filter value matches
     for filter_value in filter_values:
         if matches_value(issue_value, filter_value):
             return True
@@ -264,20 +224,10 @@ def matches_filter(issue: dict[str, Any], field: str, filter_values: list[str]) 
 
 
 def matches_value(issue_value: Any, filter_value: str) -> bool:
-    """Check if issue value matches filter value (case insensitive, partial match).
 
-    Args:
-        issue_value: Value from issue (string or list)
-        filter_value: Filter value (lowercase)
-
-    Returns:
-        True if matches
-    """
     if isinstance(issue_value, list):
-        # JSON array fields (labels, components, fix_versions)
         for item in issue_value:
             if isinstance(item, dict):
-                # Object with name field
                 name = item.get("name", "")
                 if name and filter_value in str(name).lower():
                     return True
@@ -285,20 +235,11 @@ def matches_value(issue_value: Any, filter_value: str) -> bool:
                 return True
         return False
     else:
-        # String field - partial match (case insensitive)
         return filter_value in str(issue_value).lower()
 
 
 def get_issue_field_value(issue: dict[str, Any], field: str):
-    """Get issue field value by field name.
 
-    Args:
-        issue: Issue dict
-        field: Field name
-
-    Returns:
-        Field value or None
-    """
     if field == "_text":
         searchable_parts = [
             issue.get("issue_key"),
@@ -337,15 +278,7 @@ def get_issue_field_value(issue: dict[str, Any], field: str):
 def filter_timeline_by_query(
     timeline: list[dict[str, Any]], query: str
 ) -> list[dict[str, Any]]:
-    """Filter timeline based on search query.
 
-    Args:
-        timeline: List of epic dicts with child_issues
-        query: Search query string
-
-    Returns:
-        Filtered timeline with only matching issues
-    """
     if not query or not query.strip():
         return timeline
 
@@ -359,13 +292,11 @@ def filter_timeline_by_query(
     for epic in timeline:
         child_issues = epic.get("child_issues", [])
 
-        # Filter child issues
         matching_children = [
             issue for issue in child_issues if matches_all_filters(issue, filters)
         ]
 
         if matching_children:
-            # Recalculate epic metrics for filtered children
             completed_count = sum(
                 1
                 for issue in matching_children
@@ -390,13 +321,7 @@ def filter_timeline_by_query(
 
 
 def is_strict_query_valid(timeline: list[dict[str, Any]], query: str) -> bool:
-    """Validate strict mode query rules.
 
-    Rules:
-    - summary is free text
-    - all other fields must use predefined values from timeline metadata
-    - field names must be known
-    """
     if not query or not query.strip():
         return True
 
@@ -437,7 +362,6 @@ def is_strict_query_valid(timeline: list[dict[str, Any]], query: str) -> bool:
         if not normalized_values:
             return False
 
-        # Free-text fields: summary (any text) and key (any issue key like A942-3404)
         if normalized_field == "summary" or normalized_field == "key":
             continue
 

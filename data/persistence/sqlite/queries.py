@@ -1,5 +1,3 @@
-"""Query operations mixin for SQLiteBackend."""
-
 from __future__ import annotations
 
 import logging
@@ -15,12 +13,9 @@ logger = logging.getLogger(__name__)
 
 
 class QueriesMixin:
-    """Mixin for query CRUD operations."""
-
-    db_path: Path  # Set by composition class (SQLiteBackend)
+    db_path: Path
 
     def get_query(self, profile_id: str, query_id: str) -> dict | None:
-        """Load query configuration from queries table."""
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -54,7 +49,6 @@ class QueriesMixin:
 
     @retry_on_db_lock(max_retries=3, base_delay=0.1)
     def save_query(self, profile_id: str, query: dict) -> None:
-        """Save query configuration (insert or update) to queries table."""
         required_fields = ["id", "name", "jql", "created_at", "last_used"]
         for field in required_fields:
             if field not in query:
@@ -64,7 +58,6 @@ class QueriesMixin:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
 
-                # Check parent profile exists
                 cursor.execute("SELECT id FROM profiles WHERE id = ?", (profile_id,))
                 if not cursor.fetchone():
                     raise ProfileNotFoundError(f"Profile '{profile_id}' not found")
@@ -114,7 +107,6 @@ class QueriesMixin:
             ) from e
 
     def list_queries(self, profile_id: str) -> list[dict]:
-        """List all queries for a profile, ordered by last_used descending."""
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -145,12 +137,10 @@ class QueriesMixin:
 
     @retry_on_db_lock(max_retries=3, base_delay=0.1)
     def delete_query(self, profile_id: str, query_id: str) -> None:
-        """Delete query and cascade to cache and data."""
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
 
-                # Check if query exists
                 cursor.execute(
                     "SELECT id FROM queries WHERE profile_id = ? AND id = ?",
                     (profile_id, query_id),
@@ -160,7 +150,6 @@ class QueriesMixin:
                         f"Query '{query_id}' not found in profile '{profile_id}'"
                     )
 
-                # DELETE CASCADE handles related data automatically
                 cursor.execute(
                     "DELETE FROM queries WHERE profile_id = ? AND id = ?",
                     (profile_id, query_id),

@@ -1,5 +1,3 @@
-"""Shared recommendation signals and helpers."""
-
 from data.recommendations.budget_signals import (
     build_budget_forecast_signals_from_dashboard,
     build_budget_forecast_signals_from_pert,

@@ -1,11 +1,7 @@
-"""Bug trends chart generator."""
-
 import json
 
 
 def generate_bug_trends_chart(weekly_stats: list[dict]) -> str:
-    """Generate Chart.js script for bug trends chart showing warning backgrounds."""
-    # Use ISO week format (2026-W07) for consistency across all charts
     weeks_js = json.dumps([stat.get("week", "") for stat in weekly_stats])
     bugs_created_js = json.dumps([stat.get("bugs_created", 0) for stat in weekly_stats])
     bugs_resolved_js = json.dumps(
@@ -23,7 +19,6 @@ def generate_bug_trends_chart(weekly_stats: list[dict]) -> str:
                 warning_start_idx = idx
         else:
             if consecutive_negative_weeks >= 3 and warning_start_idx is not None:
-                # Use ISO week format for annotations
                 start_week = weekly_stats[warning_start_idx].get("week", "")
                 end_week = weekly_stats[idx - 1].get("week", "")
                 annotations[f"warning_{warning_start_idx}"] = f"""{{ 
@@ -37,7 +32,6 @@ def generate_bug_trends_chart(weekly_stats: list[dict]) -> str:
             warning_start_idx = None
 
     if consecutive_negative_weeks >= 3 and warning_start_idx is not None:
-        # Use ISO week format for annotations
         start_week = weekly_stats[warning_start_idx].get("week", "")
         end_week = weekly_stats[-1].get("week", "")
         annotations[f"warning_{warning_start_idx}"] = f"""{{ 

@@ -1,9 +1,3 @@
-"""AI prompt generator for project analysis.
-
-Generates sanitized, condensed prompts for AI agent analysis.
-Follows Constitution Principle V (Data Privacy) - strips all customer PII.
-"""
-
 import json
 import logging
 from collections.abc import Iterable as _Iterable
@@ -21,32 +15,8 @@ def generate_ai_analysis_prompt(
     time_period_weeks: int = 12,
     profile_id: str | None = None,
 ) -> str:
-    """
-    Generate sanitized AI prompt with project metrics.
 
-    Creates a condensed, privacy-safe prompt containing:
-    - Project health summary
-    - Velocity trends
-    - Scope changes
-    - DORA metrics (if available)
-    - Budget utilization (if configured)
-    - Forecast data
-
-    All customer-identifying information is stripped per Constitution Principle V.
-
-    Args:
-        time_period_weeks: Number of weeks to analyze (matches Data Points slider)
-        profile_id: Profile to generate from (defaults to active)
-
-    Returns:
-        Formatted prompt string ready for clipboard (3000-5000 chars typical)
-
-    Raises:
-        ValueError: If no active profile or insufficient data
-    """
     logger.info(f"Generating AI prompt for {time_period_weeks} weeks")
-
-    # 1. Export full data (without token)
 
     if not profile_id:
         profile_id = get_active_profile_id()
@@ -55,7 +25,6 @@ def generate_ai_analysis_prompt(
     if not profile_id or not query_id:
         raise ValueError("No active profile or query selected")
 
-    # Get FULL_DATA export with budget, without token
     export_data = export_profile_with_mode(
         profile_id=profile_id,
         query_id=query_id,
@@ -64,13 +33,10 @@ def generate_ai_analysis_prompt(
         include_budget=True,
     )
 
-    # 2. Sanitize customer-identifying info (Constitution Principle V)
     sanitized_data = _sanitize_for_ai(export_data)
 
-    # 3. Condense to summary statistics (not raw data)
     summary = _create_summary_statistics(sanitized_data, time_period_weeks)
 
-    # 4. Generate prompt with structured output specification
     prompt = _format_ai_prompt(summary, time_period_weeks)
 
     logger.info(f"AI prompt generated: {len(prompt)} characters")
@@ -78,45 +44,20 @@ def generate_ai_analysis_prompt(
 
 
 def _sanitize_for_ai(export_data: dict[str, Any]) -> dict[str, Any]:
-    """
-    Remove customer-identifying information from export.
 
-    Constitution Principle V compliance:
-    - Real company/organization names → "Acme Corp"
-    - Production domains → "example.com"
-    - Email addresses → "user@example.com"
-    - JIRA URLs → "https://jira.example.com"
-    - Profile/query names → "Project Alpha", "Sprint Analysis"
-
-    Preserves:
-    - Field mapping structure (useful for context)
-    - Statistical data (no PII)
-    - Metric calculations
-
-    Args:
-        export_data: Raw export from export_profile_with_mode()
-
-    Returns:
-        Deep copy with all PII stripped
-    """
     import copy  # noqa: PLC0415
 
     sanitized = copy.deepcopy(export_data)
 
-    # Strip credentials (already implemented, Constitution-compliant)
     if "profile_data" in sanitized:
         sanitized["profile_data"] = strip_credentials(sanitized["profile_data"])
 
-    # Sanitize profile metadata
     if "profile_data" in sanitized:
         profile = sanitized["profile_data"]
         profile["name"] = "Project Alpha"
         profile["jira_url"] = "https://jira.example.com"
         profile["jira_email"] = "user@example.com"
 
-        # Note: Field mappings kept as-is (structure useful, IDs not PII)
-
-    # Sanitize query metadata
     if "query_data" in sanitized:
         for _query_id, query_data in sanitized["query_data"].items():
             if "query_metadata" in query_data:
@@ -131,29 +72,13 @@ def _sanitize_for_ai(export_data: dict[str, Any]) -> dict[str, Any]:
 def _create_summary_statistics(
     sanitized_data: dict[str, Any], time_period_weeks: int
 ) -> dict[str, Any]:
-    """
-    Condense full export to summary statistics.
 
-    Instead of thousands of raw issues, extract:
-    - Aggregate metrics (velocity, completion %)
-    - Trend indicators (improving/stable/declining)
-    - Key statistics (bug ratio, cycle time)
-    - Time-series summaries (weekly averages, not raw data)
-
-    Args:
-        sanitized_data: PII-stripped export data
-        time_period_weeks: Analysis window
-
-    Returns:
-        Dictionary with condensed statistics
-    """
     summary = {
         "time_period_weeks": time_period_weeks,
         "generated_at": datetime.now().isoformat(),
         "data_source": "Burndown Generator (sanitized export)",
     }
 
-    # Extract statistics from query data
     query_data = sanitized_data.get("query_data", {})
     if not query_data:
         logger.warning("No query data available for AI prompt")
@@ -170,26 +95,21 @@ def _create_summary_statistics(
         )
         return summary
 
-    # Log first record for debugging
     logger.debug(
         f"Statistics data structure: {statistics[0] if statistics else 'empty'}"
     )
 
-    # Calculate aggregates, not raw data
     summary["metrics"] = _aggregate_statistics(statistics, time_period_weeks)
 
-    # Extract project scope for forecasting context
     if "project_scope" in first_query:
         project_scope = first_query["project_scope"]
         remaining_items = project_scope.get("remaining_items", 0)
         remaining_points = project_scope.get("remaining_total_points", 0)
         total_items = project_scope.get("total_items", 0)
 
-        # Calculate completion percentage
         completed_items = total_items - remaining_items if total_items > 0 else 0
         completion_pct = (completed_items / total_items * 100) if total_items > 0 else 0
 
-        # Estimate weeks remaining (using velocity from metrics)
         avg_velocity_items = summary["metrics"].get("avg_velocity_items", 0)
         weeks_remaining = (
             (remaining_items / avg_velocity_items) if avg_velocity_items > 0 else None
@@ -202,18 +122,14 @@ def _create_summary_statistics(
             "completion_pct": round(completion_pct, 1),
         }
 
-        # Include points only if project uses them (not always 0)
         points_field_available = project_scope.get("points_field_available", False)
         if points_field_available:
             total_points = project_scope.get("total_points", 0)
 
-            # Use actual completed points from statistics (not derived from remaining)
-            # This prevents negative values when scope grows beyond initial estimate
             completed_points_from_stats = summary["metrics"].get(
                 "total_completed_points", 0
             )
 
-            # Fallback: derive from total - remaining if stats not available
             if completed_points_from_stats == 0 and total_points > 0:
                 completed_points = max(0, total_points - remaining_points)
             else:
@@ -230,13 +146,11 @@ def _create_summary_statistics(
                 points_completion_pct, 1
             )
 
-        # Add forecast estimate
         if weeks_remaining is not None:
             summary["project_scope"]["estimated_weeks_remaining"] = round(
                 weeks_remaining, 1
             )
 
-    # Extract budget if present
     if "budget_settings" in first_query:
         budget_settings = first_query["budget_settings"]
         summary["budget"] = {
@@ -248,23 +162,10 @@ def _create_summary_statistics(
 
 
 def _aggregate_statistics(statistics: list[dict], weeks: int) -> dict[str, Any]:
-    """
-    Aggregate statistics into summary metrics.
 
-    Returns weekly averages, trends, and key indicators
-    instead of raw time-series data.
-
-    Args:
-        statistics: Raw statistics array
-        weeks: Time window
-
-    Returns:
-        Dictionary with aggregated metrics
-    """
     if not statistics:
         return {"error": "No statistics available"}
 
-    # Handle both 'date' and 'stat_date' column names (database uses 'stat_date').
     sample_row = statistics[0]
     if "date" in sample_row:
         date_key = "date"
@@ -334,15 +235,7 @@ def _aggregate_statistics(statistics: list[dict], weeks: int) -> dict[str, Any]:
 
 
 def _calculate_trend(series: _Iterable[int | float]) -> str:
-    """
-    Calculate trend direction (improving/stable/declining).
 
-    Args:
-        series: Time series data (velocity, throughput, etc.)
-
-    Returns:
-        "improving" | "stable" | "declining" | "insufficient_data"
-    """
     values = [float(value) for value in series]
     if len(values) < 4:
         return "insufficient_data"
@@ -367,23 +260,7 @@ def _calculate_trend(series: _Iterable[int | float]) -> str:
 
 
 def _format_ai_prompt(summary: dict[str, Any], time_period_weeks: int) -> str:
-    """
-    Format summary into AI-ready prompt with flexible structure.
 
-    Creates comprehensive prompt with:
-    - Context section
-    - Data section (JSON summary)
-    - Analysis guidance (not rigid format)
-    - Actionable focus
-
-    Args:
-        summary: Condensed statistics dictionary
-        time_period_weeks: Analysis window
-
-    Returns:
-        Formatted prompt string (markdown)
-    """
-    # Get app version for footer
     try:
         from bump_version import (  # type: ignore[import-not-found]  # noqa: PLC0415
             get_current_version,
@@ -396,7 +273,6 @@ def _format_ai_prompt(summary: dict[str, Any], time_period_weeks: int) -> str:
     metrics_json = json.dumps(summary.get("metrics", {}), indent=2)
     metrics = summary.get("metrics", {})
 
-    # Build project scope section if available
     scope_section = ""
     if "project_scope" in summary:
         scope = summary["project_scope"]
@@ -408,13 +284,11 @@ def _format_ai_prompt(summary: dict[str, Any], time_period_weeks: int) -> str:
     ({scope.get("completed_items", 0)}/{scope.get("total_items", 0)} items)
 - Remaining: {scope.get("remaining_items", 0)} items"""
 
-        # Add points if project uses them
         if "total_points" in scope:
             scope_section += f"""
 - Story Points: {scope.get("points_completion_pct", 0):.1f}% complete
     ({scope.get("completed_points", 0)}/{scope.get("total_points", 0)} points)"""
 
-        # Add forecast
         if "estimated_weeks_remaining" in scope:
             scope_section += f"""
 - Projected Completion: ~{scope.get("estimated_weeks_remaining", 0):.1f} weeks
@@ -422,12 +296,10 @@ def _format_ai_prompt(summary: dict[str, Any], time_period_weeks: int) -> str:
 
         scope_section += "\n\n---\n"
 
-    # Build velocity insights
     velocity_items = metrics.get("avg_velocity_items", 0)
     velocity_trend = metrics.get("velocity_trend", "unknown")
     velocity_cv = metrics.get("velocity_coefficient_of_variation", 0)
 
-    # Interpret velocity consistency (inverse of CV: low CV = high consistency)
     if velocity_cv < 20:
         consistency_label = "high"
         variability_label = "low"
@@ -438,7 +310,6 @@ def _format_ai_prompt(summary: dict[str, Any], time_period_weeks: int) -> str:
         consistency_label = "low"
         variability_label = "high"
 
-    # Build scope change insights
     scope_rate = metrics.get("scope_change_rate_pct", 0)
     scope_assessment = (
         "healthy" if scope_rate < 110 else "moderate" if scope_rate < 150 else "high"

@@ -1,12 +1,7 @@
-"""Data persistence adapters - Project data save/load operations."""
-
-# Standard library imports
 import logging
 import sqlite3
 from typing import Any
 
-# Third-party library imports
-# Application imports
 from data.exceptions import PersistenceError
 from data.persistence.factory import get_backend
 
@@ -20,17 +15,7 @@ def save_project_data(
     estimated_points=None,
     metadata=None,
 ):
-    """
-    DEPRECATED: Use save_unified_project_data() instead.
-    Save project-specific data via repository pattern.
 
-    Args:
-        total_items: Total number of items
-        total_points: Total number of points
-        estimated_items: Number of items that have been estimated
-        estimated_points: Number of points for the estimated items
-        metadata: Additional project metadata (e.g., JIRA sync info)
-    """
     from configuration.settings import (  # noqa: PLC0415  - breaks configuration ↔ persistence cycle
         DEFAULT_ESTIMATED_ITEMS,
         DEFAULT_ESTIMATED_POINTS,
@@ -82,12 +67,7 @@ def save_project_data(
 
 
 def load_project_data() -> dict[str, Any]:
-    """
-    Load project-specific data via repository pattern (database).
 
-    Returns:
-        Dictionary containing project data or default values if not found
-    """
     from configuration.settings import (  # noqa: PLC0415  - breaks configuration ↔ persistence cycle
         DEFAULT_ESTIMATED_ITEMS,
         DEFAULT_ESTIMATED_POINTS,

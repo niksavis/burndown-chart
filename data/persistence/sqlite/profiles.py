@@ -1,5 +1,3 @@
-"""Profile operations mixin for SQLiteBackend."""
-
 from __future__ import annotations
 
 import json
@@ -16,12 +14,9 @@ logger = logging.getLogger(__name__)
 
 
 class ProfilesMixin:
-    """Mixin for profile CRUD operations."""
-
-    db_path: Path  # Set by composition class (SQLiteBackend)
+    db_path: Path
 
     def get_profile(self, profile_id: str) -> dict | None:
-        """Load profile configuration from profiles table."""
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -31,7 +26,6 @@ class ProfilesMixin:
                 if not result:
                     return None
 
-                # Convert Row to dict and parse JSON fields
                 profile = dict(result)
                 profile["jira_config"] = json.loads(profile["jira_config"])
                 profile["field_mappings"] = json.loads(profile["field_mappings"])
@@ -63,7 +57,6 @@ class ProfilesMixin:
 
     @retry_on_db_lock(max_retries=3, base_delay=0.1)
     def save_profile(self, profile: dict) -> None:
-        """Save profile configuration (insert or update) to profiles table."""
         required_fields = ["id", "name", "created_at", "last_used"]
         for field in required_fields:
             if field not in profile:
@@ -73,7 +66,6 @@ class ProfilesMixin:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
 
-                # Serialize JSON fields
                 jira_config = json.dumps(profile.get("jira_config", {}))
                 field_mappings = json.dumps(profile.get("field_mappings", {}))
                 forecast_settings = json.dumps(
@@ -145,7 +137,6 @@ class ProfilesMixin:
             ) from e
 
     def list_profiles(self) -> list[dict]:
-        """List all profiles, ordered by last_used descending."""
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -172,17 +163,14 @@ class ProfilesMixin:
 
     @retry_on_db_lock(max_retries=3, base_delay=0.1)
     def delete_profile(self, profile_id: str) -> None:
-        """Delete profile and cascade to all queries and data."""
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
 
-                # Check if profile exists
                 cursor.execute("SELECT id FROM profiles WHERE id = ?", (profile_id,))
                 if not cursor.fetchone():
                     raise ProfileNotFoundError(f"Profile '{profile_id}' not found")
 
-                # DELETE CASCADE handles related data automatically
                 cursor.execute("DELETE FROM profiles WHERE id = ?", (profile_id,))
                 conn.commit()
 
