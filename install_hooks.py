@@ -1,30 +1,5 @@
 #!/usr/bin/env python3
-"""
-install_hooks.py - Install git hooks for burndown-chart.
 
-Writes managed hooks into Git's active hooks directory.
-Run once after cloning or whenever hooks need refreshing.
-
-Usage:
-    python install_hooks.py          # install hooks
-    python install_hooks.py --check  # report what would change without writing
-    python install_hooks.py --force  # overwrite existing hooks without prompting
-
-Platform-agnostic: works on Windows, macOS, and Linux.
-
-Hook behavior installed:
-    pre-commit         - lint + static analysis (ruff + pyright) on staged Python.
-    commit-msg         - validates conventional commit format with bead ID trailer.
-    pre-push           - tests-focused gate via validate.py.  Runs on `git push`.
-    post-merge         - re-runs install_hooks.py after every `git pull` so hooks
-                         stay current for all developers automatically.
-    post-rewrite       - same as post-merge, but for `git pull --rebase` workflows.
-    post-checkout      - beads branch-tracking on checkout.
-    prepare-commit-msg - beads agent identity trailers for AI audit forensics.
-
-The hooks delegate to bd (beads) if available, then always run the Python
-quality checks so CI enforcement holds even without the bd tool.
-"""
 
 import argparse
 import platform
@@ -37,7 +12,6 @@ ROOT = Path(__file__).parent
 
 
 def _resolve_hooks_dir() -> Path:
-    """Resolve Git's active hooks directory, honoring core.hooksPath."""
     try:
         output = subprocess.check_output(
             ["git", "rev-parse", "--git-path", "hooks"],
@@ -54,12 +28,6 @@ def _resolve_hooks_dir() -> Path:
 
 HOOKS_DIR = _resolve_hooks_dir()
 
-# ---------------------------------------------------------------------------
-# Hook content templates.
-# Git calls hooks with #!/usr/bin/env sh which git bundles on all platforms
-# (Git for Windows provides sh.exe).  The sh script detects the venv Python
-# cross-platform and delegates to validate.py so logic stays in Python.
-# ---------------------------------------------------------------------------
 
 _PYTHON_DETECT = """\
 # Locate the venv Python interpreter (cross-platform).
@@ -389,7 +357,6 @@ HOOKS: dict[str, str] = {
 
 
 def _make_executable(path: Path) -> None:
-    """Add executable bits on Unix; no-op on Windows (git uses the shebang)."""
     if platform.system() != "Windows":
         current = path.stat().st_mode
         path.chmod(current | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
@@ -428,7 +395,6 @@ def install(check_only: bool = False, force: bool = False) -> int:
         if hook_path.exists() and not force:
             existing = hook_path.read_text(encoding="utf-8")
             if "burndown-chart" not in existing and "bd-shim" not in existing:
-                # Unknown hook content — ask before overwriting.
                 answer = input(
                     f"[install_hooks] {name} exists with unknown "
                     "content. Overwrite? [y/N] "

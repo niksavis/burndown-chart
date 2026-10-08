@@ -1,24 +1,5 @@
 #!/usr/bin/env python3
-"""
-validate.py - Quality gate for burndown-chart.
 
-Runs checks appropriate for the current usage context.  Called automatically
-by the git hooks installed via install_hooks.py.  Also safe to run manually
-at any time.
-
-Modes (choose one):
-    python validate.py             # pre-push: tests-focused gate (default)
-    python validate.py --commit    # pre-commit: lint + static analysis
-    python validate.py --fast      # quick local gate
-    python validate.py --full      # full heavyweight gate
-    python validate.py --fix       # auto-fix ruff + djlint where possible
-
-Full gate (--full) includes:
-    ruff, djlint, pyright, bandit, pip-audit, vulture, prettier,
-    eslint, markdownlint, pytest with coverage threshold (~44%)
-
-Platform-agnostic: works on Windows, macOS, and Linux.
-"""
 
 import argparse
 import platform
@@ -31,17 +12,16 @@ ROOT = Path(__file__).parent
 VENV_BIN = ROOT / ".venv" / ("Scripts" if platform.system() == "Windows" else "bin")
 PYTHON = VENV_BIN / ("python.exe" if platform.system() == "Windows" else "python")
 NPX = shutil.which("npx")
+COVERAGE_RATCHET_PERCENT = 40
 
 
 def _run(label: str, cmd: list[str], *, check: bool = True) -> int:
-    """Run a command and return its exit code. Print status."""
     print(f"\n[validate] {label}")
     resolved = [str(VENV_BIN / cmd[0]) if _is_venv_tool(cmd[0]) else cmd[0]] + cmd[1:]
     try:
         result = subprocess.run(resolved, cwd=ROOT)
     except KeyboardInterrupt:
         print(f"[validate] {label}: INTERRUPTED")
-        # Preserve shell convention for interrupted processes.
         return 130
     status = "OK" if result.returncode == 0 else "FAIL"
     print(f"[validate] {label}: {status}")
@@ -62,11 +42,7 @@ def _is_venv_tool(name: str) -> bool:
 
 
 def _staged_py_files() -> list[str]:
-    """Return a list of staged .py file paths relative to ROOT.
 
-    Returns an empty list when not inside a git repository or when there are
-    no staged Python files, so callers can skip ruff gracefully.
-    """
     result = subprocess.run(
         ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],
         cwd=ROOT,
@@ -161,9 +137,6 @@ def check_pip_audit() -> int:
     import json  # noqa: PLC0415
 
     baseline = ROOT / ".pip-audit-baseline.json"
-    # --no-deps: audit packages as listed without resolving in an isolated env.
-    # requirements.txt is already compiled (all transitive deps explicit), so
-    # dependency resolution is unnecessary and would create a slow temp environment.
     cmd = ["pip-audit", "-r", "requirements.txt", "--no-deps"]
     if baseline.exists():
         try:
@@ -177,8 +150,6 @@ def check_pip_audit() -> int:
 
 
 def check_vulture() -> int:
-    # All config (paths, min_confidence, ignore_names) comes from [tool.vulture]
-    # in pyproject.toml so no flags are needed here.
     return _run("vulture (dead code)", ["vulture"])
 
 
@@ -223,16 +194,10 @@ def check_coverage(*, include_performance: bool) -> int:
             "--cov=data",
             "--cov=ui",
             "--cov=visualization",
-            # callbacks/ was omitted from measurement entirely, so its 21% went
-            # unreported and unratcheted. Including it lowers the headline number
-            # without changing a line of test coverage: measured 45.82% over the
-            # three original packages, 40.73% over all four (2026-09-10).
             "--cov=callbacks",
             "--cov-config=pyproject.toml",
             "--cov-report=term-missing",
-            # Ratchet, set just below the measured 40.73%. Raise it when coverage
-            # rises; never lower it to make a red gate pass.
-            "--cov-fail-under=40",
+            f"--cov-fail-under={COVERAGE_RATCHET_PERCENT}",
             "-q",
         ],
     )
@@ -278,7 +243,6 @@ def main() -> int:
     failures: list[str] = []
 
     if args.commit:
-        # Pre-commit gate: lint + static analysis for staged Python files.
         staged = _staged_py_files()
         if not staged:
             print("[validate] pre-commit: no staged Python files to check.")
@@ -291,7 +255,6 @@ def main() -> int:
             ("pyright", check_pyright(paths=pyright_targets)),
         ]
     elif args.full:
-        # Manual/CI full suite.
         checks = [
             ("ruff (lint)", check_ruff(fix=args.fix)),
             ("ruff (format)", check_ruff_format(fix=args.fix)),
@@ -316,7 +279,6 @@ def main() -> int:
             ("eslint", check_eslint()),
         ]
     else:
-        # Pre-push default gate: tests-focused signal.
         checks = [
             ("pytest (coverage)", check_coverage(include_performance=False)),
         ]

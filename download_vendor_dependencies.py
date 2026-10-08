@@ -1,13 +1,5 @@
 #!/usr/bin/env python3
-"""
-Download vendor dependencies for the application.
-This script downloads Bootstrap, Font Awesome, CodeMirror, and Bootswatch libraries.
 
-Versions are defined in vendor_dependencies.txt - update that file to change versions.
-
-Usage:
-    python download_vendor_dependencies.py
-"""
 
 import re
 import sys
@@ -17,7 +9,6 @@ import requests
 
 
 def parse_dependencies(deps_file: Path) -> dict[str, str]:
-    """Parse vendor_dependencies.txt to extract library versions."""
     versions = {}
     if not deps_file.exists():
         print(f"⚠️  Warning: {deps_file} not found, using default versions")
@@ -38,7 +29,6 @@ def parse_dependencies(deps_file: Path) -> dict[str, str]:
 
 
 def download_file(url: str, output_path: Path) -> bool:
-    """Download a file from URL to output path."""
     try:
         response = requests.get(url, timeout=30)
         response.raise_for_status()
@@ -51,11 +41,9 @@ def download_file(url: str, output_path: Path) -> bool:
 
 
 def download_bootstrap(version: str, vendor_dir: Path) -> None:
-    """Download Bootstrap CSS and JS files."""
     print(f"📦 Downloading Bootstrap {version}...")
     bootstrap_dir = vendor_dir / "bootstrap"
 
-    # Download CSS
     css_url = (
         f"https://cdn.jsdelivr.net/npm/bootstrap@{version}/dist/css/bootstrap.min.css"
     )
@@ -63,13 +51,11 @@ def download_bootstrap(version: str, vendor_dir: Path) -> None:
     if download_file(css_url, css_path):
         print(f"  ✓ Downloaded: {css_path.relative_to(vendor_dir.parent)}")
 
-    # Download JS Bundle
     js_url = f"https://cdn.jsdelivr.net/npm/bootstrap@{version}/dist/js/bootstrap.bundle.min.js"
     js_path = bootstrap_dir / "js" / "bootstrap.bundle.min.js"
     if download_file(js_url, js_path):
         print(f"  ✓ Downloaded: {js_path.relative_to(vendor_dir.parent)}")
 
-    # Download JS Bundle Map
     map_url = f"https://cdn.jsdelivr.net/npm/bootstrap@{version}/dist/js/bootstrap.bundle.min.js.map"
     map_path = bootstrap_dir / "js" / "bootstrap.bundle.min.js.map"
     if download_file(map_url, map_path):
@@ -79,11 +65,9 @@ def download_bootstrap(version: str, vendor_dir: Path) -> None:
 
 
 def download_bootswatch(version: str, vendor_dir: Path) -> None:
-    """Download Bootswatch theme files."""
     print(f"📦 Downloading Bootswatch {version}...")
     bootswatch_dir = vendor_dir / "bootswatch"
 
-    # Download Flatly theme files
     theme = "flatly"
     theme_dir = bootswatch_dir / theme
 
@@ -103,11 +87,9 @@ def download_bootswatch(version: str, vendor_dir: Path) -> None:
 
 
 def download_fontawesome(version: str, vendor_dir: Path) -> None:
-    """Download Font Awesome CSS and font files."""
     print(f"📦 Downloading Font Awesome {version}...")
     fa_dir = vendor_dir / "fontawesome"
 
-    # Download separate CSS files (fontawesome, solid, brands)
     css_files = {
         "fontawesome.min.css": "fontawesome.min.css",
         "solid.min.css": "solid.min.css",
@@ -120,7 +102,6 @@ def download_fontawesome(version: str, vendor_dir: Path) -> None:
         if download_file(css_url, css_path):
             print(f"  ✓ Downloaded: {css_path.relative_to(vendor_dir.parent)}")
 
-    # Download webfonts (including v4compatibility for backward compatibility)
     webfonts_dir = fa_dir / "webfonts"
     font_files: list[str] = [
         "fa-solid-900.woff2",
@@ -143,11 +124,9 @@ def download_fontawesome(version: str, vendor_dir: Path) -> None:
 
 
 def download_codemirror(version: str, vendor_dir: Path) -> None:
-    """Download CodeMirror editor files."""
     print(f"📦 Downloading CodeMirror {version}...")
     cm_dir = vendor_dir / "codemirror"
 
-    # Download core files
     core_files = {
         "codemirror.min.js": "lib/codemirror.js",
         "codemirror.min.css": "lib/codemirror.css",
@@ -159,7 +138,6 @@ def download_codemirror(version: str, vendor_dir: Path) -> None:
         if download_file(url, file_path):
             print(f"  ✓ Downloaded: {file_path.relative_to(vendor_dir.parent)}")
 
-    # Download SQL mode
     sql_mode_url = f"https://cdn.jsdelivr.net/npm/codemirror@{version}/mode/sql/sql.js"
     sql_mode_path = cm_dir / "mode" / "sql" / "sql.min.js"
     if download_file(sql_mode_url, sql_mode_path):
@@ -169,8 +147,6 @@ def download_codemirror(version: str, vendor_dir: Path) -> None:
 
 
 def main() -> int:
-    """Download all vendor dependencies."""
-    # Parse version configuration
     deps_file = Path("vendor_dependencies.txt")
     versions = parse_dependencies(deps_file)
     print(f"📋 Using versions from {deps_file}:")
@@ -178,13 +154,11 @@ def main() -> int:
         print(f"   {lib} {ver}")
     print()
 
-    # Create vendor directory
     vendor_dir = Path("assets") / "vendor"
     vendor_dir.mkdir(parents=True, exist_ok=True)
     print(f"✓ Using vendor directory: {vendor_dir}")
     print()
 
-    # Download each library
     bootstrap_ver = versions.get("bootstrap", "5.3.3")
     download_bootstrap(bootstrap_ver, vendor_dir)
 

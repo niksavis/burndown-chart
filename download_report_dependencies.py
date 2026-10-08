@@ -1,13 +1,5 @@
 #!/usr/bin/env python3
-"""
-Download dependencies for offline HTML reports.
-This script downloads Bootstrap, Font Awesome, and Chart.js libraries.
 
-Versions are defined in report_dependencies.txt - update that file to change versions.
-
-Usage:
-    python download_report_dependencies.py
-"""
 
 import re
 import sys
@@ -17,7 +9,6 @@ import requests
 
 
 def parse_dependencies(deps_file: Path) -> dict[str, str]:
-    """Parse report_dependencies.txt to extract library versions."""
     versions = {}
     if not deps_file.exists():
         print(f"⚠️  Warning: {deps_file} not found, using default versions")
@@ -38,7 +29,6 @@ def parse_dependencies(deps_file: Path) -> dict[str, str]:
 
 
 def download_file(url: str, output_path: Path) -> bool:
-    """Download a file from URL to output path."""
     try:
         response = requests.get(url, timeout=30)
         response.raise_for_status()
@@ -50,8 +40,6 @@ def download_file(url: str, output_path: Path) -> bool:
 
 
 def main() -> int:
-    """Download all report dependencies."""
-    # Parse version configuration
     deps_file = Path("report_dependencies.txt")
     versions = parse_dependencies(deps_file)
     print(f"📋 Using versions from {deps_file}:")
@@ -59,13 +47,11 @@ def main() -> int:
         print(f"   {lib} {ver}")
     print()
 
-    # Create assets directory for report dependencies
     assets_dir = Path("report_assets")
     assets_dir.mkdir(parents=True, exist_ok=True)
     print(f"✓ Created directory: {assets_dir}")
     print()
 
-    # Download Bootstrap CSS
     bootstrap_ver = versions.get("bootstrap", "5.3.0")
     print(f"📦 Downloading Bootstrap CSS {bootstrap_ver}...")
     bootstrap_url = f"https://cdn.jsdelivr.net/npm/bootstrap@{bootstrap_ver}/dist/css/bootstrap.min.css"
@@ -74,7 +60,6 @@ def main() -> int:
         print(f"  ✓ Downloaded: {bootstrap_path}")
     print()
 
-    # Download Font Awesome CSS
     fontawesome_ver = versions.get("font-awesome", "6.4.0")
     print(f"📦 Downloading Font Awesome CSS {fontawesome_ver}...")
     fontawesome_url = f"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/{fontawesome_ver}/css/all.min.css"
@@ -83,7 +68,6 @@ def main() -> int:
         print(f"  ✓ Downloaded: {fontawesome_path}")
     print()
 
-    # Download Font Awesome fonts
     print(f"📦 Downloading Font Awesome fonts {fontawesome_ver}...")
     fonts_dir = assets_dir / "webfonts"
     fonts_dir.mkdir(parents=True, exist_ok=True)
@@ -104,7 +88,6 @@ def main() -> int:
             print(f"  ✓ Downloaded: {font_path}")
     print()
 
-    # Download Chart.js
     chartjs_ver = versions.get("chart.js", "4.4.0")
     print(f"📦 Downloading Chart.js {chartjs_ver}...")
     chartjs_url = (
@@ -115,7 +98,6 @@ def main() -> int:
         print(f"  ✓ Downloaded: {chartjs_path}")
     print()
 
-    # Download Chart.js Annotation Plugin
     annotation_ver = versions.get("chartjs-plugin-annotation", "3.0.1")
     print(f"Downloading Chart.js Annotation Plugin {annotation_ver}...")
     annotation_url = f"https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@{annotation_ver}/dist/chartjs-plugin-annotation.min.js"

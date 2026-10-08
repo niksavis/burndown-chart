@@ -1,17 +1,5 @@
 #!/usr/bin/env python3
-"""
-Calculate codebase context metrics and write dedicated artifacts.
 
-Run manually when context metrics need refreshing:
-python update_codebase_metrics.py
-
-Calculates:
-- Total tokens (all tracked files)
-- Code only (Python, JavaScript, CSS)
-- Documentation (Markdown files)
-- Tests (test_*.py, *_test.py files)
-- Configuration (YAML, JSON, TOML files)
-"""
 
 import json
 import re
@@ -22,7 +10,6 @@ PROJECT_ROOT = Path(__file__).parent
 CONTEXT_METRICS_MD = PROJECT_ROOT / "docs" / "codebase_context_metrics.md"
 CONTEXT_METRICS_JSON = PROJECT_ROOT / ".github" / "codebase_context_metrics.json"
 
-# File patterns to exclude
 EXCLUDE_PATTERNS = [
     "__pycache__",
     ".venv",
@@ -32,14 +19,11 @@ EXCLUDE_PATTERNS = [
     ".min.",
 ]
 
-# Representative files for calibrating token ratio (cover all layers & sizes)
 CALIBRATION_FILES = [
-    # Configuration (small to large)
     "configuration/__init__.py",
     "configuration/logging_config.py",
     "configuration/metrics_config.py",
     "configuration/chart_config.py",
-    # Data layer (small to large)
     "data/installation_context.py",
     "data/jira_query_manager.py",
     "data/field_mapper.py",
@@ -49,7 +33,6 @@ CALIBRATION_FILES = [
     "data/flow_metrics.py",
     "data/dora_metrics.py",
     "data/bug_insights.py",
-    # UI layer (small to large)
     "ui/icon_utils.py",
     "ui/error_utils.py",
     "ui/layout.py",
@@ -58,33 +41,27 @@ CALIBRATION_FILES = [
     "ui/dashboard.py",
     "ui/dora_flow_combined_dashboard.py",
     "ui/budget_cards.py",
-    # Callbacks (small to large)
     "callbacks/progress_bar.py",
     "callbacks/jira_config.py",
     "callbacks/__init__.py",
     "callbacks/visualization.py",
     "callbacks/query_management.py",
-    # Visualization (small to large)
     "visualization/elements.py",
     "visualization/dora_charts.py",
     "visualization/charts.py",
     "visualization/bug_charts.py",
-    # Tests (small to large)
     "tests/conftest.py",
     "tests/unit/test_caching_dataframes.py",
     "tests/unit/data/test_metrics_calculator.py",
     "tests/integration/test_dashboard_metrics.py",
     "tests/unit/data/test_flow_metrics_clean.py",
-    # Utils (small)
     "utils/__init__.py",
     "utils/caching.py",
     "utils/dataframe_utils.py",
-    # Frontend (JS/CSS)
     "assets/jql_editor_native.js",
     "assets/namespace_autocomplete.js",
     "assets/custom.css",
     "assets/quality_insights.js",
-    # Root scripts (small to medium)
     "app.py",
     "release.py",
     "update_codebase_metrics.py",
@@ -93,45 +70,28 @@ CALIBRATION_FILES = [
 
 
 def should_exclude(file_path: Path) -> bool:
-    """Check if file should be excluded from metrics."""
     path_str = str(file_path)
     return any(pattern in path_str for pattern in EXCLUDE_PATTERNS)
 
 
 def estimate_tokens_heuristic(text: str) -> int:
-    """
-    Heuristic token estimation based on common tokenization patterns.
 
-    Approximates how tokenizers split code:
-    - Words/identifiers split on boundaries
-    - Special characters often get their own tokens
-    - Common operators might be single tokens
-    """
     tokens = 0
 
-    # Split into potential tokens
-    # This pattern splits on whitespace and keeps special chars separate
     pattern = r"\w+|[^\w\s]"
     potential_tokens = re.findall(pattern, text)
 
     for token in potential_tokens:
         if len(token) <= 4:
-            # Short tokens typically = 1 token
             tokens += 1
         else:
-            # Longer identifiers might split (conservative estimate)
             tokens += max(1, len(token) // 4)
 
     return tokens
 
 
 def calculate_token_ratio() -> float:
-    """
-    Calculate the chars-per-token ratio by testing representative files.
 
-    Returns:
-        Average chars per token across calibration files (e.g., 4.26)
-    """
     total_chars = 0
     total_tokens = 0
     files_tested = 0
@@ -154,7 +114,6 @@ def calculate_token_ratio() -> float:
             continue
 
     if total_tokens == 0:
-        # Fallback to standard OpenAI estimate if calibration fails
         print("[WARNING] Token ratio calibration failed, using default 4.0")
         return 4.0
 
@@ -166,15 +125,7 @@ def calculate_token_ratio() -> float:
 
 
 def count_tokens(files: list[Path], divisor: float) -> tuple[int, int, int]:
-    """Count characters, lines, and estimated tokens for files.
 
-    Args:
-        files: List of file paths to analyze
-        divisor: Chars-per-token ratio (dynamically calculated)
-
-    Returns:
-        tuple[chars, lines, tokens] using the provided divisor
-    """
     total_chars = 0
     total_lines = 0
 
@@ -191,32 +142,25 @@ def count_tokens(files: list[Path], divisor: float) -> tuple[int, int, int]:
 
 
 def get_files_by_pattern(pattern: str) -> list[Path]:
-    """Get all files matching glob pattern, excluding blacklisted paths."""
     return [
         f for f in PROJECT_ROOT.rglob(pattern) if f.is_file() and not should_exclude(f)
     ]
 
 
 def calculate_metrics() -> dict[str, dict[str, int]]:
-    """Calculate comprehensive codebase metrics."""
 
-    # First, calibrate the token ratio on representative files
     divisor = calculate_token_ratio()
 
-    # Get files by category
     python_files = get_files_by_pattern("*.py")
     js_files = get_files_by_pattern("*.js")
     css_files = get_files_by_pattern("*.css")
     md_files = get_files_by_pattern("*.md")
 
-    # Filter test files from Python
     test_files = [f for f in python_files if "test" in f.stem or f.parts[-2] == "tests"]
     code_python_files = [f for f in python_files if f not in test_files]
 
-    # Calculate metrics
     metrics = {}
 
-    # Total (all tracked files)
     all_files = python_files + js_files + css_files + md_files
     chars, lines, tokens = count_tokens(all_files, divisor)
     metrics["total"] = {
@@ -226,7 +170,6 @@ def calculate_metrics() -> dict[str, dict[str, int]]:
         "tokens": tokens,
     }
 
-    # Code only (Python, JS, CSS - no tests, no docs)
     code_files = code_python_files + js_files + css_files
     chars, lines, tokens = count_tokens(code_files, divisor)
     metrics["code"] = {
@@ -236,7 +179,6 @@ def calculate_metrics() -> dict[str, dict[str, int]]:
         "tokens": tokens,
     }
 
-    # Documentation only
     chars, lines, tokens = count_tokens(md_files, divisor)
     metrics["docs"] = {
         "files": len(md_files),
@@ -245,7 +187,6 @@ def calculate_metrics() -> dict[str, dict[str, int]]:
         "tokens": tokens,
     }
 
-    # Tests only
     chars, lines, tokens = count_tokens(test_files, divisor)
     metrics["tests"] = {
         "files": len(test_files),
@@ -254,7 +195,6 @@ def calculate_metrics() -> dict[str, dict[str, int]]:
         "tokens": tokens,
     }
 
-    # Python only (excluding tests)
     chars, lines, tokens = count_tokens(code_python_files, divisor)
     metrics["python"] = {
         "files": len(code_python_files),
@@ -263,7 +203,6 @@ def calculate_metrics() -> dict[str, dict[str, int]]:
         "tokens": tokens,
     }
 
-    # Frontend only (JS + CSS)
     frontend_files = js_files + css_files
     chars, lines, tokens = count_tokens(frontend_files, divisor)
     metrics["frontend"] = {
@@ -277,7 +216,6 @@ def calculate_metrics() -> dict[str, dict[str, int]]:
 
 
 def format_number(num: int) -> str:
-    """Format large numbers with K/M suffix."""
     if num >= 1_000_000:
         return f"{num / 1_000_000:.1f}M"
     elif num >= 1_000:
@@ -287,7 +225,6 @@ def format_number(num: int) -> str:
 
 
 def get_context_strategy(total_tokens: int) -> str:
-    """Return recommended context strategy based on estimated token volume."""
     if total_tokens <= 120_000:
         return "single-pass"
     if total_tokens <= 500_000:
@@ -296,7 +233,6 @@ def get_context_strategy(total_tokens: int) -> str:
 
 
 def generate_metrics_markdown(metrics: dict[str, dict[str, int]]) -> str:
-    """Generate markdown report for codebase context metrics."""
     today = datetime.now().strftime("%Y-%m-%d")
     context_strategy = get_context_strategy(metrics["total"]["tokens"])
     total_files = metrics["total"]["files"]
@@ -347,17 +283,11 @@ Purpose: provide lightweight context-sizing guidance for human and AI contributo
 
 
 def format_with_prettier(files: list[Path]) -> None:
-    """Run prettier on the given files if npx is available.
 
-    Silently skips when npx/prettier is not on PATH so the script remains
-    usable in environments without Node.js.
-    """
     import shutil  # noqa: PLC0415
     import subprocess  # noqa: PLC0415
     import sys  # noqa: PLC0415
 
-    # On Windows, npx is npx.cmd — shutil.which("npx") may resolve npx.ps1
-    # which subprocess cannot execute directly.  Prefer npx.cmd when present.
     if sys.platform == "win32":
         npx_cmd = shutil.which("npx.cmd") or shutil.which("npx.cmd", path=None)
     else:
@@ -376,12 +306,10 @@ def format_with_prettier(files: list[Path]) -> None:
             cwd=PROJECT_ROOT,
         )
     except subprocess.CalledProcessError:
-        # Non-fatal: files are still valid, just not prettier-formatted
         print("[WARNING] prettier formatting skipped (npx call failed)")
 
 
 def write_metrics_files(metrics: dict[str, dict[str, int]], markdown_text: str) -> None:
-    """Write dedicated markdown and JSON metrics artifacts."""
     CONTEXT_METRICS_MD.parent.mkdir(parents=True, exist_ok=True)
     CONTEXT_METRICS_JSON.parent.mkdir(parents=True, exist_ok=True)
 
@@ -401,7 +329,6 @@ def write_metrics_files(metrics: dict[str, dict[str, int]], markdown_text: str) 
         json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
 
-    # Format output files so they satisfy the prettier pre-commit hook
     format_with_prettier([CONTEXT_METRICS_MD, CONTEXT_METRICS_JSON])
 
     print(f"[OK] Updated {CONTEXT_METRICS_MD.relative_to(PROJECT_ROOT)}")
@@ -409,11 +336,9 @@ def write_metrics_files(metrics: dict[str, dict[str, int]], markdown_text: str) 
 
 
 def commit_changes(bead_id: str = "") -> bool:
-    """Commit context metrics artifact changes to git if modified."""
     import subprocess  # noqa: PLC0415
 
     try:
-        # Check if metrics artifacts were modified
         result = subprocess.run(
             [
                 "git",
@@ -431,7 +356,6 @@ def commit_changes(bead_id: str = "") -> bool:
             print("[OK] No changes to commit (metrics already up to date)")
             return True
 
-        # Stage metrics artifacts
         subprocess.run(
             [
                 "git",
@@ -443,7 +367,6 @@ def commit_changes(bead_id: str = "") -> bool:
             cwd=PROJECT_ROOT,
         )
 
-        # Commit the changes
         bead_suffix = f" ({bead_id})" if bead_id else ""
         subprocess.run(
             [
@@ -469,7 +392,6 @@ def commit_changes(bead_id: str = "") -> bool:
 
 
 def main() -> None:
-    """Calculate metrics and update dedicated context metrics artifacts."""
     import argparse  # noqa: PLC0415
 
     parser = argparse.ArgumentParser(description="Update codebase context metrics")
@@ -484,7 +406,6 @@ def main() -> None:
 
     metrics = calculate_metrics()
 
-    # Print to console
     print(f"\n{'=' * 60}")
     print("CODEBASE METRICS")
     print(f"{'=' * 60}")
@@ -510,11 +431,9 @@ def main() -> None:
     )
     print(f"{'=' * 60}\n")
 
-    # Update dedicated metrics artifacts
     metrics_markdown = generate_metrics_markdown(metrics)
     write_metrics_files(metrics, metrics_markdown)
 
-    # Commit changes to git
     commit_changes(bead_id=args.bead_id)
 
     print("[SUCCESS] Context metrics artifacts updated")

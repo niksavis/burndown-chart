@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
-"""
+
+import argparse
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+RELEASE_TEST_GATE_PATH = "tests/unit/"
+
+RELEASE_HELP = """
 Automated Release Script for Burndown
 
 Integrated release workflow that handles version bumping, changelog generation,
@@ -41,23 +50,14 @@ Version Source of Truth:
 Note: bump_version.py is now deprecated. Use this script for releases.
 """
 
-import argparse
-import re
-import subprocess
-import sys
-from pathlib import Path
-
-# Project paths
 PROJECT_ROOT = Path(__file__).parent
 VERSION_INFO_SCRIPT = PROJECT_ROOT / "build" / "generate_version_info.py"
 METRICS_SCRIPT = PROJECT_ROOT / "update_codebase_metrics.py"
 
-# Bead ID used in all automated commit messages (set in main)
 BEAD_ID: str = ""
 
 
 def run_command(cmd: list[str], description: str) -> tuple[bool, str]:
-    """Run a shell command and return success status and output."""
     print(f"\n[{description}]")
     print(f"Running: {' '.join(cmd)}")
     try:
@@ -79,13 +79,7 @@ def run_command(cmd: list[str], description: str) -> tuple[bool, str]:
 
 
 def get_current_version() -> tuple[int, int, int]:
-    """Read current version from the last git tag (authoritative source).
 
-    Using the tag rather than configuration/__init__.py prevents partial
-    release runs from silently poisoning the base version: a failed run may
-    have already written the bumped number to the file, causing the next
-    invocation to skip a version.
-    """
     result = subprocess.run(
         ["git", "describe", "--tags", "--abbrev=0", "--match", "v*"],
         capture_output=True,
@@ -106,7 +100,6 @@ def get_current_version() -> tuple[int, int, int]:
 
 
 def get_file_version() -> tuple[int, int, int]:
-    """Read version from configuration/__init__.py (write target only)."""
     config_file = PROJECT_ROOT / "configuration" / "__init__.py"
     content = config_file.read_text(encoding="utf-8")
 
@@ -118,15 +111,7 @@ def get_file_version() -> tuple[int, int, int]:
 
 
 def check_version_sync() -> bool:
-    """Verify configuration/__init__.py matches the last git tag.
 
-    A mismatch means a previous partial release wrote the bumped version to the
-    file but did not complete (create the tag).  Proceeding without this check
-    would skip a version number on the next run.
-
-    Returns:
-        True if versions are in sync, False otherwise.
-    """
     print("\n  Checking version sync (file vs last tag)...")
 
     try:
@@ -134,7 +119,7 @@ def check_version_sync() -> bool:
         file_version = get_file_version()
     except ValueError as e:
         print(f"  [WARNING] Could not compare versions: {e}")
-        return True  # Can't check — allow release to proceed
+        return True
 
     tag_str = ".".join(str(v) for v in tag_version)
     file_str = ".".join(str(v) for v in file_version)
@@ -169,7 +154,6 @@ def check_version_sync() -> bool:
 def calculate_new_version(
     current: tuple[int, int, int], bump_type: str
 ) -> tuple[int, int, int]:
-    """Calculate new version based on bump type."""
     major, minor, patch = current
 
     if bump_type == "major":
@@ -183,7 +167,6 @@ def calculate_new_version(
 
 
 def update_configuration_file(new_version: tuple[int, int, int]) -> str:
-    """Update version in configuration/__init__.py and return version string."""
     config_file = PROJECT_ROOT / "configuration" / "__init__.py"
     content = config_file.read_text(encoding="utf-8")
 
@@ -196,7 +179,6 @@ def update_configuration_file(new_version: tuple[int, int, int]) -> str:
 
     config_file.write_text(updated, encoding="utf-8")
 
-    # Ensure the file passes ruff format so the pre-commit hook does not reject it
     subprocess.run(
         [sys.executable, "-m", "ruff", "format", str(config_file)],
         check=False,
@@ -208,18 +190,15 @@ def update_configuration_file(new_version: tuple[int, int, int]) -> str:
 
 
 def update_readme_file(version_str: str) -> None:
-    """Update version badge and footer in readme.md."""
     readme_file = PROJECT_ROOT / "readme.md"
     content = readme_file.read_text(encoding="utf-8")
 
-    # Update badge
     updated = re.sub(
         r"(badge/version-)\d+\.\d+\.\d+(-blue\.svg)",
         rf"\g<1>{version_str}\g<2>",
         content,
     )
 
-    # Update footer version
     updated = re.sub(
         r"(\*\*Version:\*\* )\d+\.\d+\.\d+",
         rf"\g<1>{version_str}",
@@ -231,7 +210,6 @@ def update_readme_file(version_str: str) -> None:
 
 
 def regenerate_changelog() -> None:
-    """Regenerate changelog.md from git tags using regenerate_changelog script."""
     try:
         print("\n[Regenerating changelog from git history]")
         import regenerate_changelog  # noqa: PLC0415
@@ -243,7 +221,6 @@ def regenerate_changelog() -> None:
 
 
 def check_git_status() -> bool:
-    """Verify git working directory is clean."""
     print("\n" + "=" * 60)
     print("Checking Git Status")
     print("=" * 60)
@@ -266,7 +243,6 @@ def check_git_status() -> bool:
 
 
 def check_on_main() -> bool:
-    """Verify we're on the main branch."""
     success, output = run_command(
         ["git", "branch", "--show-current"], "Check current branch"
     )
@@ -285,7 +261,6 @@ def check_on_main() -> bool:
 
 
 def regenerate_version_info() -> bool:
-    """Regenerate version_info.txt for executable metadata."""
     print("\n" + "=" * 60)
     print("Regenerating version_info.txt")
     print("=" * 60)
@@ -302,7 +277,6 @@ def regenerate_version_info() -> bool:
     if not success:
         return False
 
-    # Check if version_info files were modified
     success, output = run_command(
         [
             "git",
@@ -321,7 +295,6 @@ def regenerate_version_info() -> bool:
         print("[OK] version_info files are already up to date")
         return True
 
-    # Commit the changes
     success, _ = run_command(
         ["git", "add", "build/version_info.txt", "build/version_info_updater.txt"],
         "Stage version_info files",
@@ -349,7 +322,6 @@ def regenerate_version_info() -> bool:
 
 
 def update_codebase_metrics() -> bool:
-    """Update codebase context metrics artifacts."""
     print("\n" + "=" * 60)
     print("Updating Codebase Metrics")
     print("=" * 60)
@@ -357,7 +329,7 @@ def update_codebase_metrics() -> bool:
     if not METRICS_SCRIPT.exists():
         print(f"WARNING: {METRICS_SCRIPT} not found", file=sys.stderr)
         print("[SKIP] Codebase metrics not updated")
-        return True  # Non-critical, continue release
+        return True
 
     cmd = [sys.executable, str(METRICS_SCRIPT)]
     if BEAD_ID:
@@ -366,7 +338,7 @@ def update_codebase_metrics() -> bool:
 
     if not success:
         print("[WARNING] Could not update metrics (non-critical)")
-        return True  # Non-critical, continue release
+        return True
 
     print("[OK] Codebase metrics updated")
     return True
@@ -376,20 +348,7 @@ def detect_stale_changelog_header(
     new_version: tuple[int, int, int],
     last_tag_version: tuple[int, int, int],
 ) -> bool:
-    """Detect a stale changelog header left by a previous partial release.
 
-    A stale header exists when changelog.md's first ## vX.Y.Z section is a
-    version BETWEEN the last released tag and the new version we are about
-    to create.  This happens when:
-      1. A previous release run bumped to vA.B.C and wrote that header.
-      2. That run failed before creating the tag.
-      3. git reset --hard restored the commits but left the file on disk.
-      4. The next run bumps to vA.B.D (skipping C) while the file shows vA.B.C.
-
-    Returns:
-        False (indicating a problem detected) when a stale header is found.
-        True (clean) otherwise.
-    """
     changelog_path = PROJECT_ROOT / "changelog.md"
     if not changelog_path.exists():
         return True
@@ -397,7 +356,7 @@ def detect_stale_changelog_header(
     content = changelog_path.read_text(encoding="utf-8")
     first_match = re.search(r"^## v(\d+)\.(\d+)\.(\d+)", content, re.MULTILINE)
     if not first_match:
-        return True  # No header — nothing to flag
+        return True
 
     first_header_version = (
         int(first_match.group(1)),
@@ -440,31 +399,23 @@ def detect_stale_changelog_header(
 
 
 def bump_version(bump_type: str) -> tuple[bool, str]:
-    """Bump version, update files, create tag, and regenerate changelog.
 
-    Returns:
-        tuple[bool, str]: (success, new_version_tag)
-    """
     print("\n" + "=" * 60)
     print(f"Bumping Version ({bump_type})")
     print("=" * 60)
 
     try:
-        # Get current version
         current = get_current_version()
         current_str = f"{current[0]}.{current[1]}.{current[2]}"
         print(f"\nCurrent version: {current_str}")
 
-        # Calculate new version
         new_version = calculate_new_version(current, bump_type)
         new_version_str = f"{new_version[0]}.{new_version[1]}.{new_version[2]}"
         print(f"{bump_type.upper()} bump: {current_str} → {new_version_str}")
 
-        # Update files
         version_str = update_configuration_file(new_version)
         update_readme_file(version_str)
 
-        # Commit version changes
         success, _ = run_command(
             ["git", "add", "configuration/__init__.py", "readme.md"],
             "Stage version changes",
@@ -485,17 +436,14 @@ def bump_version(bump_type: str) -> tuple[bool, str]:
         if not success:
             return False, ""
 
-        # Regenerate changelog from git history (skips if version section exists)
         regenerate_changelog()
 
-        # Check if changelog.md was modified (only amend if it changed)
         success, status_output = run_command(
             ["git", "status", "--porcelain", "changelog.md"],
             "Check if changelog changed",
         )
 
         if status_output.strip():
-            # Changelog was regenerated, amend to include it
             success, _ = run_command(
                 ["git", "add", "changelog.md"],
                 "Stage changelog",
@@ -514,7 +462,6 @@ def bump_version(bump_type: str) -> tuple[bool, str]:
                 "[OK] Changelog already contains version section (skipped regeneration)"
             )
 
-        # Verify no stale header from a previous partial run was bundled
         if not detect_stale_changelog_header(new_version, current):
             return False, ""
 
@@ -527,31 +474,14 @@ def bump_version(bump_type: str) -> tuple[bool, str]:
 
 
 def run_test_gate() -> bool:
-    """Run the unit suite before tagging.
 
-    The lint gate below deliberately skips the full pre-commit sweep on the
-    grounds that the git hooks already cover it. That reasoning does not extend
-    to tests: the pre-commit hook lints staged files and runs no tests, and the
-    pre-push hook that does run them is absent on any clone where
-    ``install_hooks.py`` was never run -- which is the default state. Until
-    2026-09-10 that left every automated gate on the release path lint-only, so
-    a tag could be cut against a red suite.
-
-    Scoped to ``tests/unit/`` on purpose: it is green and deterministic.
-    ``tests/integration/`` is currently red and order-dependent (IMP-004/005/006
-    in docs/improvement_backlog.md); widen this to the whole suite once it is
-    fixed rather than adding a known-red gate nobody can satisfy.
-
-    Returns:
-        True when the suite passes, False otherwise.
-    """
     print("\n" + "=" * 60)
     print("Running Test Gate")
     print("=" * 60)
 
     success, _ = run_command(
-        [sys.executable, "-m", "pytest", "tests/unit/", "-n", "auto", "-q"],
-        "pytest tests/unit/",
+        [sys.executable, "-m", "pytest", RELEASE_TEST_GATE_PATH, "-n", "auto", "-q"],
+        f"pytest {RELEASE_TEST_GATE_PATH}",
     )
 
     if success:
@@ -563,18 +493,7 @@ def run_test_gate() -> bool:
 
 
 def run_lint_gate() -> bool:
-    """Run fast lint + type checks before tagging.
 
-    Uses validate.py --fast (ruff + pyright) instead of
-    pre-commit run --all-files.  The git pre-commit hook already
-    runs validate.py on every automated commit in this script, so a
-    second full pre-commit sweep is redundant and slow.  A targeted
-    fast pass here catches any formatter drift introduced by the
-    release steps themselves (version file writes, metrics updates).
-
-    Returns:
-        True when the lint gate passes, False on unrecoverable failure.
-    """
     print("\n" + "=" * 60)
     print("Running Fast Lint Gate")
     print("=" * 60)
@@ -593,7 +512,6 @@ def run_lint_gate() -> bool:
         print("[OK] Lint gate passed")
         return True
 
-    # Check for auto-fixable drift (formatter rewrote files)
     status_result = subprocess.run(
         ["git", "status", "--porcelain"],
         capture_output=True,
@@ -608,7 +526,6 @@ def run_lint_gate() -> bool:
         )
         return False
 
-    # Auto-fixes applied — commit them and re-verify
     print("[INFO] Formatter fixes applied; committing and re-verifying...")
 
     commit_ok, _ = run_command(["git", "add", "-A"], "Stage formatter fixes")
@@ -628,7 +545,6 @@ def run_lint_gate() -> bool:
     if not commit_ok:
         return False
 
-    # Re-verify
     success, _ = run_command(
         [sys.executable, str(validate_script), "--fast"],
         "validate.py --fast (re-verify after fixes)",
@@ -642,11 +558,7 @@ def run_lint_gate() -> bool:
 
 
 def create_release_commit(version: str) -> bool:
-    """Create a final release commit that the tag will point to.
 
-    This ensures the tagged commit has a clean message "Release vX.Y.Z"
-    instead of implementation details like metrics updates.
-    """
     print("\n" + "=" * 60)
     print("Creating Release Commit")
     print("=" * 60)
@@ -667,11 +579,7 @@ def create_release_commit(version: str) -> bool:
 
 
 def create_tag(version: str) -> bool:
-    """Create git tag after all commits are complete.
 
-    This MUST be called after version bump, changelog, version_info, and metrics
-    commits to prevent orphaned tags pointing to intermediate commits.
-    """
     print("\n" + "=" * 60)
     print("Creating Git Tag")
     print("=" * 60)
@@ -692,12 +600,10 @@ def create_tag(version: str) -> bool:
 
 
 def push_release(version: str) -> bool:
-    """Push commits and tags to origin."""
     print("\n" + "=" * 60)
     print("Pushing to Origin")
     print("=" * 60)
 
-    # Push main branch first
     success, _ = run_command(
         ["git", "push", "origin", "main"],
         "Push main branch",
@@ -706,7 +612,6 @@ def push_release(version: str) -> bool:
     if not success:
         return False
 
-    # Push only the new tag (not --tags which pushes all local tags)
     success, _ = run_command(
         ["git", "push", "origin", version],
         f"Push {version} tag",
@@ -722,11 +627,10 @@ def push_release(version: str) -> bool:
 
 
 def main():
-    """Main release workflow."""
     parser = argparse.ArgumentParser(
         description="Automated release script for Burndown",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=__doc__,
+        epilog=RELEASE_HELP,
     )
     parser.add_argument(
         "bump_type",
@@ -751,7 +655,6 @@ def main():
     if BEAD_ID:
         print(f"Bead ID: {BEAD_ID}")
 
-    # Preflight checks
     print("\n[PREFLIGHT CHECKS]")
     if not check_on_main():
         sys.exit(1)
@@ -762,43 +665,35 @@ def main():
     if not check_version_sync():
         sys.exit(1)
 
-    # Step 1: Bump version first (updates configuration/__init__.py)
     success, new_version = bump_version(args.bump_type)
     if not success:
         print("\n[FAILED] Version bump", file=sys.stderr)
         sys.exit(1)
 
-    # Step 2: Regenerate version_info.txt with NEW version
     if not regenerate_version_info():
         print("\n[FAILED] version_info.txt regeneration", file=sys.stderr)
         sys.exit(1)
 
-    # Step 3: Update codebase context metrics artifacts
     if not update_codebase_metrics():
         print("\n[FAILED] Codebase metrics update", file=sys.stderr)
         sys.exit(1)
 
-    # Step 4: Run pre-commit lint gate — catch formatter drift before tagging
     if not run_lint_gate():
         print("\n[FAILED] Pre-commit lint gate", file=sys.stderr)
         sys.exit(1)
 
-    # Step 4b: Run the test gate — a tag must not be cuttable with a red suite
     if not run_test_gate():
         print("\n[FAILED] Test gate", file=sys.stderr)
         sys.exit(1)
 
-    # Step 5: Create final release commit (tag will point here)
     if not create_release_commit(new_version):
         print("\n[FAILED] Release commit creation", file=sys.stderr)
         sys.exit(1)
 
-    # Step 6: Create tag pointing to release commit
     if not create_tag(new_version):
         print("\n[FAILED] Tag creation", file=sys.stderr)
         sys.exit(1)
 
-    # Step 7: Push to origin
     if not push_release(f"v{new_version}"):
         print("\n[FAILED] Push to origin", file=sys.stderr)
         sys.exit(1)
