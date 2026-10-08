@@ -1,9 +1,3 @@
-"""Metrics, charts, and flow help content.
-
-Tooltips and help text for scope, statistics, charts, bug analysis,
-dashboard metrics, parameter inputs, and flow metrics.
-"""
-
 STATISTICS_HELP_DETAILED = {
     "data_collection_methodology": """
         Data collection methodology for accurate project tracking and forecasting.
@@ -83,7 +77,6 @@ STATISTICS_HELP_DETAILED = {
     """,
 }
 
-# CHART HELP CONTENT - Comprehensive explanations for help pages
 CHART_HELP_DETAILED = {
     "burndown_chart": """
         Comprehensive guide to interpreting burndown charts for project tracking.
@@ -183,7 +176,6 @@ CHART_HELP_DETAILED = {
     """,
 }
 
-# BUG ANALYSIS HELP CONTENT - Tooltips for bug metrics
 BUG_ANALYSIS_TOOLTIPS = {
     "resolution_rate": (
         "Percentage of closed bugs. ≥80% excellent, 70-79% good, <70% needs attention."
@@ -195,7 +187,6 @@ BUG_ANALYSIS_TOOLTIPS = {
     ),
 }
 
-# DASHBOARD METRICS HELP CONTENT - Tooltips for main dashboard cards
 DASHBOARD_METRICS_TOOLTIPS = {
     "completion_forecast": (
         "Estimated project completion date using PERT three-point estimation. Based "
@@ -256,7 +247,6 @@ DASHBOARD_METRICS_TOOLTIPS = {
     ),
 }
 
-# PARAMETER INPUTS HELP CONTENT - Tooltips for parameter panel controls
 PARAMETER_INPUTS_TOOLTIPS = {
     "pert_factor": (
         "Forecast Range: Controls how many weeks to sample for best/worst case "
@@ -350,7 +340,6 @@ PARAMETER_INPUTS_TOOLTIPS = {
     ),
 }
 
-# FLOW METRICS HELP CONTENT - Tooltips for Flow Framework metrics
 FLOW_METRICS_TOOLTIPS = {
     "flow_velocity": (
         "Completed items per week (average). Forecast uses last 4 weeks weighted "
@@ -379,8 +368,6 @@ FLOW_METRICS_TOOLTIPS = {
     ),
 }
 
-# 4-WEEK FORECAST HELP CONTENT - Tooltips and detailed help
-# for forecasting feature (Feature 009)
 FORECAST_HELP_CONTENT = {
     "forecast_overview": (
         "4-week weighted forecast predicting next week's performance based on "

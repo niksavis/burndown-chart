@@ -1,19 +1,3 @@
-"""
-Configuration Module
-
-This module contains configuration settings for the Burndown application.
-"""
-
-#######################################################################
-# IMPORTS
-#######################################################################
-# Standard library imports
-# None
-
-# Third-party library imports
-# None
-
-# Application imports
 from configuration import dora_config, flow_config
 from configuration.server import (
     DEFAULT_HOST,
@@ -22,10 +6,8 @@ from configuration.server import (
     get_server_config,
 )
 from configuration.settings import (
-    # File paths
     APP_SETTINGS_FILE,
     CHART_HELP_TEXTS,
-    # Constants
     COLOR_PALETTE,
     DEFAULT_DATA_POINTS_COUNT,
     DEFAULT_DEADLINE,
@@ -38,15 +20,11 @@ from configuration.settings import (
     SAMPLE_DATA,
     SCOPE_HELP_TEXTS,
     SETTINGS_FILE,
-    # Logging
     logger,
 )
 
-# Application version - used in the UI and for tracking
-# Follow semantic versioning (MAJOR.MINOR.PATCH)
 __version__ = "2.15.3"
 
-# Define public API
 __all__ = [
     "DEFAULT_PERT_FACTOR",
     "DEFAULT_TOTAL_ITEMS",
@@ -64,12 +42,10 @@ __all__ = [
     "SCOPE_HELP_TEXTS",
     "logger",
     "__version__",
-    # Server configuration
     "get_server_config",
     "DEFAULT_HOST",
     "DEFAULT_PORT",
     "DEFAULT_SERVER_MODE",
-    # DORA and Flow configuration modules
     "dora_config",
     "flow_config",
 ]

@@ -1,8 +1,3 @@
-"""Forecast and velocity help content.
-
-Comprehensive help text for forecast methodology and velocity metrics.
-"""
-
 FORECAST_HELP_DETAILED = {
     "pert_methodology": """
         PERT (Program Evaluation and Review Technique) uses three-point estimation
@@ -240,7 +235,6 @@ FORECAST_HELP_DETAILED = {
     """,
 }
 
-# VELOCITY HELP CONTENT - Comprehensive explanations for help pages
 VELOCITY_HELP_DETAILED = {
     "weekly_velocity_calculation": """
         Weekly velocity represents your team's average completion rate
@@ -402,7 +396,6 @@ VELOCITY_HELP_DETAILED = {
     """,
 }
 
-# SCOPE HELP CONTENT - Comprehensive explanations for help pages
 SCOPE_HELP_DETAILED = {
     "scope_growth_methodology": """
         Scope Growth measures new work added vs baseline or completed work.
@@ -471,5 +464,3 @@ SCOPE_HELP_DETAILED = {
         • Need for capacity planning or priority refinement
     """,
 }
-
-# STATISTICS HELP CONTENT - Comprehensive explanations for help pages

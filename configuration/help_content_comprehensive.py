@@ -1,11 +1,3 @@
-"""Comprehensive help content and DORA/settings tooltips.
-
-Contains the canonical FORECAST_HELP_DETAILED (overrides the earlier
-draft version in help_content_forecast.py), DORA metrics tooltips,
-settings panel tooltips, and the top-level COMPREHENSIVE_HELP_CONTENT
-aggregator dictionary.
-"""
-
 from configuration.help_content_forecast import (  # noqa: F401
     FORECAST_HELP_DETAILED as _FORECAST_HELP_DETAILED_DRAFT,
 )
@@ -23,7 +15,6 @@ from configuration.help_content_metrics import (
     STATISTICS_HELP_DETAILED,
 )
 
-# FORECAST DETAILED HELP - Comprehensive explanations for help modal
 FORECAST_HELP_DETAILED = {
     "forecast_algorithm": """
         4-Week Weighted Forecast provides actionable predictions for next week's
@@ -256,7 +247,6 @@ FORECAST_HELP_DETAILED = {
     """,
 }
 
-# DORA METRICS HELP CONTENT - Tooltips for DORA metrics
 DORA_METRICS_TOOLTIPS = {
     "deployment_frequency": (
         "Production releases per week (average). Forecast uses last 4 weeks weighted "
@@ -276,7 +266,6 @@ DORA_METRICS_TOOLTIPS = {
     ),
 }
 
-# SETTINGS PANEL HELP CONTENT - Tooltips for settings panel features
 SETTINGS_PANEL_TOOLTIPS = {
     "jira_integration": (
         "Connect to your JIRA instance to automatically import project data. "
@@ -342,7 +331,6 @@ SETTINGS_PANEL_TOOLTIPS = {
     ),
 }
 
-# Combined comprehensive help content for easy access
 COMPREHENSIVE_HELP_CONTENT = {
     "forecast": FORECAST_HELP_DETAILED,
     "velocity": VELOCITY_HELP_DETAILED,
@@ -355,6 +343,5 @@ COMPREHENSIVE_HELP_CONTENT = {
     "flow_metrics": FLOW_METRICS_TOOLTIPS,
     "dora_metrics": DORA_METRICS_TOOLTIPS,
     "settings": SETTINGS_PANEL_TOOLTIPS,
-    "forecast_feature": FORECAST_HELP_CONTENT,  # Feature 009
-    # 4-week weighted forecasts
+    "forecast_feature": FORECAST_HELP_CONTENT,
 }

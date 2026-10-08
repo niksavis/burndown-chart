@@ -1,17 +1,3 @@
-"""DORA & Flow Metrics Configuration Loader.
-
-This module provides the master configuration loader
-for all DORA and Flow metrics settings.
-It loads customer-specific configuration from
-profiles/{profile_id}/profile.json including:
-- Field mappings (JIRA custom fields → internal metric fields)
-- Workflow status mappings (WIP, active, completion, flow_start statuses)
-- Project classifications (development vs operational)
-- Flow type mappings (Feature, Defect, Technical Debt, Risk)
-
-Reference: docs/metrics/IMPLEMENTATION_GUIDE.md
-"""
-
 import logging
 from typing import Any
 
@@ -19,7 +5,6 @@ logger = logging.getLogger(__name__)
 
 
 def get_backend():  # noqa: PLC0415
-    """Lazy wrapper: breaks circular configuration.metrics_config -> data.metrics."""
     from data.persistence.factory import (  # noqa: PLC0415
         get_backend as _get_backend,
     )
@@ -28,37 +13,13 @@ def get_backend():  # noqa: PLC0415
 
 
 class MetricsConfig:
-    """Configuration manager for DORA & Flow metrics.
-
-    Loads and validates customer-specific configuration from profile.json.
-    Provides methods for accessing field mappings, status configurations, and
-    project classifications.
-
-    Example:
-        >>> config = MetricsConfig(profile_id="p_7987a9f5e52e")
-        >>> wip_statuses = config.get_wip_statuses()
-        >>> ['In Progress', 'Patch Available', 'Reopened']
-    """
-
     def __init__(self, profile_id: str | None = None):
-        """Initialize configuration loader.
 
-        Args:
-            profile_id: Profile ID to load.
-                If None, loads active profile from profiles.json.
-        """
         self.profile_id = profile_id or self._get_active_profile_id()
         self.profile_config = self._load_profile_config()
 
     def _get_active_profile_id(self) -> str:
-        """Get active profile ID from database backend.
 
-        Returns:
-            Active profile ID
-
-        Raises:
-            RuntimeError: If no active profile configured
-        """
         try:
             backend = get_backend()
             active_profile_id = backend.get_app_state("active_profile_id")
@@ -77,14 +38,7 @@ class MetricsConfig:
             raise RuntimeError(f"Cannot load profile configuration: {e}") from e
 
     def _load_profile_config(self) -> dict[str, Any]:
-        """Load configuration from database backend.
 
-        Returns:
-            Profile configuration dictionary
-
-        Raises:
-            RuntimeError: If profile doesn't exist or cannot be loaded
-        """
         try:
             backend = get_backend()
             profile_data = backend.get_profile(self.profile_id)
@@ -105,11 +59,7 @@ class MetricsConfig:
             return self._get_default_profile_config()
 
     def _get_default_profile_config(self) -> dict[str, Any]:
-        """Get default empty profile configuration when profile doesn't exist.
 
-        Returns:
-            Dictionary with empty profile structure
-        """
         return {
             "id": self.profile_id,
             "name": "Default",
@@ -125,48 +75,22 @@ class MetricsConfig:
             "flow_type_mappings": {},
         }
 
-    # ========================================================================
-    # Field Mappings
-    # ========================================================================
-
     def get_dora_field_mappings(self) -> dict[str, str]:
-        """Get DORA metric field mappings from profile.
 
-        Returns:
-            Dictionary mapping internal field names to JIRA field IDs
-            Example: {"deployment_date": "customfield_10100", ...}
-        """
         return self.profile_config.get("field_mappings", {}).get("dora", {})
 
     def get_flow_field_mappings(self) -> dict[str, str]:
-        """Get Flow metric field mappings from profile.
 
-        Returns:
-            Dictionary mapping internal field names to JIRA field IDs
-            Example: {"flow_item_type": "customfield_10200", ...}
-        """
         return self.profile_config.get("field_mappings", {}).get("flow", {})
 
     def get_all_field_mappings(self) -> dict[str, dict[str, str]]:
-        """Get all field mappings (DORA + Flow) from profile.
 
-        Returns:
-            Dictionary with 'dora' and 'flow' field mappings
-        """
         return self.profile_config.get("field_mappings", {})
 
     def get_custom_field_id(
         self, field_name: str, metric_type: str = "dora"
     ) -> str | None:
-        """Get custom field ID for a specific field.
 
-        Args:
-            field_name: Internal field name (e.g., "deployment_date")
-            metric_type: Either "dora" or "flow"
-
-        Returns:
-            JIRA field ID (e.g., "customfield_10100") or None if not configured
-        """
         mappings = (
             self.get_dora_field_mappings()
             if metric_type == "dora"
@@ -174,52 +98,26 @@ class MetricsConfig:
         )
         return mappings.get(field_name)
 
-    # ========================================================================
-    # Workflow Status Mappings (from Profile project_classification)
-    # ========================================================================
-
     def get_wip_statuses(self) -> list[str]:
-        """Get list of statuses that indicate work-in-progress (WIP) from profile.
 
-        Returns:
-            List of WIP status names configured in profile
-            Example: ["In Progress", "Patch Available", "Reopened"]
-        """
         return self.profile_config.get("project_classification", {}).get(
             "wip_statuses", []
         )
 
     def get_active_statuses(self) -> list[str]:
-        """Get list of statuses where work is actively being done from profile.
 
-        Used for Flow Efficiency calculation (active time vs waiting time).
-
-        Returns:
-            List of active status names configured in profile
-            Example: ["In Progress", "In Review", "Testing"]
-        """
         return self.profile_config.get("project_classification", {}).get(
             "active_statuses", []
         )
 
     def get_flow_end_statuses(self) -> list[str]:
-        """Get list of statuses that indicate work is completed (Flow End) from profile.
 
-        Returns:
-            List of flow end status names configured in profile
-            Example: ["Done", "Resolved", "Closed"]
-        """
         return self.profile_config.get("project_classification", {}).get(
             "flow_end_statuses", []
         )
 
     def get_flow_start_statuses(self) -> list[str]:
-        """Get list of statuses that indicate work has started from profile.
 
-        Returns:
-            List of flow start status names configured in profile
-            Example: ["In Progress", "Open"]
-        """
         return self.profile_config.get("project_classification", {}).get(
             "flow_start_statuses", []
         )
@@ -227,98 +125,37 @@ class MetricsConfig:
     def is_status_in_list(
         self, status_name: str, status_list: list[str], case_sensitive: bool = False
     ) -> bool:
-        """Check if status is in a given list with optional case-insensitive matching.
 
-        Args:
-            status_name: Status name to check
-            status_list: List of status names to check against
-            case_sensitive: Whether to use case-sensitive matching (default: False)
-
-        Returns:
-            True if status is in the list
-        """
         if case_sensitive:
             return status_name in status_list
         else:
             status_lower = status_name.lower()
             return status_lower in [s.lower() for s in status_list]
 
-    # ========================================================================
-    # Project Configuration
-    # ========================================================================
-
     def get_devops_projects(self) -> list[str]:
-        """Get list of DevOps/operational project keys from profile.
 
-        DevOps projects contain deployment tracking (Operational Tasks).
-
-        Returns:
-            List of DevOps project keys
-            Example: ["KAFKA-OPS", "DEVOPS"]
-        """
         return self.profile_config.get("project_classification", {}).get(
             "devops_projects", []
         )
 
     def get_development_projects(self) -> list[str]:
-        """Get list of development project keys from profile.
 
-        Returns:
-            List of development project keys
-            Example: ["KAFKA", "HBASE"]
-        """
         return self.profile_config.get("project_classification", {}).get(
             "development_projects", []
         )
 
     def is_devops_project(self, project_key: str) -> bool:
-        """Check if a project is a DevOps/operational project.
 
-        Args:
-            project_key: JIRA project key (e.g., "KAFKA-OPS")
-
-        Returns:
-            True if project is DevOps, False otherwise
-        """
         return project_key in self.get_devops_projects()
 
-    # ========================================================================
-    # Flow Type Mappings
-    # ========================================================================
-
     def get_flow_type_mappings(self) -> dict[str, Any]:
-        """Get flow type mappings from profile.
 
-        Returns:
-            Dictionary mapping flow types to issue types and effort categories
-            Example: {"Feature": {"issue_types": ["Story"], "effort_categories": []}}
-        """
         return self.profile_config.get("flow_type_mappings", {})
 
     def get_flow_type_for_issue(
         self, issue_type: str, effort_category: str | None = None
     ) -> str | None:
-        """Determine flow type (Feature/Defect/Technical_Debt/Risk) for an issue.
 
-        Classification algorithm:
-        1. Find ALL flow types where issue_type matches
-        2. If effort_category is provided:
-              a. First try to find a flow type that matches
-                  BOTH issue_type AND effort_category
-              b. If no match, fall back to a flow type with
-                  empty effort_categories (catch-all)
-        3. If no effort_category, use the first matching flow type
-
-        This allows effort_category to refine classification when the same issue_type
-        (e.g., "Task", "Story") can belong to different flow types depending on effort.
-
-        Args:
-            issue_type: JIRA issue type name (e.g., "Story", "Bug")
-            effort_category: Optional effort category value
-
-        Returns:
-            Flow type name or None if not mapped
-        """
         flow_mappings = self.get_flow_type_mappings()
 
         logger.debug(
@@ -327,9 +164,8 @@ class MetricsConfig:
         )
         logger.debug(f"[FLOW TYPE CLASSIFICATION] Available mappings: {flow_mappings}")
 
-        # Find ALL flow types where issue_type matches
         matching_flow_types = []
-        catch_all_flow_type = None  # Flow type with empty effort_categories
+        catch_all_flow_type = None
 
         for flow_type, mapping in flow_mappings.items():
             issue_types = mapping.get("issue_types", [])
@@ -340,7 +176,6 @@ class MetricsConfig:
                     f"effort_categories={effort_categories}"
                 )
                 if not effort_categories:
-                    # This flow type accepts ALL issues of this type (catch-all)
                     if catch_all_flow_type is None:
                         catch_all_flow_type = flow_type
                         logger.debug(
@@ -350,7 +185,6 @@ class MetricsConfig:
                 else:
                     matching_flow_types.append((flow_type, effort_categories))
 
-        # If effort_category is provided, try to find exact match first
         if effort_category:
             logger.debug(
                 "[FLOW TYPE CLASSIFICATION] "
@@ -364,15 +198,12 @@ class MetricsConfig:
                     )
                     return flow_type
 
-        # Fall back to catch-all flow type (one with no effort_categories filter)
         if catch_all_flow_type:
             logger.debug(
                 f"[FLOW TYPE CLASSIFICATION] Using catch-all: '{catch_all_flow_type}'"
             )
             return catch_all_flow_type
 
-        # If no catch-all but we have matches,
-        # return first one (for None effort_category)
         if matching_flow_types and not effort_category:
             result = matching_flow_types[0][0]
             logger.debug(
@@ -387,25 +218,11 @@ class MetricsConfig:
         )
         return None
 
-    # ========================================================================
-    # Validation
-    # ========================================================================
-
     def validate_configuration(self) -> dict[str, Any]:
-        """Validate profile configuration completeness and return status.
 
-        Returns:
-            Dictionary with validation results:
-            {
-                "is_valid": bool,
-                "errors": List[str],
-                "warnings": List[str]
-            }
-        """
         errors = []
         warnings = []
 
-        # Check for completion statuses
         flow_end_statuses = self.get_flow_end_statuses()
         if not flow_end_statuses:
             warnings.append(
@@ -414,7 +231,6 @@ class MetricsConfig:
                 "→ Status tab → Completion Statuses"
             )
 
-        # Check for active statuses (required for Flow Efficiency)
         active_statuses = self.get_active_statuses()
         if not active_statuses:
             warnings.append(
@@ -423,7 +239,6 @@ class MetricsConfig:
                 "Configure via 'Configure JIRA Mappings' → Status tab → Active Statuses"
             )
 
-        # Check for WIP statuses (required for Flow Load)
         wip_statuses = self.get_wip_statuses()
         if not wip_statuses:
             warnings.append(
@@ -432,7 +247,6 @@ class MetricsConfig:
                 "Configure via 'Configure JIRA Mappings' → Status tab → WIP Statuses"
             )
 
-        # Check for field mappings
         dora_mappings = self.get_dora_field_mappings()
         flow_mappings = self.get_flow_field_mappings()
 
@@ -443,7 +257,6 @@ class MetricsConfig:
                 "to configure JIRA custom fields."
             )
 
-        # Check for development projects (for DORA metrics)
         dev_projects = self.get_development_projects()
         if not dev_projects:
             warnings.append(
@@ -455,11 +268,7 @@ class MetricsConfig:
         return {"is_valid": len(errors) == 0, "errors": errors, "warnings": warnings}
 
     def get_configuration_summary(self) -> str:
-        """Get human-readable profile configuration summary.
 
-        Returns:
-            Multi-line string with configuration overview
-        """
         validation = self.validate_configuration()
 
         validation = self.validate_configuration()
@@ -495,19 +304,11 @@ class MetricsConfig:
         return "\n".join(summary_lines)
 
 
-# Singleton instance for convenient access
 _config_instance: MetricsConfig | None = None
 
 
 def get_metrics_config(profile_id: str | None = None) -> MetricsConfig:
-    """Get singleton instance of MetricsConfig.
 
-    Args:
-        profile_id: Optional profile ID. If None, uses active profile.
-
-    Returns:
-        Shared MetricsConfig instance
-    """
     global _config_instance
     if _config_instance is None:
         _config_instance = MetricsConfig(profile_id=profile_id)
@@ -515,39 +316,22 @@ def get_metrics_config(profile_id: str | None = None) -> MetricsConfig:
 
 
 def reload_metrics_config(profile_id: str | None = None) -> MetricsConfig:
-    """Reload configuration from disk (e.g., after user updates settings).
 
-    Args:
-        profile_id: Optional profile ID. If None, uses active profile.
-
-    Returns:
-        Reloaded MetricsConfig instance
-    """
     global _config_instance
     _config_instance = MetricsConfig(profile_id=profile_id)
     return _config_instance
 
 
-# ============================================================================
-# FORECAST CONFIGURATION CONSTANTS (Feature 009)
-# ============================================================================
+FORECAST_WEIGHTS_4_WEEK = [0.1, 0.2, 0.3, 0.4]
 
-# Forecast calculation weights (oldest to newest week)
-FORECAST_WEIGHTS_4_WEEK = [0.1, 0.2, 0.3, 0.4]  # 4-week weighted average
+FORECAST_MIN_WEEKS = 2
 
-# Minimum weeks required for forecast
-FORECAST_MIN_WEEKS = 2  # At least 2 weeks needed for baseline
+FORECAST_DECIMAL_PRECISION = 1
 
-# Decimal precision for forecast values
-FORECAST_DECIMAL_PRECISION = 1  # Round to 1 decimal place
+FORECAST_TREND_THRESHOLD = 0.10
 
-# Trend threshold for "on track" vs "above/below" status
-FORECAST_TREND_THRESHOLD = 0.10  # ±10% neutral zone
+FLOW_LOAD_RANGE_PERCENT = 0.20
 
-# Flow Load range percentage for WIP bounds
-FLOW_LOAD_RANGE_PERCENT = 0.20  # ±20% range
-
-# Metrics classification by direction (for trend interpretation)
 HIGHER_BETTER_METRICS = [
     "flow_velocity",
     "flow_efficiency",
@@ -560,6 +344,3 @@ LOWER_BETTER_METRICS = [
     "dora_change_failure_rate",
     "dora_mttr",
 ]
-
-# Flow Load is bidirectional (range-based, not point-based)
-# Too high OR too low is bad
