@@ -1,9 +1,3 @@
-"""Flow metrics visualization charts.
-
-Provides chart generation functions for Flow metrics including
-distribution pie chart and efficiency trend charts.
-"""
-
 from typing import Any
 
 import plotly.graph_objects as go
@@ -12,31 +6,22 @@ from .chart_config import get_consistent_colors, get_mobile_first_layout
 
 
 def create_flow_distribution_chart(distribution_data: dict[str, Any]) -> go.Figure:
-    """Create pie chart for Flow Distribution metric.
 
-    Args:
-        distribution_data: Flow distribution metric data with breakdown
-
-    Returns:
-        Plotly Figure with pie chart
-    """
     breakdown = distribution_data.get("distribution_breakdown", {})
 
     if not breakdown:
-        # Return empty chart with message
         return _create_empty_chart("No distribution data available")
 
-    # Extract data for chart
     labels = []
     values = []
     colors = []
     hover_text = []
 
     color_map = {
-        "Feature": "#198754",  # Green - growth/new capabilities
-        "Defect": "#dc3545",  # Red - problems/bugs
-        "Risk": "#ffc107",  # Yellow - caution/risk
-        "Technical_Debt": "#fd7e14",  # Orange - maintenance/technical work
+        "Feature": "#198754",
+        "Defect": "#dc3545",
+        "Risk": "#ffc107",
+        "Technical_Debt": "#fd7e14",
     }
 
     for work_type, data in breakdown.items():
@@ -51,7 +36,6 @@ def create_flow_distribution_chart(distribution_data: dict[str, Any]) -> go.Figu
         values.append(count)
         colors.append(color_map.get(work_type, "#6c757d"))
 
-        # Create hover text with range info
         range_status = "Within range" if within_range else "Outside range"
         hover_text.append(
             f"<b>{label}</b><br>"
@@ -61,7 +45,6 @@ def create_flow_distribution_chart(distribution_data: dict[str, Any]) -> go.Figu
             f"{range_status}"
         )
 
-    # Create pie chart
     fig = go.Figure(
         data=[
             go.Pie(
@@ -70,14 +53,12 @@ def create_flow_distribution_chart(distribution_data: dict[str, Any]) -> go.Figu
                 marker=dict(
                     colors=colors,
                     line=dict(
-                        # Add thicker border to out-of-range segments
-                        # for visual indicator
                         color=[
                             "#ffffff"
                             if breakdown.get(work_type.replace(" ", "_"), {}).get(
                                 "within_range", True
                             )
-                            else "#dc3545"  # Red border for out-of-range
+                            else "#dc3545"
                             for work_type in labels
                         ],
                         width=[
@@ -85,7 +66,7 @@ def create_flow_distribution_chart(distribution_data: dict[str, Any]) -> go.Figu
                             if breakdown.get(work_type.replace(" ", "_"), {}).get(
                                 "within_range", True
                             )
-                            else 4  # Thicker border for out-of-range
+                            else 4
                             for work_type in labels
                         ],
                     ),
@@ -98,9 +79,8 @@ def create_flow_distribution_chart(distribution_data: dict[str, Any]) -> go.Figu
         ]
     )
 
-    # Add annotations showing target ranges for each work type
     annotations = []
-    y_position = 1.15  # Start position above chart
+    y_position = 1.15
 
     for work_type, data in breakdown.items():
         recommended_min = data.get("recommended_min", 0)
@@ -126,7 +106,7 @@ def create_flow_distribution_chart(distribution_data: dict[str, Any]) -> go.Figu
                 borderpad=2,
             )
         )
-        y_position -= 0.06  # Move down for next annotation
+        y_position -= 0.06
 
     fig.update_layout(
         showlegend=True,
@@ -138,22 +118,15 @@ def create_flow_distribution_chart(distribution_data: dict[str, Any]) -> go.Figu
             x=0.5,
         ),
         annotations=annotations,
-        height=500,  # Increased height to accommodate target range annotations
-        margin=dict(t=60, b=80, l=40, r=40),  # Reduced top margin since no title
+        height=500,
+        margin=dict(t=60, b=80, l=40, r=40),
     )
 
     return fig
 
 
 def create_flow_velocity_trend_chart(trend_data: list[dict[str, Any]]) -> go.Figure:
-    """Create line chart for Flow Velocity trend over time.
 
-    Args:
-        trend_data: List of velocity measurements over time
-
-    Returns:
-        Plotly Figure with line chart
-    """
     if not trend_data:
         return _create_empty_chart("No trend data available")
 
@@ -169,20 +142,17 @@ def create_flow_velocity_trend_chart(trend_data: list[dict[str, Any]]) -> go.Fig
             y=values,
             mode="lines+markers",
             name="Flow Velocity",
-            line=dict(
-                color=colors["flow_velocity"], width=3
-            ),  # Use consistent color and width
+            line=dict(color=colors["flow_velocity"], width=3),
             marker=dict(size=6, color=colors["flow_velocity"]),
             hovertemplate="<b>%{x}</b><br>Velocity: %{y} items<extra></extra>",
         )
     )
 
-    # Use mobile-first layout for consistency with other charts
     layout = get_mobile_first_layout("Flow Velocity Trend")
     layout.update(
         {
-            "plot_bgcolor": "white",  # FORCE white plot area
-            "paper_bgcolor": "white",  # FORCE white outer area
+            "plot_bgcolor": "white",
+            "paper_bgcolor": "white",
         }
     )
 
@@ -193,18 +163,7 @@ def create_flow_velocity_trend_chart(trend_data: list[dict[str, Any]]) -> go.Fig
 def create_flow_efficiency_trend_chart(
     trend_data: list[dict[str, Any]], line_color: str | None = None
 ) -> go.Figure:
-    """Create line chart for Flow Efficiency trend over time.
 
-    Mobile-first design with clean presentation and immediate value.
-
-    Args:
-        trend_data: List of efficiency measurements over time
-        line_color: Optional hex color for the line
-            (default: uses config color or green)
-
-    Returns:
-        Plotly Figure with line chart and threshold zones
-    """
     if not trend_data:
         return _create_empty_chart("No trend data available")
 
@@ -212,19 +171,17 @@ def create_flow_efficiency_trend_chart(
     values = [item["value"] for item in trend_data]
     colors = get_consistent_colors()
 
-    # Use provided color or fall back to config color (green for efficiency)
     efficiency_color = line_color or colors["flow_efficiency"]
 
     fig = go.Figure()
 
-    # Add "Excellent" range zone (60%+) - minimal waiting, highly efficient
     fig.add_shape(
         type="rect",
         x0=dates[0] if dates else 0,
         x1=dates[-1] if dates else 1,
         y0=60,
         y1=100,
-        fillcolor="rgba(25, 135, 84, 0.20)",  # Darker green for excellent zone
+        fillcolor="rgba(25, 135, 84, 0.20)",
         line=dict(
             color="rgba(25, 135, 84, 0.5)",
             width=1,
@@ -233,14 +190,13 @@ def create_flow_efficiency_trend_chart(
         layer="below",
     )
 
-    # Add "Good" range zone (40-60%) - balanced flow with acceptable waiting
     fig.add_shape(
         type="rect",
         x0=dates[0] if dates else 0,
         x1=dates[-1] if dates else 1,
         y0=40,
         y1=60,
-        fillcolor="rgba(25, 135, 84, 0.10)",  # Light green for good zone
+        fillcolor="rgba(25, 135, 84, 0.10)",
         line=dict(
             color="rgba(25, 135, 84, 0.3)",
             width=1,
@@ -249,14 +205,13 @@ def create_flow_efficiency_trend_chart(
         layer="below",
     )
 
-    # Add "Fair" range zone (25-40%) - acceptable but high wait time
     fig.add_shape(
         type="rect",
         x0=dates[0] if dates else 0,
         x1=dates[-1] if dates else 1,
         y0=25,
         y1=40,
-        fillcolor="rgba(255, 193, 7, 0.10)",  # Yellow for fair zone
+        fillcolor="rgba(255, 193, 7, 0.10)",
         line=dict(
             color="rgba(255, 193, 7, 0.3)",
             width=1,
@@ -265,10 +220,9 @@ def create_flow_efficiency_trend_chart(
         layer="below",
     )
 
-    # Add annotation explaining the excellent range
     fig.add_annotation(
-        x=dates[len(dates) // 2] if dates else 0.5,  # Middle of chart
-        y=75,  # Middle of 60-100% range
+        x=dates[len(dates) // 2] if dates else 0.5,
+        y=75,
         text="Excellent (60%+)",
         showarrow=False,
         font=dict(size=10, color="rgba(25, 135, 84, 0.9)"),
@@ -276,10 +230,9 @@ def create_flow_efficiency_trend_chart(
         borderpad=4,
     )
 
-    # Add annotation for good range
     fig.add_annotation(
-        x=dates[len(dates) // 3] if dates else 0.33,  # Left third of chart
-        y=50,  # Middle of 40-60% range
+        x=dates[len(dates) // 3] if dates else 0.33,
+        y=50,
         text="Good (40-60%)",
         showarrow=False,
         font=dict(size=9, color="rgba(25, 135, 84, 0.7)"),
@@ -287,10 +240,9 @@ def create_flow_efficiency_trend_chart(
         borderpad=3,
     )
 
-    # Add annotation for fair range
     fig.add_annotation(
-        x=dates[2 * len(dates) // 3] if dates else 0.67,  # Right third of chart
-        y=32,  # Middle of 25-40% range
+        x=dates[2 * len(dates) // 3] if dates else 0.67,
+        y=32,
         text="Fair (25-40%)",
         showarrow=False,
         font=dict(size=9, color="rgba(255, 193, 7, 0.8)"),
@@ -298,10 +250,6 @@ def create_flow_efficiency_trend_chart(
         borderpad=3,
     )
 
-    # REMOVED: Performance zones create visual noise
-    # Clean design without distracting background zones
-
-    # Add efficiency line with dynamic color based on performance
     fig.add_trace(
         go.Scatter(
             x=dates,
@@ -314,15 +262,14 @@ def create_flow_efficiency_trend_chart(
         )
     )
 
-    # Use mobile-first layout with EXPLICIT white backgrounds
     layout = get_mobile_first_layout("Flow Efficiency Trend")
     layout.update(
         {
             "yaxis": {
                 "range": [0, max(100, max(values) + 10)] if values else [0, 100],
             },
-            "plot_bgcolor": "white",  # FORCE white plot area
-            "paper_bgcolor": "white",  # FORCE white outer area
+            "plot_bgcolor": "white",
+            "paper_bgcolor": "white",
         }
     )
 
@@ -331,16 +278,7 @@ def create_flow_efficiency_trend_chart(
 
 
 def create_flow_time_trend_chart(trend_data: list[dict[str, Any]]) -> go.Figure:
-    """Create line chart for Flow Time trend over time.
 
-    Mobile-first design with clean presentation and consistent colors.
-
-    Args:
-        trend_data: List of flow time measurements over time
-
-    Returns:
-        Plotly Figure with line chart
-    """
     if not trend_data:
         return _create_empty_chart("No trend data available")
 
@@ -362,12 +300,11 @@ def create_flow_time_trend_chart(trend_data: list[dict[str, Any]]) -> go.Figure:
         )
     )
 
-    # Use mobile-first layout
     layout = get_mobile_first_layout("Flow Time Trend")
     layout.update(
         {
-            "plot_bgcolor": "white",  # FORCE white plot area
-            "paper_bgcolor": "white",  # FORCE white outer area
+            "plot_bgcolor": "white",
+            "paper_bgcolor": "white",
         }
     )
 
@@ -378,25 +315,9 @@ def create_flow_time_trend_chart(trend_data: list[dict[str, Any]]) -> go.Figure:
 def create_flow_load_trend_chart(
     trend_data: list[dict[str, Any]],
     wip_thresholds: dict[str, Any] | None = None,
-    line_color: str = "#6f42c1",  # Default purple, but accept dynamic color
+    line_color: str = "#6f42c1",
 ) -> go.Figure:
-    """Create line chart for Flow Load (WIP) trend over time with threshold lines.
 
-    Args:
-        trend_data: List of WIP count measurements over time
-        wip_thresholds: Dictionary with threshold values from Little's Law calculation
-            {
-                "healthy": float,
-                "warning": float,
-                "high": float,
-                "critical": float,
-                "method": str
-            }
-        line_color: Color for the main trend line (dynamic based on performance tier)
-
-    Returns:
-        Plotly Figure with line chart and threshold lines
-    """
     if not trend_data:
         return _create_empty_chart("No trend data available")
 
@@ -405,25 +326,19 @@ def create_flow_load_trend_chart(
 
     fig = go.Figure()
 
-    # Add main WIP trend line with dynamic color
     fig.add_trace(
         go.Scatter(
             x=dates,
             y=values,
             mode="lines+markers",
             name="Flow Load (WIP)",
-            line=dict(color=line_color, width=3),  # Use dynamic tier-based color
+            line=dict(color=line_color, width=3),
             marker=dict(size=6, color=line_color),
             hovertemplate="<b>%{x}</b><br>WIP Count: %{y} items<extra></extra>",
         )
     )
 
-    # Add threshold lines if available
     if wip_thresholds and "healthy" in wip_thresholds:
-        # Create hover traces for threshold lines (invisible but hoverable)
-        # This allows users to see threshold values on hover
-
-        # Healthy threshold (green zone upper limit)
         fig.add_trace(
             go.Scatter(
                 x=dates,
@@ -440,7 +355,6 @@ def create_flow_load_trend_chart(
             )
         )
 
-        # Warning threshold (yellow zone upper limit)
         fig.add_trace(
             go.Scatter(
                 x=dates,
@@ -457,7 +371,6 @@ def create_flow_load_trend_chart(
             )
         )
 
-        # High threshold (orange zone upper limit)
         fig.add_trace(
             go.Scatter(
                 x=dates,
@@ -474,7 +387,6 @@ def create_flow_load_trend_chart(
             )
         )
 
-        # Critical threshold (red zone starts here)
         fig.add_trace(
             go.Scatter(
                 x=dates,
@@ -491,12 +403,11 @@ def create_flow_load_trend_chart(
             )
         )
 
-    # Use mobile-first layout for consistency
     layout = get_mobile_first_layout("Flow Load (Work in Progress) Trend")
     layout.update(
         {
-            "plot_bgcolor": "white",  # FORCE white plot area
-            "paper_bgcolor": "white",  # FORCE white outer area
+            "plot_bgcolor": "white",
+            "paper_bgcolor": "white",
         }
     )
 
@@ -505,14 +416,7 @@ def create_flow_load_trend_chart(
 
 
 def _create_empty_chart(message: str) -> go.Figure:
-    """Create an empty chart with a message.
 
-    Args:
-        message: Message to display
-
-    Returns:
-        Empty Plotly Figure with annotation
-    """
     fig = go.Figure()
 
     fig.add_annotation(

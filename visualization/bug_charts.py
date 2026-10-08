@@ -1,16 +1,3 @@
-"""
-Bug Analysis Chart Module
-
-Re-export shim: preserves the original public API while delegating
-implementation to the focused sub-modules:
-  - visualization.bug_charts_trend        (mobile helpers + trend chart)
-  - visualization.bug_charts_distribution (investment/distribution chart)
-  - visualization.bug_charts_forecast     (forecast chart)
-"""
-
-#######################################################################
-# RE-EXPORTS
-#######################################################################
 from visualization.bug_charts_distribution import (  # noqa: F401
     create_bug_investment_chart,
 )

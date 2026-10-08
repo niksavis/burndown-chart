@@ -1,9 +1,3 @@
-"""Weekly 4-week ahead forecast chart for items (story count).
-
-Renders historical bars plus PERT optimistic/most-likely/pessimistic
-forecast bars for the next 4 weeks.
-"""
-
 from datetime import timedelta
 
 import pandas as pd
@@ -18,23 +12,7 @@ from visualization.helpers import fill_missing_weeks
 def create_weekly_items_forecast_chart(
     statistics_data, pert_factor=3, date_range_weeks=12, data_points_count=None
 ):
-    """
-    Create a chart showing weekly completed items with a 4-week forecast.
 
-    Args:
-        statistics_data: List of dictionaries containing statistics data
-        pert_factor: Number of data points to use for optimistic/pessimistic scenarios
-        date_range_weeks: Number of weeks of historical data to display
-            (default: 12 weeks)
-        data_points_count: Number of data points to use for calculations
-            (default: None, uses all data)
-
-    Returns:
-        Plotly figure object with the weekly items forecast chart
-    """
-    # CRITICAL FIX: Apply data points filtering by DATE RANGE, not row count
-    # data_points_count represents WEEKS, not rows. With sparse data,
-    # filtering by row count gives incorrect results.
     filtered_statistics_data = statistics_data
     if data_points_count is not None and data_points_count > 0:
         if isinstance(statistics_data, list):
@@ -64,10 +42,8 @@ def create_weekly_items_forecast_chart(
                 cutoff_date = latest_date - timedelta(weeks=data_points_count)
                 filtered_statistics_data = df_temp[df_temp["date"] >= cutoff_date]
 
-    # Create DataFrame from filtered statistics data
     df = pd.DataFrame(filtered_statistics_data).copy()
     if df.empty:
-        # Return empty figure if no data
         fig = go.Figure()
         fig.update_layout(
             title="Weekly Items Forecast (No Data Available)",
@@ -76,12 +52,9 @@ def create_weekly_items_forecast_chart(
         )
         return fig
 
-    # Convert date to datetime and ensure proper format
     df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
 
-    # Always filter by date range for better visualization
-    # Ensure date_range_weeks is not None and is a positive number
-    weeks = 12  # Default to 12 weeks
+    weeks = 12
     if (
         date_range_weeks is not None
         and isinstance(date_range_weeks, (int, float))
@@ -93,23 +66,18 @@ def create_weekly_items_forecast_chart(
     start_date = latest_date - timedelta(weeks=weeks)
     df = df[df["date"] >= start_date]
 
-    # Add week and year columns for grouping
     df["week"] = df["date"].dt.isocalendar().week
     df["year"] = df["date"].dt.year
-    # Use vectorized string formatting to avoid DataFrame return issues
     df["year_week"] = (
         df["year"].astype(str) + "-W" + df["week"].astype(str).str.zfill(2)
     )
 
-    # Aggregate by week
     weekly_df = (
         df.groupby("year_week")
         .agg(items=("completed_items", "sum"), start_date=("date", "min"))
         .reset_index()
     )
 
-    # Fill in missing weeks with zeros to show complete time range
-    # Use date range from aggregated data to respect data_points_count filtering
     if not weekly_df.empty:
         weekly_start = weekly_df["start_date"].min()
         weekly_end = weekly_df["start_date"].max()
@@ -117,30 +85,24 @@ def create_weekly_items_forecast_chart(
     else:
         weekly_df = fill_missing_weeks(weekly_df, start_date, latest_date, ["items"])
 
-    # Sort by date
     weekly_df = weekly_df.sort_values("start_date")
 
-    # Ensure start_date is datetime for type safety
     weekly_df["start_date"] = pd.to_datetime(
         weekly_df["start_date"], format="mixed", errors="coerce"
     )
 
-    # Format date for display using ISO week format (2026-W07)
     weekly_df["week_label"] = (
         weekly_df["start_date"].dt.isocalendar().year.astype(str)  # type: ignore[attr-defined]
         + "-W"
         + weekly_df["start_date"].dt.isocalendar().week.astype(str).str.zfill(2)  # type: ignore[attr-defined]
     )
 
-    # Generate forecast data using filtered statistics data
     forecast_data = generate_weekly_forecast(
         filtered_statistics_data, pert_factor, data_points_count=data_points_count
     )
 
-    # Create the figure
     fig = go.Figure()
 
-    # Add historical data as bar chart
     fig.add_trace(
         go.Bar(
             x=weekly_df["week_label"],
@@ -161,15 +123,13 @@ def create_weekly_items_forecast_chart(
         )
     )
 
-    # Add forecast data if available
     if forecast_data["items"]["dates"]:
-        # Most likely forecast
         fig.add_trace(
             go.Bar(
                 x=forecast_data["items"]["dates"],
                 y=forecast_data["items"]["most_likely"],
                 marker_color=COLOR_PALETTE["items"],
-                marker_pattern_shape="x",  # Add pattern to distinguish forecast
+                marker_pattern_shape="x",
                 opacity=0.7,
                 name="Most Likely Forecast",
                 text=[round(val, 1) for val in forecast_data["items"]["most_likely"]],
@@ -182,13 +142,12 @@ def create_weekly_items_forecast_chart(
             )
         )
 
-        # Optimistic forecast
         fig.add_trace(
             go.Bar(
                 x=forecast_data["items"]["dates"],
                 y=forecast_data["items"]["optimistic"],
                 marker_color=COLOR_PALETTE["optimistic"],
-                marker_pattern_shape="x",  # Add pattern to distinguish forecast
+                marker_pattern_shape="x",
                 opacity=0.6,
                 name="Optimistic Forecast",
                 text=[round(val, 1) for val in forecast_data["items"]["optimistic"]],
@@ -201,13 +160,12 @@ def create_weekly_items_forecast_chart(
             )
         )
 
-        # Pessimistic forecast
         fig.add_trace(
             go.Bar(
                 x=forecast_data["items"]["dates"],
                 y=forecast_data["items"]["pessimistic"],
                 marker_color=COLOR_PALETTE["pessimistic"],
-                marker_pattern_shape="x",  # Add pattern to distinguish forecast
+                marker_pattern_shape="x",
                 opacity=0.6,
                 name="Pessimistic Forecast",
                 text=[round(val, 1) for val in forecast_data["items"]["pessimistic"]],
@@ -220,18 +178,15 @@ def create_weekly_items_forecast_chart(
             )
         )
 
-    # Add vertical line between historical and forecast data
     if weekly_df["week_label"].any() and forecast_data["items"]["dates"]:
         fig.add_vline(
-            x=len(weekly_df["week_label"])
-            - 0.5,  # Position between last historical and first forecast
+            x=len(weekly_df["week_label"]) - 0.5,
             line_dash="dash",
             line_color="rgba(0, 0, 0, 0.5)",
             annotation_text="Forecast starts",
             annotation_position="top",
         )
 
-    # Update layout with grid lines, styling, and forecast explanation
     fig.update_layout(
         title="Weekly Items Forecast (Next 4 Weeks)",
         xaxis_title="Week Starting",
@@ -253,7 +208,7 @@ def create_weekly_items_forecast_chart(
         annotations=[
             dict(
                 x=0.5,
-                y=-0.25,  # Adjusted from -0.3 to -0.25
+                y=-0.25,
                 xref="paper",
                 yref="paper",
                 text=(
@@ -278,7 +233,7 @@ def create_weekly_items_forecast_chart(
                 bgcolor="rgba(250, 250, 250, 0.8)",
             )
         ],
-        margin=dict(b=70),  # Reduced from 100 to 70
+        margin=dict(b=70),
     )
 
     return fig

@@ -1,14 +1,3 @@
-"""Sprint Burnup Chart Visualization.
-
-Creates a Plotly line chart showing:
-1. Cumulative completed points (green, solid)
-2. Total sprint scope (blue, solid, can fluctuate with adds/removes)
-3. Ideal completion line (gray, dashed, diagonal from 0 to final scope)
-4. Sprint start/end date markers
-
-Used in Sprint Progress Tracker tab to visualize commitment vs actual delivery.
-"""
-
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
@@ -30,51 +19,22 @@ def create_sprint_burnup_chart(
     height: int = 400,
     show_points: bool = True,
 ) -> go.Figure:
-    """Create sprint burnup chart with dual y-axis (items + points).
 
-    Pattern: Always show items on left y-axis. Conditionally show points on right y-axis
-    when show_points=True. This matches the "Forecast Based On Historical Data" burndown
-    chart behavior for consistency.
-
-    Args:
-        daily_snapshots: List of daily sprint metrics from sprint_snapshot_calculator
-            Each snapshot: {
-                "date": "2026-02-03",
-                "completed_points": 15,
-                "total_scope": 45,
-                "completed_count": 5,
-                "total_count": 10,
-                "status_breakdown": {...}
-            }
-        sprint_name: Sprint name for title
-        sprint_start_date: ISO format sprint start date (for markers)
-        sprint_end_date: ISO format sprint end date (for markers)
-        height: Chart height in pixels
-        show_points: If True, show both items and points; if False, show items only
-
-    Returns:
-        Plotly Figure with burnup chart (dual y-axis when points available)
-    """
     if not daily_snapshots:
         return _create_empty_chart("No sprint data available")
 
-    # Extract data series - always get both items and points
     dates = [snapshot["date"] for snapshot in daily_snapshots]
 
-    # Items data (always shown on left y-axis)
     completed_items = [
         snapshot.get("completed_count", 0) for snapshot in daily_snapshots
     ]
     total_items = [snapshot.get("total_count", 0) for snapshot in daily_snapshots]
 
-    # Points data (conditionally shown on right y-axis)
     completed_points = [snapshot["completed_points"] for snapshot in daily_snapshots]
     total_points = [snapshot["total_scope"] for snapshot in daily_snapshots]
 
-    # Check if we have meaningful points data
     has_points_data = any(p > 0 for p in completed_points + total_points)
 
-    # Calculate ideal lines for both metrics
     final_items = total_items[-1] if total_items else 0
     final_points = total_points[-1] if total_points else 0
 
@@ -88,12 +48,8 @@ def create_sprint_burnup_chart(
         for i in range(len(dates))
     ]
 
-    # Create figure
     fig = go.Figure()
 
-    # === LEFT Y-AXIS (Items) - Always shown ===
-
-    # Ideal progress (items) - background reference line
     fig.add_trace(
         go.Scatter(
             x=dates,
@@ -114,7 +70,6 @@ def create_sprint_burnup_chart(
         )
     )
 
-    # Total scope (items) - commitment line
     fig.add_trace(
         go.Scatter(
             x=dates,
@@ -136,7 +91,6 @@ def create_sprint_burnup_chart(
         )
     )
 
-    # Completed (items) - actual delivery line
     fig.add_trace(
         go.Scatter(
             x=dates,
@@ -167,10 +121,7 @@ def create_sprint_burnup_chart(
         )
     )
 
-    # === RIGHT Y-AXIS (Points) - Conditionally shown ===
-
     if show_points and has_points_data:
-        # Ideal progress (points) - background reference line
         fig.add_trace(
             go.Scatter(
                 x=dates,
@@ -191,7 +142,6 @@ def create_sprint_burnup_chart(
             )
         )
 
-        # Total scope (points) - commitment line
         fig.add_trace(
             go.Scatter(
                 x=dates,
@@ -213,7 +163,6 @@ def create_sprint_burnup_chart(
             )
         )
 
-        # Completed (points) - actual delivery line
         fig.add_trace(
             go.Scatter(
                 x=dates,
@@ -248,17 +197,14 @@ def create_sprint_burnup_chart(
             )
         )
 
-    # Add sprint start/end date markers if provided
     if sprint_start_date and sprint_end_date:
         try:
-            # Parse dates
             start_dt = datetime.fromisoformat(sprint_start_date.replace("Z", "+00:00"))
             end_dt = datetime.fromisoformat(sprint_end_date.replace("Z", "+00:00"))
 
             start_str = start_dt.date().isoformat()
             end_str = end_dt.date().isoformat()
 
-            # Add vertical lines for sprint boundaries
             if start_str in dates:
                 max_y = max(total_items) * 1.1 if total_items else 100
 
@@ -295,7 +241,6 @@ def create_sprint_burnup_chart(
         except (ValueError, AttributeError) as e:
             logger.warning(f"Failed to add sprint date markers: {e}")
 
-    # Configure layout with dual y-axis (like burndown chart)
     layout_config = {
         "title": f"{sprint_name} - Burnup Chart",
         "xaxis": dict(
@@ -327,11 +272,10 @@ def create_sprint_burnup_chart(
         "template": "plotly_white",
     }
 
-    # Add right y-axis for points if shown
     if show_points and has_points_data:
         layout_config["yaxis2"] = dict(
             title="Story Points",
-            showgrid=False,  # Don't draw grid on chart area (avoid overlap)
+            showgrid=False,
             rangemode="tozero",
             overlaying="y",
             side="right",
@@ -343,14 +287,7 @@ def create_sprint_burnup_chart(
 
 
 def _create_empty_chart(message: str = "No data available") -> go.Figure:
-    """Create empty chart with message.
 
-    Args:
-        message: Message to display
-
-    Returns:
-        Empty Plotly figure
-    """
     fig = go.Figure()
 
     fig.add_annotation(

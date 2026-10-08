@@ -1,10 +1,3 @@
-"""Forecast chart trace builders.
-
-Creates all Plotly scatter traces for the cumulative forecast chart:
-historical items/points, forecast lines (avg/EWMA/optimistic/pessimistic).
-Part of visualization/forecast_chart.py split.
-"""
-
 import plotly.graph_objects as go
 
 from configuration import COLOR_PALETTE
@@ -14,26 +7,13 @@ from utils.chart_tooltip_utils import create_hoverlabel_config, format_hover_tem
 def create_plot_traces(
     forecast_data, show_forecast=True, forecast_visibility=True, show_points=True
 ):
-    """
-    Create all the traces for the plot.
 
-    Args:
-        forecast_data: Dictionary of forecast data from prepare_forecast_data
-        show_forecast: Whether to show forecast lines (default: True)
-        forecast_visibility: Visibility mode for forecast traces
-            - True, False, or "legendonly" (default: "legendonly")
-        show_points: Whether points tracking is enabled (default: True)
-
-    Returns:
-        List of traces for Plotly figure
-    """
     df_calc = forecast_data["df_calc"]
     items_forecasts = forecast_data["items_forecasts"]
     points_forecasts = forecast_data["points_forecasts"]
 
     traces = []
 
-    # Historical items trace - enhanced markers
     traces.append(
         {
             "data": go.Scatter(
@@ -62,17 +42,14 @@ def create_plot_traces(
         }
     )
 
-    # Items forecast traces - improved line visibility
     traces.append(
         {
             "data": go.Scatter(
                 x=items_forecasts["avg"][0],
                 y=items_forecasts["avg"][1],
-                mode="lines+markers",  # Added markers for better visibility
+                mode="lines+markers",
                 name="Items Forecast (Most Likely)",
-                line=dict(
-                    color=COLOR_PALETTE["items"], dash="dash", width=3
-                ),  # Increased width
+                line=dict(color=COLOR_PALETTE["items"], dash="dash", width=3),
                 marker=dict(
                     size=8,
                     symbol="diamond",
@@ -129,7 +106,7 @@ def create_plot_traces(
             "data": go.Scatter(
                 x=items_forecasts["opt"][0],
                 y=items_forecasts["opt"][1],
-                mode="lines+markers",  # Added markers
+                mode="lines+markers",
                 name="Items Forecast (Optimistic)",
                 line=dict(color=COLOR_PALETTE["optimistic"], dash="dot", width=2.5),
                 marker=dict(
@@ -158,7 +135,7 @@ def create_plot_traces(
             "data": go.Scatter(
                 x=items_forecasts["pes"][0],
                 y=items_forecasts["pes"][1],
-                mode="lines+markers",  # Added markers
+                mode="lines+markers",
                 name="Items Forecast (Pessimistic)",
                 line=dict(color=COLOR_PALETTE["pessimistic"], dash="dot", width=2.5),
                 marker=dict(
@@ -182,9 +159,7 @@ def create_plot_traces(
         }
     )
 
-    # Only add points traces if points tracking is enabled
     if show_points:
-        # Historical points trace - enhanced markers
         traces.append(
             {
                 "data": go.Scatter(
@@ -213,17 +188,14 @@ def create_plot_traces(
             }
         )
 
-        # Points forecast traces - improving visibility
         traces.append(
             {
                 "data": go.Scatter(
                     x=points_forecasts["avg"][0],
                     y=points_forecasts["avg"][1],
-                    mode="lines+markers",  # Added markers
+                    mode="lines+markers",
                     name="Points Forecast (Most Likely)",
-                    line=dict(
-                        color=COLOR_PALETTE["points"], dash="dash", width=3
-                    ),  # Increased width
+                    line=dict(color=COLOR_PALETTE["points"], dash="dash", width=3),
                     marker=dict(
                         size=8,
                         symbol="diamond",
@@ -275,21 +247,18 @@ def create_plot_traces(
                 }
             )
 
-        # Use gold color for optimistic points forecast (matching info card description)
         traces.append(
             {
                 "data": go.Scatter(
                     x=points_forecasts["opt"][0],
                     y=points_forecasts["opt"][1],
-                    mode="lines+markers",  # Added markers
+                    mode="lines+markers",
                     name="Points Forecast (Optimistic)",
-                    line=dict(
-                        color="rgb(184, 134, 11)", dash="dot", width=2.5
-                    ),  # Gold color for optimistic points
+                    line=dict(color="rgb(184, 134, 11)", dash="dot", width=2.5),
                     marker=dict(
                         size=7,
                         symbol="triangle-up",
-                        color="rgb(184, 134, 11)",  # Gold color for marker
+                        color="rgb(184, 134, 11)",
                         line=dict(color="white", width=1),
                     ),
                     visible=True,
@@ -307,22 +276,18 @@ def create_plot_traces(
             }
         )
 
-        # Use brown color for pessimistic points forecast
-        # (matching info card description)
         traces.append(
             {
                 "data": go.Scatter(
                     x=points_forecasts["pes"][0],
                     y=points_forecasts["pes"][1],
-                    mode="lines+markers",  # Added markers
+                    mode="lines+markers",
                     name="Points Forecast (Pessimistic)",
-                    line=dict(
-                        color="rgb(165, 42, 42)", dash="dot", width=2.5
-                    ),  # Brown color for pessimistic points
+                    line=dict(color="rgb(165, 42, 42)", dash="dot", width=2.5),
                     marker=dict(
                         size=7,
                         symbol="triangle-down",
-                        color="rgb(165, 42, 42)",  # Brown color for marker
+                        color="rgb(165, 42, 42)",
                         line=dict(color="white", width=1),
                     ),
                     visible=True,

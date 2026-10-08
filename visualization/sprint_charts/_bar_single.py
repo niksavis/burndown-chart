@@ -1,5 +1,3 @@
-"""Single-status bar builders for sprint issues with no status history."""
-
 from datetime import datetime
 
 from dash import html
@@ -26,37 +24,15 @@ def _create_single_status_bar(
     is_removed: bool = False,
     is_initial: bool = False,
 ):
-    """Create a single-color progress bar for issues with no history.
 
-    Args:
-        issue_key: JIRA issue key
-        summary: Issue summary
-        status: Current status
-        points: Story points
-        show_points: Whether to show points
-        flow_start_statuses: Start statuses
-        flow_wip_statuses: WIP statuses
-        flow_end_statuses: End statuses
-        issue_type: Issue type (Bug, Task, Story, etc.)
-        sprint_start: Sprint start datetime
-        sprint_end: Sprint end datetime
-        now: Current datetime
-        is_added: Whether issue was added to sprint after it started
-        is_removed: Whether issue was removed from sprint
-        is_initial: Whether issue was present at sprint start
-    """
-    # Get issue type icon and color
     icon_class, icon_color = _get_issue_type_icon(issue_type)
 
-    # Use dynamic color based on flow configuration
     color = _get_status_color(
         status, flow_start_statuses, flow_wip_statuses, flow_end_statuses
     )
 
-    # Truncate long summaries
     display_summary = summary[:80] + "..." if len(summary) > 80 else summary
 
-    # Create sprint scope change indicator (circular icon before issue type icon)
     scope_indicator = None
     if is_added:
         scope_indicator = html.Span(
@@ -64,7 +40,7 @@ def _create_single_status_bar(
                 html.I(
                     className="fa-solid fa-circle-plus",
                     style={
-                        "color": "#28a745",  # Green (bg-success)
+                        "color": "#28a745",
                         "fontSize": "0.9rem",
                         "marginRight": "6px",
                     },
@@ -78,7 +54,7 @@ def _create_single_status_bar(
                 html.I(
                     className="fa-solid fa-circle-minus",
                     style={
-                        "color": "#dc3545",  # Red (bg-danger)
+                        "color": "#dc3545",
                         "fontSize": "0.9rem",
                         "marginRight": "6px",
                     },
@@ -92,8 +68,8 @@ def _create_single_status_bar(
                 html.I(
                     className="fa-solid fa-circle-dot",
                     style={
-                        "color": "#6c757d",  # Gray (bg-secondary)
-                        "fontSize": "0.9rem",  # Same size as plus/minus icons
+                        "color": "#6c757d",
+                        "fontSize": "0.9rem",
                         "marginRight": "6px",
                         "opacity": "0.7",
                     },
@@ -112,35 +88,28 @@ def _create_single_status_bar(
         else None
     )
 
-    # Calculate elapsed and remaining time as % of sprint duration
     if sprint_start and sprint_end and now:
         sprint_duration_seconds = (sprint_end - sprint_start).total_seconds()
         elapsed_seconds = (now - sprint_start).total_seconds()
 
-        # Clamp elapsed time between 0 and sprint duration
         elapsed_seconds = max(0, min(elapsed_seconds, sprint_duration_seconds))
 
         elapsed_pct = (elapsed_seconds / sprint_duration_seconds) * 100
         remaining_pct = 100 - elapsed_pct
 
-        # Format duration for tooltip
         elapsed_days = elapsed_seconds / 86400
         if elapsed_days >= 1:
             duration_str = f"{elapsed_days:.1f}d"
         else:
             duration_str = f"{elapsed_seconds / 3600:.1f}h"
     else:
-        # Fallback: show full bar if no sprint dates
         elapsed_pct = 100
         remaining_pct = 0
         duration_str = "unknown"
 
-    # Build segments
     segments = []
 
-    # Elapsed time segment (colored)
     if elapsed_pct > 0:
-        # Show percentage if segment is large enough (> 4% of sprint)
         percentage_text = f"{elapsed_pct:.0f}%" if elapsed_pct > 4 else ""
 
         segments.append(
@@ -164,7 +133,6 @@ def _create_single_status_bar(
             )
         )
 
-    # Remaining time segment (light gray)
     if remaining_pct > 0:
         segments.append(
             html.Div(
@@ -179,10 +147,9 @@ def _create_single_status_bar(
 
     return html.Div(
         [
-            # Issue header
             html.Div(
                 [
-                    scope_indicator,  # Scope change indicator (before issue type)
+                    scope_indicator,
                     html.I(
                         className=f"fas {icon_class} me-2",
                         style={
@@ -205,7 +172,6 @@ def _create_single_status_bar(
                 ],
                 className="mb-1",
             ),
-            # Progress bar with timeline scaling
             html.Div(
                 html.Div(
                     segments,
@@ -235,8 +201,6 @@ def _create_simple_html_bars(
     sprint_end: datetime | None = None,
     now: datetime | None = None,
 ):
-    """Fallback HTML bars when no changelog available."""
-    # Default flow states if not provided
     if flow_start_statuses is None:
         flow_start_statuses = ["To Do", "Backlog", "Open"]
     if flow_wip_statuses is None:
@@ -244,18 +208,16 @@ def _create_simple_html_bars(
     if flow_end_statuses is None:
         flow_end_statuses = ["Done", "Closed", "Resolved"]
 
-    # Sort issues: non-completed first, completed last, then by issue key descending
     def simple_sort_key(issue_key):
         state = issue_states[issue_key]
         status = state.get("status", "Unknown")
         is_completed = 1 if status in flow_end_statuses else 0
 
-        # Extract numeric part from issue key for proper sorting
         try:
             parts = issue_key.split("-")
             if len(parts) > 1:
                 numeric_part = int(parts[-1])
-                return (is_completed, -numeric_part)  # Negative for descending
+                return (is_completed, -numeric_part)
         except ValueError, AttributeError:
             pass
         return (is_completed, issue_key)
@@ -284,13 +246,12 @@ def _create_simple_html_bars(
                 sprint_start=sprint_start,
                 sprint_end=sprint_end,
                 now=now,
-                is_added=False,  # Snapshots don't show scope changes
+                is_added=False,
                 is_removed=False,
                 is_initial=False,
             )
         )
 
-    # Return just bars (title added by callback)
     return html.Div(
         bars,
         className="p-3",

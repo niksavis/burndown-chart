@@ -1,8 +1,3 @@
-"""Flow Work Distribution chart visualization.
-
-Creates stacked bar chart showing distribution of work across Flow item types over time.
-"""
-
 from typing import Any
 
 import plotly.graph_objects as go
@@ -11,49 +6,37 @@ import plotly.graph_objects as go
 def create_work_distribution_chart(
     distribution_history: list[dict[str, Any]],
 ) -> go.Figure:
-    """Create stacked bar chart showing work distribution over time.
 
-    Args:
-        distribution_history: List of weekly distribution data
-            [{"week": "2025-W34", "feature": 5, "defect": 3,
-            "tech_debt": 2, "risk": 0, "total": 10}, ...]
-
-    Returns:
-        Plotly Figure with stacked bar chart
-    """
     fig = go.Figure()
 
-    # Colors: slightly more vibrant and brighter for better visibility
-    # Using brighter RGB values with 0.65 opacity for good balance
     trace_configs = [
         (
             "Feature",
             "feature",
             "rgba(24, 128, 80, 0.65)",
             "40-60%",
-        ),  # Brighter green
+        ),
         (
             "Defect",
             "defect",
             "rgba(210, 50, 65, 0.65)",
             "20-40%",
-        ),  # Brighter red
+        ),
         (
             "Tech Debt",
             "tech_debt",
             "rgba(245, 120, 19, 0.65)",
             "10-20%",
-        ),  # Brighter orange
+        ),
         (
             "Risk",
             "risk",
             "rgba(245, 185, 7, 0.65)",
             "0-10%",
-        ),  # Brighter yellow
+        ),
     ]
 
     for trace_name, field_key, color, target_range in trace_configs:
-        # Calculate percentages for hover
         percentages = []
         counts = []
         for week_data in distribution_history:
@@ -82,9 +65,8 @@ def create_work_distribution_chart(
         )
 
     fig.update_layout(
-        # No title - removed for cleaner look
         barmode="stack",
-        bargap=0.05,  # Minimal gap to make bars wider with less white space
+        bargap=0.05,
         hovermode="x unified",
         height=400,
         legend=dict(
@@ -104,13 +86,13 @@ def create_work_distribution_chart(
             gridcolor="rgba(0,0,0,0.05)",
             tickangle=45,
             tickfont=dict(size=9),
-            title=None,  # No x-axis label
+            title=None,
         ),
         yaxis=dict(
             showgrid=True,
             gridcolor="rgba(0,0,0,0.05)",
             range=[0, 100],
-            title=None,  # No y-axis label
+            title=None,
         ),
     )
 

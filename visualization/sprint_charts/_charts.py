@@ -1,5 +1,3 @@
-"""Sprint chart builders: timeline, status pie, summary card, and empty placeholder."""
-
 import plotly.graph_objects as go
 
 from configuration import COLOR_PALETTE
@@ -8,7 +6,6 @@ from ._status import STATUS_COLORS
 
 
 def _create_empty_sprint_chart(message: str) -> go.Figure:
-    """Create empty placeholder chart."""
     fig = go.Figure()
     fig.add_annotation(
         text=message,
@@ -30,27 +27,12 @@ def _create_empty_sprint_chart(message: str) -> go.Figure:
 
 
 def create_sprint_timeline_chart(sprint_changes: dict) -> go.Figure:
-    """Create timeline visualization showing sprint composition changes.
 
-    Args:
-        sprint_changes: Dict with 'added', 'removed', 'moved_in', 'moved_out' lists
-
-    Returns:
-        Plotly Figure (empty placeholder for now)
-    """
-    # TODO: Implement sprint timeline chart
     return _create_empty_sprint_chart("Sprint timeline chart (coming soon)")
 
 
 def create_status_distribution_pie(progress_data: dict) -> go.Figure:
-    """Create pie chart showing status distribution.
 
-    Args:
-        progress_data: Dict with status counts
-
-    Returns:
-        Plotly Figure with pie chart
-    """
     status_counts = progress_data.get("status_counts", {})
 
     if not status_counts:
@@ -92,16 +74,7 @@ def create_status_distribution_pie(progress_data: dict) -> go.Figure:
 def create_sprint_summary_card(
     progress_data: dict, show_points: bool, flow_wip_statuses: list[str]
 ) -> dict:
-    """Create summary card data for sprint.
 
-    Args:
-        progress_data: Sprint progress metrics
-        show_points: Whether to show story points
-        flow_wip_statuses: List of WIP status names
-
-    Returns:
-        Dict with summary metrics
-    """
     return {
         "total_issues": progress_data.get("total_issues", 0),
         "completed": progress_data.get("completed_issues", 0),

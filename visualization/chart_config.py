@@ -1,27 +1,13 @@
-"""Shared chart configuration utilities for consistent mobile-first design.
-
-Provides standardized chart configurations that follow mobile-first principles
-from the Copilot instructions for immediate value delivery.
-"""
-
 from datetime import datetime
 from typing import Any
 
 
 def get_mobile_first_config() -> dict[str, Any]:
-    """Get mobile-first chart configuration for trend charts.
 
-    Removes plotly tools and provides clean, immediate-value presentation.
-    Follows mobile-first principles from Copilot instructions.
-    AGGRESSIVELY removes all plotly toolbars for clean UX.
-
-    Returns:
-        Dictionary with plotly config options
-    """
     return {
-        "displayModeBar": False,  # CRITICAL: Completely remove plotly toolbar
-        "staticPlot": False,  # Allow hover but no other interactions
-        "responsive": True,  # Mobile-responsive scaling
+        "displayModeBar": False,
+        "staticPlot": False,
+        "responsive": True,
         "toImageButtonOptions": {
             "format": "png",
             "filename": f"chart_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
@@ -29,7 +15,7 @@ def get_mobile_first_config() -> dict[str, Any]:
             "width": 700,
             "scale": 1,
         },
-        "displaylogo": False,  # Remove plotly logo
+        "displaylogo": False,
         "modeBarButtonsToRemove": [
             "zoom2d",
             "pan2d",
@@ -59,51 +45,37 @@ def get_mobile_first_config() -> dict[str, Any]:
             "toggleHover",
             "resetViews",
         ],
-        "scrollZoom": False,  # Disable scroll zoom
-        "doubleClick": False,  # Disable double-click interactions
-        "showTips": False,  # Disable tips
-        "showAxisDragHandles": False,  # Disable drag handles
-        "showAxisRangeEntryBoxes": False,  # Disable range entry
-        "editable": False,  # Make chart read-only
+        "scrollZoom": False,
+        "doubleClick": False,
+        "showTips": False,
+        "showAxisDragHandles": False,
+        "showAxisRangeEntryBoxes": False,
+        "editable": False,
     }
 
 
 def get_mobile_first_layout(
     title: str, height: int = 300, show_performance_zones: bool = False
 ) -> dict[str, Any]:
-    """Get mobile-first layout configuration for trend charts.
 
-    Provides consistent layout that works well on mobile and desktop.
-    ENSURES clean white background with no titles or axis labels.
-
-    Args:
-        title: Chart title (unused - kept for compatibility)
-        height: Chart height in pixels
-        show_performance_zones: Whether this chart should show DORA performance zones
-
-    Returns:
-        Dictionary with plotly layout options
-    """
     return {
         "height": height,
-        "margin": dict(
-            l=50, r=20, t=10, b=50
-        ),  # Consistent bottom margin for date labels
-        "plot_bgcolor": "white",  # CRITICAL: Clean white plot area
-        "paper_bgcolor": "white",  # CRITICAL: Clean white outer background
+        "margin": dict(l=50, r=20, t=10, b=50),
+        "plot_bgcolor": "white",
+        "paper_bgcolor": "white",
         "hovermode": "x unified",
-        "showlegend": False,  # Cleaner for trend charts
+        "showlegend": False,
         "font": {"size": 12},
         "xaxis": {
-            "title": "",  # No axis title
+            "title": "",
             "showgrid": True,
             "gridwidth": 1,
             "gridcolor": "rgba(0,0,0,0.1)",
             "tickfont": {"size": 10},
-            "tickangle": 45,  # Consistent 45° rotation (right tilt)
+            "tickangle": 45,
         },
         "yaxis": {
-            "title": "",  # No axis title
+            "title": "",
             "showgrid": True,
             "gridwidth": 1,
             "gridcolor": "rgba(0,0,0,0.1)",
@@ -113,16 +85,7 @@ def get_mobile_first_layout(
 
 
 def get_performance_zones(metric_name: str) -> list[dict[str, Any]]:
-    """Get DORA performance zones for specific metrics.
 
-    Returns zone definitions for Elite/High/Medium/Low performance tiers.
-
-    Args:
-        metric_name: Name of the DORA metric
-
-    Returns:
-        List of zone dictionaries with y0, y1, color, and label
-    """
     zones = {
         "deployment_frequency": [
             {
@@ -234,25 +197,18 @@ def get_performance_zones(metric_name: str) -> list[dict[str, Any]]:
 
 
 def get_consistent_colors() -> dict[str, str]:
-    """Get consistent color scheme across all charts.
 
-    Returns:
-        Dictionary mapping metric names to colors
-    """
     return {
-        # DORA Metrics
-        "deployment_frequency": "#0d6efd",  # Blue
-        "lead_time_for_changes": "#198754",  # Green
-        "change_failure_rate": "#dc3545",  # Red
-        "mttr": "#fd7e14",  # Orange
-        # Flow Metrics - using distinct colors based on metric meaning
-        "flow_velocity": "#6f42c1",  # Purple
-        "flow_time": "#6f42c1",  # Purple
-        "flow_efficiency": "#198754",  # Green (higher is better - positive metric)
-        "flow_load": "#6f42c1",  # Purple
-        # Work Types
-        "feature": "#198754",  # Green
-        "defect": "#dc3545",  # Red
-        "tech_debt": "#fd7e14",  # Orange
-        "risk": "#ffc107",  # Yellow
+        "deployment_frequency": "#0d6efd",
+        "lead_time_for_changes": "#198754",
+        "change_failure_rate": "#dc3545",
+        "mttr": "#fd7e14",
+        "flow_velocity": "#6f42c1",
+        "flow_time": "#6f42c1",
+        "flow_efficiency": "#198754",
+        "flow_load": "#6f42c1",
+        "feature": "#198754",
+        "defect": "#dc3545",
+        "tech_debt": "#fd7e14",
+        "risk": "#ffc107",
     }

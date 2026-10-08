@@ -1,5 +1,3 @@
-"""Main sprint progress bars orchestrator and sprint header builder."""
-
 import logging
 from datetime import UTC, datetime
 
@@ -23,25 +21,11 @@ def _build_sprint_progress_info(
     scope_changes: dict | None,
     sprint_data: dict,
 ) -> html.Div:
-    """Build the sprint progress header with TODAY indicator and scope change badges.
 
-    Args:
-        sprint_start: Sprint start datetime
-        sprint_end: Sprint end datetime
-        sprint_duration_seconds: Total sprint duration in seconds
-        now: Current datetime
-        sprint_state: Sprint state (ACTIVE/CLOSED/FUTURE)
-        scope_changes: Dict with added/removed/net_change counts
-        sprint_data: Full sprint data dict (for issue_states count)
-
-    Returns:
-        html.Div with sprint progress header
-    """
     elapsed_time = (now - sprint_start).total_seconds()
     raw_progress_pct = (elapsed_time / sprint_duration_seconds) * 100
     time_progress_pct = max(0.0, min(100.0, raw_progress_pct))
 
-    # Determine time text based on sprint state
     if sprint_state == "CLOSED":
         sprint_duration_days = (sprint_end - sprint_start).total_seconds() / 86400
         time_text = f"(Lasted {sprint_duration_days:.1f} days)"
@@ -97,7 +81,6 @@ def _build_sprint_progress_info(
             ],
             style={"marginBottom": "8px"},
         ),
-        # Today marker is hidden for FUTURE sprints.
         html.Div(
             [
                 html.Div(
@@ -122,14 +105,12 @@ def _build_sprint_progress_info(
         ),
     ]
 
-    # Add scope changes badges if provided
     if scope_changes:
         badges = []
         added_count = scope_changes.get("added", 0)
         removed_count = scope_changes.get("removed", 0)
         net_change = scope_changes.get("net_change", 0)
 
-        # Calculate initial issue count (issues present at sprint start)
         total_issues = len(sprint_data.get("issue_states", {}))
         initial_issues = total_issues - net_change
 
@@ -276,31 +257,7 @@ def create_sprint_progress_bars(
     sprint_state: str | None = None,
     scope_changes: dict | None = None,
 ) -> html.Div:
-    """Create HTML progress bars showing time proportion spent in each status.
 
-    Each bar represents one issue with colored segments showing the PERCENTAGE
-    of time the issue spent in each status (like a pie chart spread horizontally).
-
-    Example: Issue spent 30% in To Do, 50% in Progress, 20% in Done
-    Bar shows: [Gray 30%][Blue 50%][Green 20%]
-
-    Args:
-        sprint_data: Sprint snapshot from sprint_manager.get_sprint_snapshots()
-        changelog_entries: Status change history (REQUIRED for time calculation)
-        show_points: Whether to show story points
-        sprint_start_date: Sprint start date (ISO format)
-        sprint_end_date: Sprint end date (ISO format)
-        flow_start_statuses: List of start statuses
-        flow_wip_statuses: List of WIP statuses
-        flow_end_statuses: List of end statuses
-        sprint_changes: Dict with added/removed/moved_in/moved_out issue lists
-        sprint_state: Sprint state (ACTIVE/CLOSED/FUTURE)
-        scope_changes: Dict with added/removed/net_change counts for badges
-
-    Returns:
-        Dash HTML component with styled progress bars
-    """
-    # Default flow states if not provided or empty
     if not flow_start_statuses:
         flow_start_statuses = ["To Do", "Backlog", "Open"]
     if not flow_wip_statuses:
@@ -308,7 +265,6 @@ def create_sprint_progress_bars(
     if not flow_end_statuses:
         flow_end_statuses = ["Done", "Closed", "Resolved"]
 
-    # Create sets for quick lookup of added/removed issues
     added_issues: set = set()
     removed_issues: set = set()
     if sprint_changes:
@@ -327,7 +283,6 @@ def create_sprint_progress_bars(
     if not changelog_entries:
         logger.warning("No status changelog - showing current status only")
 
-        # Parse sprint dates even for simple bars
         sprint_start = None
         sprint_end = None
         now = datetime.now(UTC)
@@ -356,7 +311,6 @@ def create_sprint_progress_bars(
             now=now,
         )
 
-    # Parse sprint dates to calculate sprint duration
     sprint_duration_seconds = None
     sprint_start = None
     sprint_end = None
@@ -373,7 +327,6 @@ def create_sprint_progress_bars(
             if sprint_end.tzinfo is None:
                 sprint_end = sprint_end.replace(tzinfo=UTC)
 
-        # Calculate sprint duration
         if sprint_start and sprint_end:
             sprint_duration_seconds = (sprint_end - sprint_start).total_seconds()
             logger.info(
@@ -382,13 +335,12 @@ def create_sprint_progress_bars(
             )
         else:
             logger.warning("Sprint dates not provided - using default 14 days")
-            sprint_duration_seconds = 14 * 86400  # Default 14 days
+            sprint_duration_seconds = 14 * 86400
 
     except (ValueError, AttributeError) as e:
         logger.error(f"Failed to parse sprint dates: {e}")
-        sprint_duration_seconds = 14 * 86400  # Default 14 days
+        sprint_duration_seconds = 14 * 86400
 
-    # Build HTML progress bars for each issue sorted by health priority
     issue_keys = _sort_issues_by_health_priority(
         issue_states,
         changelog_entries,
@@ -406,7 +358,7 @@ def create_sprint_progress_bars(
     )
 
     progress_bars = []
-    all_time_segments = []  # Collect all segments for legend
+    all_time_segments = []
 
     for issue_key in issue_keys:
         state = issue_states[issue_key]
@@ -428,7 +380,6 @@ def create_sprint_progress_bars(
         progress_bars.append(bar)
         all_time_segments.extend(time_segments)
 
-    # Create legend if we have time segments
     legend = None
     if all_time_segments:
         legend = _create_status_legend(
@@ -436,10 +387,9 @@ def create_sprint_progress_bars(
             flow_start_statuses,
             flow_wip_statuses,
             flow_end_statuses,
-            changelog_entries,  # Pass changelog for position analysis
+            changelog_entries,
         )
 
-    # Add sprint progress indicator
     sprint_progress_info = None
     if sprint_start and sprint_end:
         sprint_progress_info = _build_sprint_progress_info(
@@ -452,7 +402,6 @@ def create_sprint_progress_bars(
             sprint_data,
         )
 
-    # Return sprint progress + legend + progress bars (title added by callback)
     content = []
     if sprint_progress_info:
         content.append(sprint_progress_info)

@@ -1,19 +1,3 @@
-"""
-Visualization Package
-
-This package provides chart creation and visualization utilities.
-"""
-
-#######################################################################
-# IMPORTS
-#######################################################################
-# Standard library imports
-# None
-
-# Third-party library imports
-# None
-
-# Application imports
 from visualization.data_preparation import (
     generate_burndown_forecast,
     identify_significant_scope_growth,
@@ -47,20 +31,16 @@ from visualization.weekly_chart_points_forecast import (
     create_weekly_points_forecast_chart,  # noqa: F401
 )
 
-# Define public API
 __all__ = [
-    # Chart creation functions
     "create_forecast_plot",
     "create_weekly_items_chart",
     "create_weekly_points_chart",
     "create_weekly_items_forecast_chart",
     "create_weekly_points_forecast_chart",
-    # Element creation functions
     "create_historical_trace",
     "create_forecast_trace",
     "add_deadline_marker",
     "create_empty_figure",
-    # Helper functions
     "fill_missing_weeks",
     "safe_numeric_convert",
     "parse_deadline_milestone",
@@ -69,7 +49,6 @@ __all__ = [
     "prepare_metrics_data",
     "format_hover_template_fix",
     "handle_forecast_error",
-    # Data preparation functions
     "identify_significant_scope_growth",
     "generate_burndown_forecast",
     "prepare_visualization_data",

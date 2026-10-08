@@ -1,48 +1,38 @@
-"""Status color mapping and legend utilities for sprint progress bars."""
-
 from dash import html
 
 from configuration import COLOR_PALETTE
 
-# Status color mapping (fallback only - prefer dynamic mapping from flow config)
 STATUS_COLORS = {
-    "To Do": "#6c757d",  # Gray (start state)
-    "Backlog": "#6c757d",  # Gray (start state)
-    "Open": "#6c757d",  # Gray (start state)
-    "Analysis": "#0dcaf0",  # Cyan (WIP)
-    "In Progress": "#0d6efd",  # Blue (WIP)
-    "In Review": "#9b59b6",  # Purple (WIP)
-    "Code Review": "#9b59b6",  # Purple (WIP)
-    "Ready for Testing": "#f39c12",  # Amber (WIP)
-    "Testing": "#e67e22",  # Orange (WIP)
-    "In Deployment": "#d63384",  # Magenta/Pink (WIP - distinct from green Done)
-    "Done": "#28a745",  # Green (end state)
-    "Closed": "#28a745",  # Green (end state)
-    "Resolved": "#28a745",  # Green (end state)
+    "To Do": "#6c757d",
+    "Backlog": "#6c757d",
+    "Open": "#6c757d",
+    "Analysis": "#0dcaf0",
+    "In Progress": "#0d6efd",
+    "In Review": "#9b59b6",
+    "Code Review": "#9b59b6",
+    "Ready for Testing": "#f39c12",
+    "Testing": "#e67e22",
+    "In Deployment": "#d63384",
+    "Done": "#28a745",
+    "Closed": "#28a745",
+    "Resolved": "#28a745",
 }
 
 
 def _get_issue_type_icon(issue_type: str) -> tuple:
-    """Get Font Awesome icon and color for issue type.
 
-    Args:
-        issue_type: Issue type (Bug, Task, Story, etc.)
-
-    Returns:
-        Tuple of (icon_class, color_hex)
-    """
     issue_type_lower = issue_type.lower()
 
     if "bug" in issue_type_lower or "defect" in issue_type_lower:
-        return ("fa-bug", "#dc3545")  # Red for bugs
+        return ("fa-bug", "#dc3545")
     elif "task" in issue_type_lower or "sub-task" in issue_type_lower:
-        return ("fa-tasks", "#0d6efd")  # Blue for tasks
+        return ("fa-tasks", "#0d6efd")
     elif "story" in issue_type_lower or "user story" in issue_type_lower:
-        return ("fa-book", "#198754")  # Green for stories
+        return ("fa-book", "#198754")
     elif "epic" in issue_type_lower:
-        return ("fa-flag", "#6f42c1")  # Purple for epics
+        return ("fa-flag", "#6f42c1")
     else:
-        return ("fa-circle", "#6c757d")  # Gray circle for unknown
+        return ("fa-circle", "#6c757d")
 
 
 def _get_status_color(
@@ -51,40 +41,26 @@ def _get_status_color(
     flow_wip_statuses: list[str],
     flow_end_statuses: list[str],
 ) -> str:
-    """Get color for a status based on flow configuration.
 
-    Args:
-        status: Status name
-        flow_start_statuses: Start statuses from flow config (e.g., To Do)
-        flow_wip_statuses: WIP statuses from flow config (e.g., In Progress)
-        flow_end_statuses: End statuses from flow config (e.g., Done)
-
-    Returns:
-        Hex color code
-    """
-    # Flow config takes priority to match calculate_sprint_progress categorization
     if status in flow_end_statuses:
-        return COLOR_PALETTE["success"]  # Green for done states
+        return COLOR_PALETTE["success"]
     elif status in flow_wip_statuses:
-        # Cycle through distinct WIP colors (never green or gray)
         wip_colors = [
-            "#0d6efd",  # Blue
-            "#9b59b6",  # Purple
-            "#f39c12",  # Amber
-            "#e67e22",  # Orange
-            "#0dcaf0",  # Cyan
-            "#d63384",  # Magenta/Pink
+            "#0d6efd",
+            "#9b59b6",
+            "#f39c12",
+            "#e67e22",
+            "#0dcaf0",
+            "#d63384",
         ]
         wip_index = flow_wip_statuses.index(status) % len(wip_colors)
         return wip_colors[wip_index]
     elif status in flow_start_statuses:
-        return "#6c757d"  # Gray for start states
+        return "#6c757d"
 
-    # Fall back to STATUS_COLORS for statuses not in any configured flow list
     if status in STATUS_COLORS:
         return STATUS_COLORS[status]
 
-    # Final fallback
     return COLOR_PALETTE["secondary"]
 
 
@@ -95,60 +71,37 @@ def _create_status_legend(
     flow_end_statuses: list[str],
     changelog_entries: list[dict] | None = None,
 ) -> html.Div:
-    """Create a legend showing all statuses ordered by their position in workflow.
 
-    Uses actual changelog data to determine natural status order by calculating
-    the average position each status appears in issue lifecycles.
-
-    Args:
-        time_segments: List of time segments with status information
-        flow_start_statuses: Start statuses from flow config
-        flow_wip_statuses: WIP statuses from flow config
-        flow_end_statuses: End statuses from flow config
-        changelog_entries: Status change history for position analysis
-
-    Returns:
-        Dash HTML component with legend items
-    """
-    # Get unique statuses from all time segments
     unique_statuses = set([seg["status"] for seg in time_segments])
 
-    # Build status order using flow configuration:
-    # Start -> WIP -> End, with remaining alphabetically
     statuses = []
     seen = set()
 
-    # Ensure flow lists are not None
     start_statuses = flow_start_statuses or []
     wip_statuses = flow_wip_statuses or []
     end_statuses = flow_end_statuses or []
 
-    # Common start statuses that should always come first (if present)
     common_start = ["To Do", "Backlog", "Open", "New", "Selected for Development"]
     for status in common_start:
         if status in unique_statuses and status not in seen:
             statuses.append(status)
             seen.add(status)
 
-    # Add start statuses first
     for status in start_statuses:
         if status in unique_statuses and status not in seen:
             statuses.append(status)
             seen.add(status)
 
-    # Add WIP statuses next
     for status in wip_statuses:
         if status in unique_statuses and status not in seen:
             statuses.append(status)
             seen.add(status)
 
-    # Add end statuses last
     for status in end_statuses:
         if status in unique_statuses and status not in seen:
             statuses.append(status)
             seen.add(status)
 
-    # Add remaining statuses alphabetically (but exclude common end statuses for now)
     common_end = ["Done", "Closed", "Resolved", "Cancelled", "Rejected"]
     remaining = sorted(
         [s for s in unique_statuses if s not in seen and s not in common_end]
@@ -156,13 +109,11 @@ def _create_status_legend(
     statuses.extend(remaining)
     seen.update(remaining)
 
-    # Common end statuses always go last (if present)
     for status in common_end:
         if status in unique_statuses and status not in seen:
             statuses.append(status)
             seen.add(status)
 
-    # Build legend items
     legend_items = []
     for status in statuses:
         color = _get_status_color(

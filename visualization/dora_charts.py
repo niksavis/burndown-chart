@@ -1,8 +1,3 @@
-"""DORA metrics visualization charts.
-
-Provides chart generation functions for DORA metrics visualization.
-"""
-
 from datetime import datetime
 from typing import Any
 
@@ -12,18 +7,9 @@ import plotly.graph_objects as go
 def create_deployment_frequency_chart(
     metric_data: dict[str, Any], historical_data: list[dict[str, Any]] | None = None
 ) -> go.Figure:
-    """Create deployment frequency visualization chart.
 
-    Args:
-        metric_data: Current metric data with value and performance tier
-        historical_data: Optional historical data for trend line
-
-    Returns:
-        Plotly figure object
-    """
     fig = go.Figure()
 
-    # If historical data provided, show trend
     if historical_data:
         dates = [datetime.fromisoformat(d["date"]) for d in historical_data]
         values = [d["value"] for d in historical_data]
@@ -39,7 +25,6 @@ def create_deployment_frequency_chart(
             )
         )
     else:
-        # Show current value as single point
         current_value = metric_data.get("value", 0)
         fig.add_trace(
             go.Bar(
@@ -50,7 +35,6 @@ def create_deployment_frequency_chart(
             )
         )
 
-    # Add performance tier benchmark lines
     metric_data.get("performance_tier_color", "grey")
     tier_name = metric_data.get("performance_tier", "Unknown")
 
@@ -69,15 +53,7 @@ def create_deployment_frequency_chart(
 def create_lead_time_chart(
     metric_data: dict[str, Any], historical_data: list[dict[str, Any]] | None = None
 ) -> go.Figure:
-    """Create lead time for changes visualization chart.
 
-    Args:
-        metric_data: Current metric data with value and performance tier
-        historical_data: Optional historical data for trend line
-
-    Returns:
-        Plotly figure object
-    """
     fig = go.Figure()
 
     if historical_data:
@@ -122,15 +98,7 @@ def create_lead_time_chart(
 def create_change_failure_rate_chart(
     metric_data: dict[str, Any], historical_data: list[dict[str, Any]] | None = None
 ) -> go.Figure:
-    """Create change failure rate visualization chart.
 
-    Args:
-        metric_data: Current metric data with value and performance tier
-        historical_data: Optional historical data for trend line
-
-    Returns:
-        Plotly figure object
-    """
     fig = go.Figure()
 
     if historical_data:
@@ -175,15 +143,7 @@ def create_change_failure_rate_chart(
 def create_mttr_chart(
     metric_data: dict[str, Any], historical_data: list[dict[str, Any]] | None = None
 ) -> go.Figure:
-    """Create mean time to recovery visualization chart.
 
-    Args:
-        metric_data: Current metric data with value and performance tier
-        historical_data: Optional historical data for trend line
-
-    Returns:
-        Plotly figure object
-    """
     fig = go.Figure()
 
     if historical_data:
@@ -226,15 +186,7 @@ def create_mttr_chart(
 
 
 def create_dora_summary_chart(metrics_data: dict[str, dict[str, Any]]) -> go.Figure:
-    """Create a summary radar chart showing all four DORA metrics.
 
-    Args:
-        metrics_data: Dictionary containing all four DORA metrics
-
-    Returns:
-        Plotly figure object with radar chart
-    """
-    # Extract performance tier scores (Elite=4, High=3, Medium=2, Low=1)
     tier_scores = {
         "Elite": 4,
         "High": 3,
@@ -289,32 +241,11 @@ def create_dora_summary_chart(metrics_data: dict[str, dict[str, Any]]) -> go.Fig
     return fig
 
 
-# ============================================================================
-# Trend Chart Functions (Phase 7 - User Story 5)
-# ============================================================================
-
-
 def create_deployment_frequency_trend(
     trend_data: list[dict[str, Any]], metric_data: dict[str, Any]
 ) -> go.Figure:
-    """Create deployment frequency trend chart over time.
 
-    Includes separate deployment and release lines.
-
-    T054: Trend visualization for Deployment Frequency metric.
-
-    Args:
-        trend_data: List of historical data points with date,
-            value (deployments), and release_value (releases)
-            [{"date": "2025-01-01", "value": 30.5, "release_value": 15.2}, ...]
-        metric_data: Current metric metadata (tier, benchmarks)
-
-    Returns:
-        Plotly figure with dual trend lines
-        (deployments and releases) and benchmark zones
-    """
     if not trend_data or len(trend_data) == 0:
-        # Return empty figure with message
         fig = go.Figure()
         fig.add_annotation(
             text="No historical data available for trend analysis",
@@ -332,14 +263,12 @@ def create_deployment_frequency_trend(
         )
         return fig
 
-    # Parse dates, deployment values, and release values
     dates = [datetime.fromisoformat(d["date"]) for d in trend_data]
     deployment_values = [d["value"] for d in trend_data]
     release_values = [d.get("release_value", 0) for d in trend_data]
 
     fig = go.Figure()
 
-    # Add deployment trend line (primary - operational tasks)
     fig.add_trace(
         go.Scatter(
             x=dates,
@@ -354,7 +283,6 @@ def create_deployment_frequency_trend(
         )
     )
 
-    # Add release trend line (secondary - unique fixVersions)
     fig.add_trace(
         go.Scatter(
             x=dates,
@@ -369,8 +297,6 @@ def create_deployment_frequency_trend(
         )
     )
 
-    # Add benchmark zones as horizontal lines (based on deployments)
-    # Elite: > 30/month, High: 4-30/month, Medium: 1-4/month, Low: < 1/month
     benchmark_lines = [
         {"value": 30, "name": "Elite", "color": "rgba(40, 167, 69, 0.2)"},
         {"value": 4, "name": "High", "color": "rgba(255, 193, 7, 0.2)"},
@@ -409,17 +335,7 @@ def create_deployment_frequency_trend(
 def create_lead_time_trend(
     trend_data: list[dict[str, Any]], metric_data: dict[str, Any]
 ) -> go.Figure:
-    """Create lead time for changes trend chart over time.
 
-    T054: Trend visualization for Lead Time metric.
-
-    Args:
-        trend_data: List of historical data points with date and value
-        metric_data: Current metric metadata (tier, benchmarks)
-
-    Returns:
-        Plotly figure with trend line and benchmark zones
-    """
     if not trend_data or len(trend_data) == 0:
         fig = go.Figure()
         fig.add_annotation(
@@ -443,7 +359,6 @@ def create_lead_time_trend(
 
     fig = go.Figure()
 
-    # Add trend line
     fig.add_trace(
         go.Scatter(
             x=dates,
@@ -458,8 +373,6 @@ def create_lead_time_trend(
         )
     )
 
-    # Add benchmark zones
-    # Elite: < 1 day, High: 1-7 days, Medium: 7-30 days, Low: > 30 days
     benchmark_lines = [
         {"value": 1, "name": "Elite", "color": "rgba(40, 167, 69, 0.2)"},
         {"value": 7, "name": "High", "color": "rgba(255, 193, 7, 0.2)"},

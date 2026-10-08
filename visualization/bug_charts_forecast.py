@@ -1,45 +1,15 @@
-"""
-Bug Charts Forecast Module
-
-Bug resolution forecast chart with confidence intervals showing
-optimistic, most-likely, and pessimistic completion scenarios.
-"""
-
-#######################################################################
-# IMPORTS
-#######################################################################
-# Standard library imports
 from typing import Any
 
-# Third-party library imports
 import plotly.graph_objects as go
-
-#######################################################################
-# BUG FORECAST CHART
-#######################################################################
 
 
 def create_bug_forecast_chart(
     forecast: dict[str, Any], viewport_size: str = "mobile"
 ) -> go.Figure:
-    """
-    Create bug resolution forecast chart with confidence intervals.
 
-    Implements T098: Mobile-optimized forecast visualization showing
-    optimistic/most_likely/pessimistic completion estimates.
-
-    Args:
-        forecast: Bug forecast dictionary from forecast_bug_resolution()
-        viewport_size: "mobile", "tablet", or "desktop"
-
-    Returns:
-        Plotly figure with forecast timeline and confidence intervals
-    """
     fig = go.Figure()
 
-    # Check if forecast is valid
     if forecast.get("insufficient_data") or forecast.get("most_likely_weeks") is None:
-        # Show empty state with message
         fig.add_annotation(
             text=(
                 "Insufficient data to generate forecast<br>"
@@ -62,7 +32,6 @@ def create_bug_forecast_chart(
         )
         return fig
 
-    # Extract forecast data
     optimistic_weeks = forecast["optimistic_weeks"]
     most_likely_weeks = forecast["most_likely_weeks"]
     pessimistic_weeks = forecast["pessimistic_weeks"]
@@ -71,13 +40,11 @@ def create_bug_forecast_chart(
     most_likely_date = forecast.get("most_likely_date")
     pessimistic_date = forecast.get("pessimistic_date")
 
-    # Create timeline data
     scenarios = ["Optimistic", "Most Likely", "Pessimistic"]
     weeks = [optimistic_weeks, most_likely_weeks, pessimistic_weeks]
     dates = [optimistic_date, most_likely_date, pessimistic_date]
     colors = ["#28a745", "#007bff", "#ffc107"]
 
-    # Add bar chart for weeks
     fig.add_trace(
         go.Bar(
             x=scenarios,
@@ -94,7 +61,6 @@ def create_bug_forecast_chart(
         )
     )
 
-    # Add confidence interval shading
     if pessimistic_weeks and optimistic_weeks:
         fig.add_shape(
             type="rect",
@@ -107,7 +73,6 @@ def create_bug_forecast_chart(
             layer="below",
         )
 
-    # Configure layout
     height = 350 if viewport_size == "mobile" else 450
     font_size = 11 if viewport_size == "mobile" else 13
 
@@ -146,7 +111,6 @@ def create_bug_forecast_chart(
         hovermode="x unified",
     )
 
-    # Add annotation for insufficient data warning if < 4 weeks
     if forecast.get("insufficient_data"):
         fig.add_annotation(
             text="[!] Limited data - forecast may be less accurate",

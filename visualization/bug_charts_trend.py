@@ -1,14 +1,3 @@
-"""
-Bug Charts Trend Module
-
-Mobile-optimized chart configuration helpers and the bug trend chart
-(creation vs resolution per week with forecast and warning highlights).
-"""
-
-#######################################################################
-# IMPORTS
-#######################################################################
-# Standard library imports
 from datetime import datetime
 from typing import Any
 
@@ -16,28 +5,13 @@ import plotly.graph_objects as go
 
 from data.bug_processing import generate_bug_weekly_forecast
 
-# Third-party library imports
-
-#######################################################################
-# MOBILE CHART CONFIGURATION HELPERS
-#######################################################################
-
 
 def get_mobile_chart_config(viewport_size: str = "mobile") -> dict[str, Any]:
-    """
-    Get mobile-optimized chart configuration.
 
-    Args:
-        viewport_size: "mobile", "tablet", or "desktop"
-
-    Returns:
-        Dictionary with mobile-optimized chart configuration
-    """
-    # Base configuration for all devices
     base_config = {
-        "displayModeBar": True,  # Always show toolbar for download PNG capability
+        "displayModeBar": True,
         "responsive": True,
-        "scrollZoom": True,  # Enable mobile-friendly zooming
+        "scrollZoom": True,
         "doubleClick": "reset+autosize",
         "showTips": True,
         "displaylogo": False,
@@ -49,7 +23,6 @@ def get_mobile_chart_config(viewport_size: str = "mobile") -> dict[str, Any]:
     }
 
     if viewport_size == "mobile":
-        # Mobile-specific configuration
         mobile_config = {
             **base_config,
             "modeBarButtonsToRemove": [
@@ -62,14 +35,13 @@ def get_mobile_chart_config(viewport_size: str = "mobile") -> dict[str, Any]:
                 "filename": (
                     f"burndown_chart_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                 ),
-                "height": 400,  # Smaller export size for mobile
-                "width": 600,  # Smaller export size for mobile
+                "height": 400,
+                "width": 600,
                 "scale": 2,
             },
         }
         return mobile_config
     elif viewport_size == "tablet":
-        # Tablet-specific configuration
         tablet_config = {
             **base_config,
             "modeBarButtonsToRemove": [
@@ -80,33 +52,24 @@ def get_mobile_chart_config(viewport_size: str = "mobile") -> dict[str, Any]:
         }
         return tablet_config
     else:
-        # Desktop configuration (full features)
         return base_config
 
 
 def get_mobile_chart_layout(viewport_size: str = "mobile") -> dict[str, Any]:
-    """
-    Get mobile-optimized chart layout configuration.
 
-    Args:
-        viewport_size: "mobile", "tablet", or "desktop"
-
-    Returns:
-        Dictionary with mobile-optimized layout configuration
-    """
     if viewport_size == "mobile":
         return {
             "margin": {
                 "t": 30,
                 "r": 15,
-                "b": 130,  # Increased for rotated labels + legend below
+                "b": 130,
                 "l": 50,
             },
-            "height": 450,  # Slightly taller to accommodate larger bottom margin
+            "height": 450,
             "legend": {
                 "orientation": "h",
                 "yanchor": "bottom",
-                "y": -0.35,  # Position legend further below to avoid x-axis overlap
+                "y": -0.35,
                 "xanchor": "center",
                 "x": 0.5,
                 "font": {"size": 10},
@@ -114,7 +77,7 @@ def get_mobile_chart_layout(viewport_size: str = "mobile") -> dict[str, Any]:
             "xaxis": {
                 "title": {"font": {"size": 10}},
                 "tickfont": {"size": 9},
-                "tickangle": 45,  # Rotate dates for better mobile fit (right tilt)
+                "tickangle": 45,
             },
             "yaxis": {"title": {"font": {"size": 10}}, "tickfont": {"size": 9}},
             "yaxis2": {"title": {"font": {"size": 10}}, "tickfont": {"size": 9}},
@@ -126,8 +89,8 @@ def get_mobile_chart_layout(viewport_size: str = "mobile") -> dict[str, Any]:
                 "r": 30,
                 "b": 70,
                 "l": 60,
-            },  # Increased for rotated labels
-            "height": 480,  # Slightly reduced to minimize white space
+            },
+            "height": 480,
             "legend": {
                 "orientation": "h",
                 "yanchor": "bottom",
@@ -137,15 +100,14 @@ def get_mobile_chart_layout(viewport_size: str = "mobile") -> dict[str, Any]:
             },
         }
     else:
-        # Desktop layout (existing default)
         return {
             "margin": {
                 "t": 80,
                 "r": 60,
                 "b": 80,
                 "l": 60,
-            },  # Increased bottom margin for rotated x-axis labels
-            "height": 550,  # Reduced from 700 to minimize white space
+            },
+            "height": 550,
             "legend": {
                 "orientation": "h",
                 "yanchor": "bottom",
@@ -157,16 +119,7 @@ def get_mobile_chart_layout(viewport_size: str = "mobile") -> dict[str, Any]:
 
 
 def get_mobile_hover_template(chart_type: str = "burndown") -> str:
-    """
-    Get mobile-optimized hover template for charts.
 
-    Args:
-        chart_type: Type of chart ("burndown", "items", "points", "scope")
-
-    Returns:
-        HTML string for hover template optimized for mobile
-    """
-    # Shorter, more concise hover templates for mobile
     templates = {
         "burndown": ("<b>%{x}</b><br>Items: %{y}<br><extra></extra>"),
         "items": ("<b>%{x}</b><br>Completed: %{y}<br><extra></extra>"),
@@ -180,36 +133,20 @@ def get_mobile_hover_template(chart_type: str = "burndown") -> str:
 def apply_mobile_chart_optimizations(
     fig, viewport_size: str = "mobile", chart_type: str = "burndown"
 ):
-    """
-    Apply mobile optimizations to an existing Plotly figure.
 
-    Args:
-        fig: Plotly figure object
-        viewport_size: "mobile", "tablet", or "desktop"
-        chart_type: Type of chart for hover template optimization
-
-    Returns:
-        Optimized Plotly figure
-    """
-    # Get mobile layout
     mobile_layout = get_mobile_chart_layout(viewport_size)
 
-    # Apply mobile layout
     fig.update_layout(**mobile_layout)
 
-    # Apply mobile-specific trace optimizations
     if viewport_size == "mobile":
-        # Optimize line widths for mobile
         fig.update_traces(
-            line_width=2,  # Slightly thicker lines for mobile visibility
-            marker_size=6,  # Larger markers for touch interaction
+            line_width=2,
+            marker_size=6,
         )
 
-        # Update hover templates for mobile
         mobile_template = get_mobile_hover_template(chart_type)
         fig.update_traces(hovertemplate=mobile_template)
 
-        # Optimize annotations for mobile
         fig.update_annotations(
             font_size=9,
             bgcolor="rgba(255,255,255,0.8)",
@@ -223,32 +160,14 @@ def apply_mobile_chart_optimizations(
 def create_mobile_optimized_chart(
     figure_data: dict, viewport_size: str = "mobile", chart_type: str = "burndown"
 ):
-    """
-    Create a mobile-optimized chart component.
 
-    Args:
-        figure_data: Plotly figure data dictionary
-        viewport_size: "mobile", "tablet", or "desktop"
-        chart_type: Type of chart for optimization
-
-    Returns:
-        Optimized figure data dictionary
-    """
-    # Apply mobile optimizations to the figure
     if hasattr(figure_data, "update_layout"):
-        # It's a figure object
         optimized_fig = apply_mobile_chart_optimizations(
             figure_data, viewport_size, chart_type
         )
         return optimized_fig
     else:
-        # It's figure data dictionary
-        return figure_data  # Return as-is if not a figure object
-
-
-#######################################################################
-# BUG TREND CHART
-#######################################################################
+        return figure_data
 
 
 def create_bug_trend_chart(
@@ -256,23 +175,8 @@ def create_bug_trend_chart(
     viewport_size: str = "mobile",
     include_forecast: bool = True,
 ) -> go.Figure:
-    """
-    Create bug trend chart showing bugs created vs resolved per week
-    with next week forecast.
 
-    Implements T037 - Bug trend visualization with mobile optimization.
-    Implements T037a - Visual warnings for 3+ consecutive weeks of negative trends.
-
-    Args:
-        weekly_stats: List of weekly bug statistics from calculate_bug_statistics()
-        viewport_size: "mobile", "tablet", or "desktop"
-        include_forecast: Whether to include next week forecast (default: True)
-
-    Returns:
-        Plotly Figure object with bug trend visualization
-    """
     if not weekly_stats:
-        # Return empty chart with message
         fig = go.Figure()
         fig.add_annotation(
             text="No bug data available for the selected period",
@@ -290,48 +194,42 @@ def create_bug_trend_chart(
         )
         return fig
 
-    # Extract data for plotting
     weeks = [stat["week"] for stat in weekly_stats]
     bugs_created = [stat["bugs_created"] for stat in weekly_stats]
     bugs_resolved = [stat["bugs_resolved"] for stat in weekly_stats]
 
-    # Create figure with two traces
     fig = go.Figure()
 
-    # Bugs created line (red/orange color)
     fig.add_trace(
         go.Scatter(
             x=weeks,
             y=bugs_created,
             name="Bugs Created",
             mode="lines+markers",
-            line=dict(color="#dc3545", width=2),  # Red color
+            line=dict(color="#dc3545", width=2),
             marker=dict(size=6),
             hovertemplate="<b>%{x}</b><br>Created: %{y}<extra></extra>",
         )
     )
 
-    # Bugs resolved line (green color)
     fig.add_trace(
         go.Scatter(
             x=weeks,
             y=bugs_resolved,
             name="Bugs Closed",
             mode="lines+markers",
-            line=dict(color="#28a745", width=2),  # Green color
+            line=dict(color="#28a745", width=2),
             marker=dict(size=6),
             hovertemplate="<b>%{x}</b><br>Closed: %{y}<extra></extra>",
         )
     )
 
-    # Add next week forecast if requested and have enough data
     if include_forecast and len(weekly_stats) >= 2:
         forecast = generate_bug_weekly_forecast(weekly_stats)
 
         if not forecast.get("insufficient_data", False):
             next_week = forecast["created"]["next_week"]
 
-            # Created forecast with error bars
             created_ml = forecast["created"]["most_likely"]
             created_upper = forecast["created"]["optimistic"] - created_ml
             created_lower = created_ml - forecast["created"]["pessimistic"]
@@ -367,7 +265,6 @@ def create_bug_trend_chart(
                 )
             )
 
-            # Resolved forecast with error bars
             resolved_ml = forecast["resolved"]["most_likely"]
             resolved_upper = forecast["resolved"]["optimistic"] - resolved_ml
             resolved_lower = resolved_ml - forecast["resolved"]["pessimistic"]
@@ -403,8 +300,6 @@ def create_bug_trend_chart(
                 )
             )
 
-            # Add vertical line between historical and forecast
-            # Style: use a more subtle dashed line with better visibility
             fig.add_vline(
                 x=len(weeks) - 0.5,
                 line_dash="dash",
@@ -412,9 +307,6 @@ def create_bug_trend_chart(
                 line_width=1.5,
             )
 
-            # Add forecast annotation in the plot area
-            # to avoid toolbar overlap
-            # Position at 85% height to ensure it doesn't interfere with plotly modebar
             fig.add_annotation(
                 x=len(weeks) - 0.5,
                 y=0.85,
@@ -431,7 +323,6 @@ def create_bug_trend_chart(
                 borderpad=4,
             )
 
-    # T037a: Add visual warnings for 3+ consecutive weeks where creation > closure
     warning_shapes = []
     consecutive_negative_weeks = 0
     warning_start_idx = None
@@ -442,9 +333,7 @@ def create_bug_trend_chart(
             if consecutive_negative_weeks == 1:
                 warning_start_idx = idx
         else:
-            # Check if we had 3+ consecutive negative weeks
             if consecutive_negative_weeks >= 3 and warning_start_idx is not None:
-                # Add background highlight for warning period
                 warning_shapes.append(
                     dict(
                         type="rect",
@@ -454,7 +343,6 @@ def create_bug_trend_chart(
                         x1=weeks[idx - 1],
                         y0=0,
                         y1=1,
-                        # Transparent red-orange for concern
                         fillcolor="rgba(255, 100, 0, 0.2)",
                         layer="below",
                         line_width=0,
@@ -463,7 +351,6 @@ def create_bug_trend_chart(
             consecutive_negative_weeks = 0
             warning_start_idx = None
 
-    # Check final period if it ends with warnings
     if consecutive_negative_weeks >= 3 and warning_start_idx is not None:
         warning_shapes.append(
             dict(
@@ -474,23 +361,18 @@ def create_bug_trend_chart(
                 x1=weeks[-1],
                 y0=0,
                 y1=1,
-                # Transparent red-orange for concern
                 fillcolor="rgba(255, 100, 0, 0.2)",
                 layer="below",
                 line_width=0,
             )
         )
 
-    # Configure layout
     layout_config = get_mobile_chart_layout(viewport_size)
 
-    # Remove xaxis/yaxis from layout_config to avoid conflicts
-    # (we'll set them explicitly)
     layout_config_clean = {
         k: v for k, v in layout_config.items() if k not in ["xaxis", "yaxis", "yaxis2"]
     }
 
-    # Ensure adequate top margin for plotly modebar (increased from defaults)
     if "margin" in layout_config_clean:
         layout_config_clean["margin"]["t"] = max(
             layout_config_clean["margin"].get("t", 50), 50
@@ -507,21 +389,18 @@ def create_bug_trend_chart(
             title="Bug Count",
             tickfont=dict(size=10 if viewport_size == "mobile" else 12),
         ),
-        shapes=warning_shapes,  # Add warning highlights
+        shapes=warning_shapes,
         hovermode="x unified",
         template="plotly_white",
         **layout_config_clean,
     )
 
-    # Add legend configuration - optimized positioning
     fig.update_layout(
         showlegend=True,
         legend=dict(
             orientation="h" if viewport_size == "mobile" else "v",
             yanchor="bottom",
-            y=-0.35
-            if viewport_size == "mobile"
-            else 0.5,  # Center vertically for desktop/tablet, further below for mobile
+            y=-0.35 if viewport_size == "mobile" else 0.5,
             xanchor="left" if viewport_size == "mobile" else "left",
             x=0 if viewport_size == "mobile" else 1.02,
             bgcolor="rgba(255,255,255,0.8)",

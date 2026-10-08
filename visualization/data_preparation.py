@@ -1,18 +1,6 @@
-"""
-Data Preparation Module
-
-This module contains functions for preparing and processing data
-for forecast visualizations including burndown/burnup charts.
-"""
-
-#######################################################################
-# IMPORTS
-#######################################################################
-# Standard library imports
 import logging
 from datetime import datetime, timedelta
 
-# Third-party library imports
 import pandas as pd
 
 from data.metrics.forecast_calculator import calculate_ewma_forecast
@@ -23,47 +11,27 @@ from data.processing import (
 )
 from utils.dataframe_utils import ensure_dataframe
 
-# Get logger
 logger = logging.getLogger(__name__)
 
 
-#######################################################################
-# SCOPE ANALYSIS FUNCTIONS
-#######################################################################
-
-
 def identify_significant_scope_growth(df, threshold_pct=10):
-    """
-    Identify periods with significant scope growth.
 
-    Args:
-        df: DataFrame with statistics data
-            including cum_scope_items and cum_scope_points
-        threshold_pct: Percentage threshold for significant growth (default: 10%)
-
-    Returns:
-        List of dictionaries with start_date and end_date
-        for periods of significant growth
-    """
     if df.empty:
         return []
 
     significant_periods = []
     current_period = None
 
-    # Calculate percentage changes
     df = df.copy().sort_values("date")
     df["items_pct_change"] = df["cum_scope_items"].pct_change() * 100
     df["points_pct_change"] = df["cum_scope_points"].pct_change() * 100
 
-    # Find periods with significant growth
     for _i, row in df.iterrows():
         if (
             row["items_pct_change"] > threshold_pct
             or row["points_pct_change"] > threshold_pct
         ):
             if current_period is None:
-                # Start a new significant period
                 current_period = {
                     "start_date": row["date"],
                     "end_date": row["date"],
@@ -75,7 +43,6 @@ def identify_significant_scope_growth(df, threshold_pct=10):
                     else 0,
                 }
             else:
-                # Extend the current period
                 current_period["end_date"] = row["date"]
                 if (
                     not pd.isna(row["items_pct_change"])
@@ -88,16 +55,13 @@ def identify_significant_scope_growth(df, threshold_pct=10):
                 ):
                     current_period["max_points_pct"] = row["points_pct_change"]
         else:
-            # End the current period if it exists
             if current_period is not None:
-                # Only include periods that span at least one day
                 if (
                     current_period["end_date"] - current_period["start_date"]
                 ).days >= 0:
                     significant_periods.append(current_period)
                 current_period = None
 
-    # Handle case where last row is part of a significant period
     if current_period is not None:
         current_period["end_date"] = current_period["end_date"] + pd.Timedelta(days=1)
         significant_periods.append(current_period)
@@ -105,44 +69,17 @@ def identify_significant_scope_growth(df, threshold_pct=10):
     return significant_periods
 
 
-#######################################################################
-# FORECAST GENERATION FUNCTIONS
-#######################################################################
-
-
 def generate_burndown_forecast(
     last_value, avg_rate, opt_rate, pes_rate, start_date, end_date
 ):
-    """
-    Generate burndown forecast with a fixed end date
-    to ensure consistency with burnup charts.
-    Includes strict performance optimizations:
-    2-year max horizon, 100 points per line max.
 
-    Args:
-        last_value: Current remaining value (items or points)
-        avg_rate: Average daily completion rate
-        opt_rate: Optimistic daily completion rate
-        pes_rate: Pessimistic daily completion rate
-        start_date: Start date for forecast
-        end_date: End date the forecast should reach (for alignment with burnup chart)
+    MAX_FORECAST_DAYS = 730
+    MAX_POINTS_PER_LINE = 100
 
-    Returns:
-        Dictionary containing forecasts for average,
-        optimistic, and pessimistic scenarios
-    """
-    # PERFORMANCE: Limit forecast to 2 years and max 100 points per line
-    # This prevents chart freezing with thousands of data points
-    MAX_FORECAST_DAYS = 730  # 2 years maximum
-    MAX_POINTS_PER_LINE = 100  # Maximum data points per forecast line
-
-    # Calculate days between start and end
     days_span = (end_date - start_date).days
     if days_span <= 0:
-        # If end date is same as or before start date, use 1 day
         days_span = 1
 
-    # Calculate days needed for each rate to reach zero, but cap at max
     days_to_zero_avg = min(
         MAX_FORECAST_DAYS,
         int(last_value / avg_rate) if avg_rate > 0.001 else days_span * 2,
@@ -156,34 +93,24 @@ def generate_burndown_forecast(
         int(last_value / pes_rate) if pes_rate > 0.001 else days_span * 2,
     )
 
-    # PERFORMANCE: Calculate sampling interval to limit data points
     def generate_sampled_forecast(days_to_zero, rate):
-        """Generate forecast with even sampling
-        throughout the entire forecast period.
-        """
-        # Calculate interval to distribute points evenly across entire forecast
-        # This ensures consistent spacing from start to finish
-        # (no condensed-then-sparse appearance)
         sample_interval = max(1, int(days_to_zero / MAX_POINTS_PER_LINE))
 
         dates = []
         values = []
         day = 0
 
-        # Sample evenly across the entire forecast period
         while day <= days_to_zero:
             forecast_date = start_date + timedelta(days=day)
             remaining = max(0, last_value - (rate * day))
             dates.append(forecast_date)
             values.append(remaining)
 
-            # Stop if we reached zero
             if remaining <= 0:
                 break
 
             day += sample_interval
 
-        # Always ensure we have a final point at zero for visual closure
         if values and values[-1] > 0:
             final_date = start_date + timedelta(days=days_to_zero)
             dates.append(final_date)
@@ -191,12 +118,10 @@ def generate_burndown_forecast(
 
         return dates, values
 
-    # Generate forecasts with sampling
     dates_avg, avg_values = generate_sampled_forecast(days_to_zero_avg, avg_rate)
     dates_opt, opt_values = generate_sampled_forecast(days_to_zero_opt, opt_rate)
     dates_pes, pes_values = generate_sampled_forecast(days_to_zero_pes, pes_rate)
 
-    # Debug logging
     logger.info(
         f"[BURNDOWN FORECAST] Generated forecasts: avg={len(dates_avg)} points, "
         f"opt={len(dates_opt)} points, pes={len(dates_pes)} points"
@@ -207,11 +132,6 @@ def generate_burndown_forecast(
         "opt": (dates_opt, opt_values),
         "pes": (dates_pes, pes_values),
     }
-
-
-#######################################################################
-# DATA PREPARATION FUNCTIONS
-#######################################################################
 
 
 def prepare_visualization_data(
@@ -225,28 +145,10 @@ def prepare_visualization_data(
     scope_points=None,
     show_points=True,
 ):
-    """
-    Prepare all necessary data for the forecast visualization.
 
-    Args:
-        df: DataFrame with historical data
-        total_items: Total number of items to complete
-        total_points: Total number of points to complete
-        pert_factor: PERT factor for calculations
-        data_points_count: Number of most recent data points to use (defaults to all)
-        is_burnup: Whether this is for a burnup chart (True) or burndown chart (False)
-        scope_items: Total scope of items (required for burnup charts)
-        scope_points: Total scope of points (required for burnup charts)
-        show_points: Whether points tracking is enabled (default: True)
-
-    Returns:
-        Dictionary containing all data needed for visualization
-    """
-    # Ensure data_points_count is an integer (could be float from UI slider)
     if data_points_count is not None:
         data_points_count = int(data_points_count)
 
-    # Handle empty dataframe case
     if (
         df is None
         or (isinstance(df, pd.DataFrame) and df.empty)
@@ -275,22 +177,16 @@ def prepare_visualization_data(
             "last_points": total_points,
         }
 
-    # Convert to DataFrame if input is a list of dictionaries
     df_calc = ensure_dataframe(df)
 
-    # Convert string dates to datetime for calculations
     df_calc["date"] = pd.to_datetime(df_calc["date"], format="mixed", errors="coerce")
 
-    # Ensure data is sorted by date in ascending order
     df_calc = df_calc.sort_values("date", ascending=True)
 
-    # Initialize scope variables
     total_scope_items = total_items
     total_scope_points = total_points
 
-    # Calculate total scope by adding completed work and remaining work
     if not is_burnup:
-        # For burndown charts, calculate completed work
         completed_items = (
             df_calc["completed_items"].sum()
             if "completed_items" in df_calc.columns
@@ -302,18 +198,13 @@ def prepare_visualization_data(
             else 0
         )
 
-        # Calculate total scope
         total_scope_items = completed_items + total_items
         total_scope_points = completed_points + total_points
 
-        # PERFORMANCE OPTIMIZATION: Use vectorized operations instead of slow loop
-        # Calculate remaining work by reverse cumsum
-        # (much faster than iterative approach)
         if (
             "completed_items" in df_calc.columns
             and "completed_points" in df_calc.columns
         ):
-            # Ensure numeric types
             df_calc["completed_items"] = pd.to_numeric(
                 df_calc["completed_items"], errors="coerce"
             ).fillna(0)
@@ -321,21 +212,14 @@ def prepare_visualization_data(
                 df_calc["completed_points"], errors="coerce"
             ).fillna(0)
 
-            # Vectorized calculation: reverse cumsum to get remaining work at each point
             reversed_items = df_calc["completed_items"][::-1].cumsum()[::-1]
             reversed_points = df_calc["completed_points"][::-1].cumsum()[::-1]
 
             df_calc["cum_items"] = reversed_items + total_items
             df_calc["cum_points"] = reversed_points + total_points
         else:
-            # Fallback if columns don't exist
             df_calc["cum_items"] = total_scope_items
             df_calc["cum_points"] = total_scope_points
-
-    # Filter to use only the specified number of most recent data points
-    # CRITICAL FIX: Use date-based filtering instead of row count (.iloc)
-    # data_points_count represents WEEKS, not rows. With sparse data,
-    # row-based filtering gives incorrect results.
 
     if (
         data_points_count is not None
@@ -343,7 +227,6 @@ def prepare_visualization_data(
         and not df_calc.empty
         and "date" in df_calc.columns
     ):
-        # Apply date-based filtering
         latest_date = df_calc["date"].max()
         cutoff_date = latest_date - timedelta(weeks=data_points_count)
         rows_before = len(df_calc)
@@ -367,10 +250,8 @@ def prepare_visualization_data(
             f"rows: {rows_before} -> {rows_after}"
         )
 
-    # Compute weekly throughput with the filtered data
     grouped = compute_weekly_throughput(df_calc)
 
-    # Ensure grouped is a DataFrame
     if not isinstance(grouped, pd.DataFrame):
         grouped = pd.DataFrame(grouped)
     logger.info(
@@ -380,21 +261,13 @@ def prepare_visualization_data(
         f"grouped non-zero points={len(grouped[grouped['completed_points'] > 0])}"
     )
 
-    # Filter out zero-value weeks before calculating rates
-    # Filter separately for items and points
-    # to support projects with only one tracking type
-    # Zero weeks (often from fill_missing_weeks) shouldn't influence rate calculations
     grouped_items_non_zero = grouped[grouped["completed_items"] > 0].copy()
     grouped_points_non_zero = grouped[grouped["completed_points"] > 0].copy()
 
-    # Determine which filtering to use based on available data
     has_items_data = len(grouped_items_non_zero) > 0
     has_points_data = len(grouped_points_non_zero) > 0
 
-    # If no valid weeks exist for either metric, return early with safe defaults
-    # (prevents pessimistic forecasts from extending years into the future)
     if not has_items_data and not has_points_data:
-        # Return empty forecast data to indicate insufficient data
         return {
             "df_calc": df_calc,
             "pert_time_items": 0,
@@ -452,8 +325,6 @@ def prepare_visualization_data(
         else None
     )
 
-    # Use items data for calculation if available, otherwise use points data
-    # This ensures we can calculate forecasts even when only one type has data
     grouped_non_zero = (
         grouped_items_non_zero if has_items_data else grouped_points_non_zero
     )
@@ -471,7 +342,6 @@ def prepare_visualization_data(
         pessimistic_points_rate,
     ) = rates
 
-    # Compute daily rates
     items_daily_rate = (
         total_items / pert_time_items
         if pert_time_items > 0 and pert_time_items != float("inf")
@@ -484,10 +354,8 @@ def prepare_visualization_data(
         else 0
     )
 
-    # Get starting points for forecast
     start_date = df_calc["date"].iloc[-1] if not df_calc.empty else datetime.now()
 
-    # Debug logging for forecast calculation
     start_date_text = (
         start_date.strftime("%Y-%m-%d")
         if hasattr(start_date, "strftime")
@@ -499,8 +367,6 @@ def prepare_visualization_data(
         f"items_daily_rate={items_daily_rate:.4f}"
     )
 
-    # For burndown charts, we need to get the correct last values
-    # (these represent remaining work, not completed work)
     if not is_burnup:
         last_items = (
             df_calc["cum_items"].iloc[-1] if not df_calc.empty else total_scope_items
@@ -509,18 +375,14 @@ def prepare_visualization_data(
             df_calc["cum_points"].iloc[-1] if not df_calc.empty else total_scope_points
         )
     else:
-        # For burnup charts, use the completed work values
         last_completed_items = df_calc["cum_items"].iloc[-1] if not df_calc.empty else 0
         last_completed_points = (
             df_calc["cum_points"].iloc[-1] if not df_calc.empty else 0
         )
-        last_items = last_completed_items  # This is completed items for burnup
-        last_points = last_completed_points  # This is completed points for burnup
+        last_items = last_completed_items
+        last_points = last_completed_points
 
-    # Use completed items/points values for burnup chart
-    # PERFORMANCE: Limit forecast to 2 years (730 days) and max 100 points per line
     if is_burnup:
-        # For burnup charts, start from completed values and forecast toward scope
         items_forecasts = {
             "avg": daily_forecast_burnup(
                 last_items,
@@ -601,9 +463,6 @@ def prepare_visualization_data(
             else ([], [])
         )
     else:
-        # For burndown charts, we need to ensure consistent end dates with burnup charts
-        # First, calculate burnup forecasts to get end dates
-        # PERFORMANCE: Limit forecast to 2 years (730 days) and max 100 points per line
         burnup_items_avg = daily_forecast_burnup(
             0, items_daily_rate, start_date, total_items, max_days=730, max_points=100
         )
@@ -611,7 +470,6 @@ def prepare_visualization_data(
             0, points_daily_rate, start_date, total_points, max_days=730, max_points=100
         )
 
-        # Get the end dates from burnup forecasts
         items_end_date = burnup_items_avg[0][-1] if burnup_items_avg[0] else start_date
         points_end_date = (
             burnup_points_avg[0][-1] if burnup_points_avg[0] else start_date
@@ -633,7 +491,6 @@ def prepare_visualization_data(
             f"days_to_items_end={days_to_items_end}"
         )
 
-        # Now calculate burndown forecasts with fixed end dates
         items_forecasts = generate_burndown_forecast(
             last_items,
             items_daily_rate,
@@ -681,7 +538,6 @@ def prepare_visualization_data(
     items_forecasts["ewma"] = items_ewma_forecast
     points_forecasts["ewma"] = points_ewma_forecast
 
-    # Calculate max values for axis scaling
     max_items = max(
         df_calc["cum_items"].max() if not df_calc.empty else total_items,
         max(
@@ -702,10 +558,6 @@ def prepare_visualization_data(
         ),
     )
 
-    # Y-axis now dynamically scales to actual data shown on chart
-    # (removed fixed scope ceiling that was pushing graphs down)
-
-    # Return results with scope information for burndown charts
     result = {
         "df_calc": df_calc,
         "pert_time_items": pert_time_items,
@@ -719,7 +571,6 @@ def prepare_visualization_data(
         "last_points": last_points,
     }
 
-    # Add total scope information for burndown charts
     if not is_burnup:
         result["total_scope_items"] = total_scope_items
         result["total_scope_points"] = total_scope_points
