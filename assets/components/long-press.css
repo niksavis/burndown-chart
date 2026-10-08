@@ -1,19 +1,9 @@
-/* ====================
-   LONG PRESS
-   ==================== */
-
-/* ================================================================
-   Long-Press Force Refresh Animation
-   ================================================================ */
-
-/* Long-press button with progress indicator */
 .long-press-button {
   position: relative !important;
   overflow: hidden !important;
   transition: transform 0.1s ease !important;
 }
 
-/* Progress fill using ::before pseudo-element */
 .long-press-button::before {
   content: '';
   position: absolute;
@@ -27,13 +17,12 @@
     rgba(36, 70, 109, 0.88) 12px,
     rgba(120, 150, 190, 0.45) 12px,
     rgba(120, 150, 190, 0.45) 24px
-  ); /* Blue stripe fill for force refresh progress */
+  );
   z-index: 0;
-  transition: none; /* Controlled by JavaScript */
+  transition: none;
   pointer-events: none;
 }
 
-/* Active state - background fills from left to right */
 .long-press-button.long-press-active {
   transform: scale(0.98);
   user-select: none;
@@ -42,20 +31,17 @@
   -ms-user-select: none;
 }
 
-/* Keep button content above progress background */
 .long-press-button > * {
   position: relative;
   z-index: 1;
 }
 
-/* Mobile-specific adjustments */
 @media (max-width: 767px) {
   .long-press-button {
-    min-height: 44px; /* Minimum touch target size */
+    min-height: 44px;
   }
 }
 
-/* Base action button styling - shared across all primary action buttons */
 .action-button {
   width: 100%;
   font-size: 1rem !important;

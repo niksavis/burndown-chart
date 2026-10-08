@@ -1,10 +1,3 @@
-/* ====================
-   TOOLTIP COMPONENT
-   ==================== */
-
-/* ===== Enhanced Tooltips ===== */
-
-/* Base tooltip style enhancements */
 .tooltip {
   position: absolute;
   opacity: 0;
@@ -17,7 +10,6 @@
   opacity: 1 !important;
 }
 
-/* Custom-styled tooltips with design system */
 .tooltip-inner {
   background-color: var(--color-neutral-900);
   color: white;
@@ -57,7 +49,6 @@
   border-color: #ef4444;
 }
 
-/* Arrow color matching */
 .tooltip .arrow::before {
   border-top-color: var(--color-neutral-900);
 }
@@ -82,7 +73,6 @@
   border-top-color: rgba(220, 53, 69, 0.95);
 }
 
-/* Custom tooltip trigger indicators */
 .tooltip-indicator {
   position: relative;
   cursor: help;
@@ -110,13 +100,12 @@
   color: var(--color-white);
 }
 
-/* Contextual help indicator for form fields */
 .form-help-indicator {
   position: relative;
 }
 
 .form-help-indicator .form-control {
-  padding-right: 30px; /* Make space for the indicator */
+  padding-right: 30px;
 }
 
 .form-help-indicator::after {

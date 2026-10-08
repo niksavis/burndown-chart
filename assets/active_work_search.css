@@ -1,6 +1,3 @@
-/* Active Work Search Styling */
-
-/* Search container */
 .active-work-search-container {
   position: relative;
   margin-bottom: 1rem;
@@ -29,7 +26,6 @@
   opacity: 0.7;
 }
 
-/* Autocomplete dropdown */
 .active-work-autocomplete-dropdown {
   position: absolute;
   top: 100%;
@@ -84,7 +80,6 @@
   color: #212529;
 }
 
-/* Empty state */
 .active-work-no-results {
   padding: 48px 24px;
   text-align: center;
@@ -100,7 +95,6 @@
   opacity: 0.5;
 }
 
-/* Search help text */
 .active-work-search-help {
   font-size: 12px;
   color: #6c757d;
@@ -174,15 +168,13 @@
   color: var(--bs-danger-text-emphasis);
 }
 
-/* Clear button styling */
 #active-work-search-clear {
   flex-shrink: 0;
 }
 
-/* Responsive adjustments */
 @media (max-width: 768px) {
   .active-work-search-input {
-    font-size: 16px; /* Prevent zoom on iOS */
+    font-size: 16px;
   }
 
   .autocomplete-dropdown {
@@ -190,7 +182,6 @@
   }
 }
 
-/* Scrollbar styling for autocomplete */
 .active-work-autocomplete-dropdown::-webkit-scrollbar {
   width: 8px;
 }
@@ -209,7 +200,6 @@
   background: #555;
 }
 
-/* Loading indicator (future enhancement) */
 .active-work-search-loading {
   position: absolute;
   right: 12px;

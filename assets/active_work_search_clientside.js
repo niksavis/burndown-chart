@@ -1,10 +1,3 @@
-/**
- * Active Work Search - clientside metadata helpers
- *
- * Builder-first search executes query construction and filtering server-side.
- * This script only provides metadata extraction for builder value dropdowns.
- */
-
 (function () {
   'use strict';
 
@@ -13,12 +6,6 @@
   }
 
   window.dash_clientside.activeWorkSearch = {
-    /**
-     * Build searchable metadata from timeline data.
-     *
-     * Input: timeline (epics with child_issues)
-     * Output: { fields: string[], values: Record<string, string[]> }
-     */
     buildSearchMetadata: function (timeline) {
       if (!Array.isArray(timeline) || timeline.length === 0) {
         return {

@@ -1,11 +1,3 @@
-/* ====================
-   TAB NAVIGATION COMPONENT
-   ==================== */
-
-/* ===== Tab Navigation Standardization ===== */
-
-/* Modern tab styling with enhanced visual feedback */
-/* Tab Navigation (Phase 2: Pill/Button Style for Discoverability) */
 .nav-tabs-modern {
   border-bottom: none;
   margin-bottom: var(--space-4);
@@ -22,8 +14,8 @@
   color: var(--color-neutral-700);
   border: 1px solid transparent;
   background: transparent;
-  padding: 0.5rem 0.875rem; /* Compact: reduced from 0.625rem 1.25rem */
-  font-size: var(--text-sm); /* Compact: reduced from var(--text-base) */
+  padding: 0.5rem 0.875rem;
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   transition:
     all 0.2s cubic-bezier(0.4, 0, 0.2, 1),
@@ -36,14 +28,12 @@
   text-decoration: none;
 }
 
-/* Tabs integrated into sticky panel (desktop only) */
 @media (min-width: 768px) {
   .param-panel-sticky .nav-tabs-modern {
     position: relative;
-    padding: 6px 12px; /* Aligned with parameter bar - 6px vertical, 12px horizontal */
-    gap: var(--space-1); /* Tight gaps */
+    padding: 6px 12px;
+    gap: var(--space-1);
     margin-bottom: 0;
-    /* Lighter background for tabs row - visual hierarchy */
     background: rgba(255, 255, 255, 0.6);
     backdrop-filter: blur(8px);
     box-shadow: none;
@@ -51,7 +41,7 @@
   }
 
   .desktop-tab-navigation::after {
-    display: none; /* No placeholder needed */
+    display: none;
   }
 }
 
@@ -66,7 +56,6 @@
   text-decoration: none;
 }
 
-/* Enhanced active state with pill/button appearance */
 .nav-tabs-modern .nav-item .nav-link.active {
   color: white !important;
   background: #24466d;
@@ -89,7 +78,6 @@
   transform: translateY(-1px);
 }
 
-/* Focus state for accessibility */
 .nav-tabs-modern .nav-item .nav-link:focus-visible {
   outline: 2px solid var(--color-brand-500);
   outline-offset: 2px;
@@ -108,25 +96,20 @@
   }
 }
 
-/* Specific fix for project health overview card - ensure overflow visible */
 #project-health-overview-card {
   overflow: visible !important;
-  /* Border color is set dynamically via inline style based on health status */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
 }
 
-/* Enhanced vertical dividers for better visual separation */
 #project-health-overview-card [style*='borderRight'] {
   position: relative;
 }
 
-/* Mobile: Remove dividers on small screens */
 @media (max-width: 767px) {
   #project-health-overview-card [style*='borderRight'] {
     border-right: none !important;
   }
 
-  /* Add subtle horizontal dividers instead */
   #project-health-overview-card .col-12.mb-4:not(:last-child) {
     border-bottom: 2px solid #ced4da;
     padding-bottom: 1rem !important;

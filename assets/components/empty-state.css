@@ -1,11 +1,3 @@
-/* ====================
-   EMPTY STATE
-   ==================== */
-
-/* ================================================================
-   Profile Empty State - First Profile Creation Guide
-   ================================================================ */
-
 .profile-empty-state-cta {
   border-style: dashed;
   border-color: var(--color-border-default, #d1d5db);
@@ -20,10 +12,6 @@
 .profile-empty-state-cta .btn {
   min-height: 42px;
 }
-
-/* ================================================================
-   Unified Empty State Layout
-   ================================================================ */
 
 .empty-state-banner {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.75) 0%, rgba(248, 250, 252, 0.6) 100%);
@@ -82,7 +70,6 @@
   box-shadow: var(--shadow-xs);
 }
 
-/* Standard centered empty state layout */
 .empty-state-center {
   display: flex;
   align-items: center;

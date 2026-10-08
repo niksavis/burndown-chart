@@ -1,17 +1,10 @@
-/* ====================
-   PERT TABLE COMPONENT
-   ==================== */
-
-/* ===== PERT Information Table Styling ===== */
-
-/* Progress bar styling */
 .progress-container {
-  height: 28px; /* Slightly taller for better visibility */
+  height: 28px;
   position: relative;
-  border-radius: 6px; /* Match panel corners */
+  border-radius: 6px;
   overflow: hidden;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.12); /* Deeper inset shadow */
-  background: #e9ecef; /* Visible track background */
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.12);
+  background: #e9ecef;
 }
 
 .progress-label {
@@ -35,7 +28,6 @@
   color: var(--color-white);
 }
 
-/* Forecast row styling */
 .forecast-row {
   display: flex;
   align-items: center;
@@ -93,7 +85,6 @@
   color: red;
 }
 
-/* Forecast card styling */
 .forecast-card {
   margin-bottom: 1rem;
   padding: 1rem;
@@ -118,7 +109,6 @@
   box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
 }
 
-/* Table header styling for forecast tables */
 .table-header {
   display: flex;
   margin-bottom: 0.5rem;
@@ -144,7 +134,6 @@
   text-align: right;
 }
 
-/* Sparkline trend visualization */
 .sparkline-container {
   height: 30px;
   display: flex;
@@ -161,7 +150,6 @@
   margin: 0 1px;
 }
 
-/* Velocity metrics styling */
 .velocity-metrics {
   display: flex;
   flex-wrap: wrap;
@@ -200,7 +188,6 @@
   margin-top: 0.25rem;
 }
 
-/* Forecast pill styling */
 .forecast-pill {
   display: flex;
   align-items: center;
@@ -209,7 +196,6 @@
   border-left: 3px solid var(--pill-color);
 }
 
-/* Section header styling */
 .section-header {
   display: flex;
   align-items: center;
@@ -223,7 +209,6 @@
   color: var(--header-icon-color);
 }
 
-/* Progress track styling */
 .progress-track {
   height: 8px;
   border-radius: 4px;

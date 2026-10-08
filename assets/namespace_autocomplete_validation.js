@@ -1,62 +1,32 @@
-/**
- * Namespace Autocomplete - Input Validation
- *
- * Provides two validation functions used by both the Dash clientside
- * callback and the DOM input handlers:
- *
- *   window._nsa.validateInput(value, data, metric, field)
- *     -> HTML feedback string (empty = no input, no feedback needed)
- *
- *   window._nsa.isValidForSave(value, data)
- *     -> error string | null  (null = valid)
- *
- * Depends on: namespace_autocomplete_data.js (window._nsa must exist)
- */
-
 window._nsa = window._nsa || {};
 
-// ---------------------------------------------------------------------------
-// Field type category maps (shared between both validators)
-// ---------------------------------------------------------------------------
-
-/** Expected type CATEGORY for each metric variable. */
 window._nsa.FIELD_TYPE_CATEGORIES = {
-  // DORA Metrics - datetime fields
   deployment_date: 'datetime',
   code_commit_date: 'datetime',
   incident_detected_at: 'datetime',
   incident_resolved_at: 'datetime',
-  // General fields
   completed_date: 'datetime',
   created_date: 'datetime',
   updated_date: 'datetime',
-  // DORA Metrics - boolean/option fields
   deployment_successful: 'option',
   change_failure: 'option',
-  // DORA Metrics - selection fields
   affected_environment: 'option',
   target_environment: 'option',
   severity_level: 'option',
-  // Flow Metrics
   flow_item_type: 'option',
   status: 'option',
   work_started_date: 'datetime',
   work_completed_date: 'datetime',
   effort_category: 'option',
   estimate: 'number',
-  // Sprint Tracker
   sprint_field: 'option',
-  // Active Work Timeline
   parent_field: 'any',
 };
 
-/** Maps JIRA field types to normalised categories. */
 window._nsa.TYPE_TO_CATEGORY = {
-  // Datetime types
   datetime: 'datetime',
   date: 'datetime',
   datepicker: 'datetime',
-  // Option/selection types
   select: 'option',
   option: 'option',
   issuetype: 'option',
@@ -73,32 +43,16 @@ window._nsa.TYPE_TO_CATEGORY = {
   cascadingselect: 'option',
   multiselect: 'option',
   labels: 'option',
-  // Number types
   number: 'number',
   float: 'number',
   integer: 'number',
-  // Text types
   string: 'text',
   text: 'text',
   textarea: 'text',
   url: 'text',
-  // Array types (usually work as option)
   array: 'option',
 };
 
-// ---------------------------------------------------------------------------
-// validateInput: inline feedback while typing
-// ---------------------------------------------------------------------------
-
-/**
- * Validate a namespace input and return validation feedback HTML.
- *
- * @param {string} inputValue - Current input value
- * @param {Object} autocompleteData - Dataset from window._nsa.buildDataset
- * @param {string} _metric - Metric identifier (currently unused, kept for compat)
- * @param {string} field - Field identifier used to look up expected type
- * @returns {string} HTML string for inline feedback
- */
 window._nsa.validateInput = function (inputValue, autocompleteData, _metric, field) {
   if (!inputValue || !inputValue.trim()) {
     return '';
@@ -111,7 +65,6 @@ window._nsa.validateInput = function (inputValue, autocompleteData, _metric, fie
   var value = inputValue.trim();
   var expectedCategory = window._nsa.FIELD_TYPE_CATEGORIES[field] || null;
 
-  // Check for complete changelog syntax with extractor FIRST
   var hasChangelogExtractor =
     value.includes(':') &&
     (value.endsWith('.DateTime') || value.endsWith('.Occurred') || value.endsWith('.Duration'));
@@ -120,7 +73,6 @@ window._nsa.validateInput = function (inputValue, autocompleteData, _metric, fie
     return '<small class="text-success"><i class="fas fa-check-circle me-1"></i>Changelog syntax (extracts datetime)</small>';
   }
 
-  // Extract field ID from namespace syntax
   var fieldId = value;
 
   if (fieldId.includes('=')) {
@@ -146,7 +98,6 @@ window._nsa.validateInput = function (inputValue, autocompleteData, _metric, fie
     }
   }
 
-  // Find field in metadata
   var fieldInfo = autocompleteData.fields.find(function (f) {
     return f.id === fieldId || f.name.toLowerCase() === fieldId.toLowerCase();
   });
@@ -265,14 +216,8 @@ window._nsa.validateInput = function (inputValue, autocompleteData, _metric, fie
   );
 };
 
-// ---------------------------------------------------------------------------
-// isValidForSave: strict validation before save
-// ---------------------------------------------------------------------------
-
-/** Valid extractor suffixes (case-sensitive). */
 window._nsa.VALID_EXTRACTORS = ['DateTime', 'Occurred', 'Duration', 'FirstValue', 'LastValue'];
 
-/** Built-in JIRA fields that don't require a metadata lookup. */
 window._nsa.BUILT_IN_FIELDS = [
   'created',
   'updated',
@@ -298,16 +243,9 @@ window._nsa.BUILT_IN_FIELDS = [
   'id',
 ];
 
-/**
- * Strictly validate a namespace value before saving.
- *
- * @param {string} value - Namespace value to validate
- * @param {Object} autocompleteData - Dataset from window._nsa.buildDataset
- * @returns {string|null} Error message, or null if valid
- */
 window._nsa.isValidForSave = function (value, autocompleteData) {
   if (!value || !value.trim()) {
-    return null; // Empty = valid (optional field)
+    return null;
   }
 
   var trimmed = value.trim();
@@ -319,7 +257,6 @@ window._nsa.isValidForSave = function (value, autocompleteData) {
     return 'Incomplete - select an extractor or field';
   }
 
-  // 1. Detect extractor at end (.DateTime etc.)
   var extractor = null;
   window._nsa.VALID_EXTRACTORS.forEach(function (ext) {
     if (!extractor && trimmed.endsWith('.' + ext)) {
@@ -327,7 +264,6 @@ window._nsa.isValidForSave = function (value, autocompleteData) {
     }
   });
 
-  // Check for partial/wrong-case extractor
   var lastDotIndex = trimmed.lastIndexOf('.');
   if (lastDotIndex > 0 && !extractor) {
     var lastPart = trimmed.substring(lastDotIndex + 1);
@@ -350,7 +286,6 @@ window._nsa.isValidForSave = function (value, autocompleteData) {
     ? trimmed.substring(0, trimmed.length - extractor.length - 1)
     : trimmed;
 
-  // 2. Changelog syntax (field:value)
   var changelogValue = null;
   var colonIndex = workingStr.indexOf(':');
   if (colonIndex > 0) {
@@ -361,7 +296,6 @@ window._nsa.isValidForSave = function (value, autocompleteData) {
     }
   }
 
-  // 2b. Value filter (field=Value)
   var valueFilter = null;
   var equalsIndex = workingStr.indexOf('=');
   if (equalsIndex > 0) {
@@ -372,7 +306,6 @@ window._nsa.isValidForSave = function (value, autocompleteData) {
     }
   }
 
-  // 3. Project prefix (PROJECT.field)
   var projectPrefix = null;
   var fieldPart = null;
   var dotIndex = workingStr.indexOf('.');
@@ -383,7 +316,6 @@ window._nsa.isValidForSave = function (value, autocompleteData) {
     fieldPart = workingStr;
   }
 
-  // Validate project prefix
   if (projectPrefix && projectPrefix !== '*') {
     if (!autocompleteData || !autocompleteData.projects) {
       return 'Cannot validate project "' + projectPrefix + '" - metadata not loaded';
@@ -459,7 +391,6 @@ window._nsa.isValidForSave = function (value, autocompleteData) {
     return 'Unknown field "' + fieldPart + '" - select from autocomplete suggestions';
   }
 
-  // Validate changelog value for known field types
   if (changelogValue) {
     if (fieldLower === 'status') {
       if (!autocompleteData || !autocompleteData.statuses) {
@@ -563,5 +494,5 @@ window._nsa.isValidForSave = function (value, autocompleteData) {
     }
   }
 
-  return null; // All validations passed
+  return null;
 };

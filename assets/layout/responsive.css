@@ -1,20 +1,9 @@
-/* ====================
-   RESPONSIVE
-   ==================== */
-
-/* ================================================================
-   Mobile & Tablet Responsive Enhancements
-   ================================================================ */
-
-/* Mobile-first improvements (phones - up to 767px) */
 @media (max-width: 767px) {
-  /* Remove left accent border on mobile to save space */
   .card {
     border-left: none;
     border: 1px solid var(--color-neutral-200);
   }
 
-  /* Card spacing optimization for mobile */
   .card {
     margin-bottom: var(--space-3);
     border-radius: var(--radius-lg);
@@ -29,7 +18,6 @@
     font-size: var(--text-base);
   }
 
-  /* Better button groups on mobile */
   .btn-group {
     flex-wrap: wrap;
     gap: var(--space-2);
@@ -40,24 +28,20 @@
     min-width: 0;
   }
 
-  /* Stack form rows vertically on mobile */
   .row.g-3 {
     gap: var(--space-2) !important;
   }
 
-  /* Full-width dropdowns on mobile */
   .dropdown-menu {
     min-width: 100%;
     max-width: calc(100vw - 2rem);
   }
 
-  /* Better alert spacing */
   .alert {
     margin-bottom: var(--space-3);
     font-size: var(--text-sm);
   }
 
-  /* Optimize table for mobile */
   .table {
     font-size: var(--text-xs);
   }
@@ -71,7 +55,6 @@
     padding: var(--space-2) var(--space-2);
   }
 
-  /* Modal improvements for mobile */
   .modal-dialog {
     margin: var(--space-2);
     max-width: calc(100% - var(--space-4));
@@ -98,13 +81,11 @@
     margin: 0;
   }
 
-  /* Badge sizing for mobile */
   .badge {
     font-size: 0.65rem;
     padding: 0.3em 0.6em;
   }
 
-  /* Accordion mobile optimization */
   .accordion-button {
     padding: var(--space-3);
     font-size: var(--text-sm);
@@ -114,7 +95,6 @@
     padding: var(--space-3);
   }
 
-  /* Tabs mobile optimization */
   .nav-tabs {
     flex-wrap: nowrap;
     overflow-x: auto;
@@ -128,24 +108,19 @@
   }
 }
 
-/* Tablet improvements (768px to 991px) */
 @media (min-width: 768px) and (max-width: 991px) {
-  /* Card optimization for tablets */
   .card {
     margin-bottom: var(--space-4);
   }
 
-  /* Two-column card grids on tablets */
   .row > [class*='col-'] .card {
     height: 100%;
   }
 
-  /* Modal sizing for tablets */
   .modal-dialog {
     max-width: 90%;
   }
 
-  /* Better table spacing on tablets */
   .table > thead > tr > th {
     padding: var(--space-3);
   }
@@ -154,29 +129,23 @@
     padding: var(--space-3);
   }
 
-  /* Form columns on tablets */
   .col-md-6 .form-group {
     margin-bottom: var(--space-3);
   }
 }
 
-/* Large tablets and small desktops (992px to 1199px) */
 @media (min-width: 992px) and (max-width: 1199px) {
-  /* Optimize sidebar/content layouts */
   .container-fluid {
     padding-left: var(--space-4);
     padding-right: var(--space-4);
   }
 
-  /* Better modal max-width for medium screens */
   .modal-dialog {
     max-width: 700px;
   }
 }
 
-/* Touch device optimizations (any screen size) */
 @media (hover: none) and (pointer: coarse) {
-  /* Larger tap targets for all touchscreens */
   .btn {
     min-height: 44px;
     min-width: 44px;
@@ -187,7 +156,6 @@
     min-width: 38px;
   }
 
-  /* Remove hover effects on touch devices */
   .btn:hover,
   .card:hover,
   .table-hover > tbody > tr:hover,
@@ -196,7 +164,6 @@
     transform: none;
   }
 
-  /* Enhance active states for touch feedback */
   .btn:active {
     transform: scale(0.97);
   }
@@ -205,16 +172,13 @@
     opacity: 0.95;
   }
 
-  /* Better form control focus for touch */
   .form-control:focus,
   .form-select:focus {
     box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
   }
 }
 
-/* High DPI screens (Retina displays) */
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-  /* Ensure crisp borders and shadows on high-DPI */
   .card {
     box-shadow: var(--shadow-sm);
   }
@@ -223,7 +187,6 @@
     border-width: 1px;
   }
 
-  /* Sharper icons and text */
   body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

@@ -1,17 +1,4 @@
 (function () {
-  /**
-   * Mobile Navigation Enhancement JavaScript
-   *
-   * This file provides mobile-specific navigation functionality including:
-   * - Swipe gesture detection for tab navigation
-   * - Mobile drawer navigation controls
-   * - Bottom navigation synchronization
-   * - Touch interaction improvements
-   * - Performance optimized event handling
-   * - Accessibility enhancements
-   */
-
-  // Mobile Navigation State (check if already exists to prevent redeclaration)
   if (typeof window.mobileNavState === 'undefined') {
     window.mobileNavState = {
       drawerOpen: false,
@@ -25,7 +12,6 @@
     };
   }
 
-  // Tab configuration for mobile navigation (check if already exists to prevent redeclaration)
   if (typeof window.mobileTabsConfig === 'undefined') {
     window.mobileTabsConfig = [
       {
@@ -85,11 +71,7 @@
     ];
   }
 
-  /**
-   * Initialize mobile navigation functionality
-   */
   function initializeMobileNavigation() {
-    // Only initialize on mobile devices
     if (window.innerWidth >= 768) return;
 
     initializeDrawerNavigation();
@@ -99,9 +81,6 @@
     initializeTouchOptimizations();
   }
 
-  /**
-   * Initialize mobile drawer navigation
-   */
   function initializeDrawerNavigation() {
     const menuToggle = document.getElementById('mobile-menu-toggle');
     const drawer = document.getElementById('mobile-drawer');
@@ -110,31 +89,26 @@
 
     if (!menuToggle || !drawer || !overlay) return;
 
-    // Open drawer
     menuToggle.addEventListener('click', () => {
       openMobileDrawer();
     });
 
-    // Close drawer
     if (closeBtn) {
       closeBtn.addEventListener('click', () => {
         closeMobileDrawer();
       });
     }
 
-    // Close on overlay click
     overlay.addEventListener('click', () => {
       closeMobileDrawer();
     });
 
-    // Close on escape key
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && mobileNavState.drawerOpen) {
         closeMobileDrawer();
       }
     });
 
-    // Add drawer item click handlers
     window.mobileTabsConfig.forEach((tab) => {
       const drawerItem = document.getElementById(`drawer-${tab.id}`);
       if (drawerItem) {
@@ -146,9 +120,6 @@
     });
   }
 
-  /**
-   * Initialize bottom navigation
-   */
   function initializeBottomNavigation() {
     window.mobileTabsConfig.forEach((tab) => {
       const bottomNavItem = document.getElementById(`bottom-nav-${tab.id}`);
@@ -160,16 +131,12 @@
     });
   }
 
-  /**
-   * Initialize swipe gesture detection
-   */
   function initializeSwipeGestures() {
     const tabContent = document.getElementById('mobile-tab-content-wrapper');
     if (!tabContent) return;
 
     let isSwipeEnabled = true;
 
-    // Touch start
     tabContent.addEventListener(
       'touchstart',
       (e) => {
@@ -181,7 +148,6 @@
       { passive: true }
     );
 
-    // Touch end
     tabContent.addEventListener(
       'touchend',
       (e) => {
@@ -195,7 +161,6 @@
       { passive: true }
     );
 
-    // Prevent swipe during chart interactions
     const charts = document.querySelectorAll('.plotly-graph-div');
     charts.forEach((chart) => {
       chart.addEventListener('touchstart', () => {
@@ -210,37 +175,26 @@
     });
   }
 
-  /**
-   * Handle swipe gesture detection
-   */
   function handleSwipeGesture() {
     const deltaX = mobileNavState.touchEndX - mobileNavState.touchStartX;
     const deltaY = mobileNavState.touchEndY - mobileNavState.touchStartY;
 
-    // Check if horizontal swipe is more significant than vertical
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > mobileNavState.swipeThreshold) {
       const currentIndex = window.mobileTabsConfig.findIndex(
         (tab) => tab.id === mobileNavState.currentTab
       );
 
       if (deltaX > 0 && currentIndex > 0) {
-        // Swipe right - go to previous tab
         switchToTab(window.mobileTabsConfig[currentIndex - 1].id);
       } else if (deltaX < 0 && currentIndex < window.mobileTabsConfig.length - 1) {
-        // Swipe left - go to next tab
         switchToTab(window.mobileTabsConfig[currentIndex + 1].id);
       }
     }
   }
 
-  /**
-   * Initialize touch optimizations
-   */
   function initializeTouchOptimizations() {
-    // Remove 300ms tap delay on mobile
     document.addEventListener('touchstart', () => {}, { passive: true });
 
-    // Improve button touch feedback
     const buttons = document.querySelectorAll('button, .btn, .nav-link');
     buttons.forEach((button) => {
       button.addEventListener(
@@ -261,9 +215,6 @@
     });
   }
 
-  /**
-   * Open mobile drawer
-   */
   function openMobileDrawer() {
     const drawer = document.getElementById('mobile-drawer');
     const overlay = document.getElementById('mobile-drawer-overlay');
@@ -273,10 +224,8 @@
       overlay.style.display = 'block';
       mobileNavState.drawerOpen = true;
 
-      // Prevent body scroll
       document.body.style.overflow = 'hidden';
 
-      // Focus management for accessibility
       const firstDrawerItem = drawer.querySelector('.mobile-drawer-item');
       if (firstDrawerItem) {
         firstDrawerItem.focus();
@@ -284,9 +233,6 @@
     }
   }
 
-  /**
-   * Close mobile drawer
-   */
   function closeMobileDrawer() {
     const drawer = document.getElementById('mobile-drawer');
     const overlay = document.getElementById('mobile-drawer-overlay');
@@ -296,10 +242,8 @@
       overlay.style.display = 'none';
       mobileNavState.drawerOpen = false;
 
-      // Restore body scroll
       document.body.style.overflow = '';
 
-      // Return focus to menu toggle
       const menuToggle = document.getElementById('mobile-menu-toggle');
       if (menuToggle) {
         menuToggle.focus();
@@ -307,9 +251,6 @@
     }
   }
 
-  /**
-   * Open overflow menu
-   */
   function openOverflowMenu() {
     const menu = document.getElementById('mobile-overflow-menu');
     const overlay = document.getElementById('mobile-overflow-overlay');
@@ -318,14 +259,10 @@
       menu.style.transform = 'translateY(0)';
       overlay.style.display = 'block';
 
-      // Prevent body scroll
       document.body.style.overflow = 'hidden';
     }
   }
 
-  /**
-   * Close overflow menu
-   */
   function closeOverflowMenu() {
     const menu = document.getElementById('mobile-overflow-menu');
     const overlay = document.getElementById('mobile-overflow-overlay');
@@ -334,41 +271,33 @@
       menu.style.transform = 'translateY(100%)';
       overlay.style.display = 'none';
 
-      // Restore body scroll
       document.body.style.overflow = '';
     }
   }
 
-  /**
-   * Initialize overflow menu
-   */
   function initializeOverflowMenu() {
     const moreButton = document.getElementById('bottom-nav-more-menu');
     const overlay = document.getElementById('mobile-overflow-overlay');
     const header = document.getElementById('mobile-overflow-header');
 
-    // Open overflow menu on More button click
     if (moreButton) {
       moreButton.addEventListener('click', () => {
         openOverflowMenu();
       });
     }
 
-    // Close overflow menu on overlay click
     if (overlay) {
       overlay.addEventListener('click', () => {
         closeOverflowMenu();
       });
     }
 
-    // Close overflow menu on header swipe down
     if (header) {
       header.addEventListener('click', () => {
         closeOverflowMenu();
       });
     }
 
-    // Initialize overflow menu item click handlers
     const overflowTabs = window.mobileTabsConfig.filter((tab) => !tab.show_in_bottom_nav);
     overflowTabs.forEach((tab) => {
       const menuItem = document.getElementById(`overflow-menu-${tab.id}`);
@@ -381,25 +310,14 @@
     });
   }
 
-  /**
-   * Switch to a specific tab
-   */
   function switchToTab(tabId) {
     mobileNavState.currentTab = tabId;
 
-    // Update active states
     updateTabActiveStates(tabId);
-
-    // Do NOT directly click tab elements to avoid race conditions
-    // Let the mobile navigation callback handle the tab switching
   }
 
-  /**
-   * Update active states across all navigation elements
-   */
   function updateTabActiveStates(activeTabId) {
     window.mobileTabsConfig.forEach((tab) => {
-      // Update drawer items
       const drawerItem = document.getElementById(`drawer-${tab.id}`);
       if (drawerItem) {
         if (tab.id === activeTabId) {
@@ -409,7 +327,6 @@
         }
       }
 
-      // Update bottom navigation items
       const bottomNavItem = document.getElementById(`bottom-nav-${tab.id}`);
       if (bottomNavItem) {
         if (tab.id === activeTabId) {
@@ -423,33 +340,22 @@
     });
   }
 
-  /**
-   * Handle orientation change
-   */
   function handleOrientationChange() {
-    // Close drawer on orientation change
     if (mobileNavState.drawerOpen) {
       closeMobileDrawer();
     }
 
-    // Close overflow menu on orientation change
     closeOverflowMenu();
 
-    // Reinitialize if switching between mobile/desktop
     setTimeout(() => {
       if (window.innerWidth >= 768) {
-        // Desktop mode - disable mobile features
         mobileNavState.swipeEnabled = false;
       } else {
-        // Mobile mode - enable mobile features
         mobileNavState.swipeEnabled = true;
       }
     }, 100);
   }
 
-  /**
-   * Debounced resize handler
-   */
   if (typeof window.resizeTimeout === 'undefined') {
     window.resizeTimeout = null;
   }
@@ -458,18 +364,15 @@
     window.resizeTimeout = setTimeout(handleOrientationChange, 250);
   }
 
-  // Initialize when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeMobileNavigation);
   } else {
     initializeMobileNavigation();
   }
 
-  // Handle window resize and orientation changes
   window.addEventListener('resize', handleResize);
   window.addEventListener('orientationchange', handleOrientationChange);
 
-  // Export for Dash clientside callbacks
   if (typeof window !== 'undefined') {
     window.mobileNavigation = {
       switchToTab,

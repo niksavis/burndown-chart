@@ -1,10 +1,3 @@
-/* ====================
-   GRID LAYOUT SYSTEM
-   ==================== */
-
-/* ===== General Grid Alignment ===== */
-
-/* Consistent card styling (Phase 1: Signature Style) */
 .card:not(#project-health-overview-card) {
   border: 1px solid var(--color-border-subtle) !important;
 }
@@ -14,20 +7,15 @@
   box-shadow: var(--shadow-sm);
   background: var(--color-surface);
   transition: all var(--transition-base);
-  overflow: visible; /* Allow shadow and lift to extend beyond bounds */
+  overflow: visible;
 }
 
-/* Card inner content should clip if needed */
 .card-body,
 .card-header,
 .card-footer {
   overflow: hidden;
 }
 
-/* REMOVED: Universal .card:hover was causing large containers to have unwanted animations */
-/* Hover effects are now opt-in via .card-interactive class in visual-polish.css */
-
-/* Enable hover animation for metric cards (DORA, Flow metrics) even if they contain sparklines */
 .metric-card {
   transition: all 0.2s ease;
 }
@@ -37,7 +25,6 @@
   box-shadow: var(--shadow-md) !important;
 }
 
-/* Enable hover animation for specific budget cards even if they contain dash-graph */
 #cost-breakdown-card,
 #budget-timeline-card {
   transform: none;
@@ -49,8 +36,6 @@
   box-shadow: var(--shadow-md) !important;
 }
 
-/* Prevent hover animation on structural cards (tabs, layout containers, large charts) */
-/* These override .card-interactive if it gets applied incorrectly */
 .card:has(.nav-tabs),
 .card:has(.tab-content),
 .card:has(.dash-table-container),
@@ -121,7 +106,6 @@
   color: var(--color-neutral-600);
 }
 
-/* Card variants with different accent colors */
 .card.card-success {
   border-left-color: var(--color-success);
 }
@@ -138,7 +122,6 @@
   border-left-color: var(--color-info);
 }
 
-/* Card title enhancement */
 .card-title {
   font-size: var(--text-lg);
   font-weight: var(--font-semibold);
@@ -152,7 +135,6 @@
   margin-bottom: var(--space-3);
 }
 
-/* Card with icon header */
 .card-header-icon {
   display: flex;
   align-items: center;
@@ -164,7 +146,6 @@
   color: var(--color-brand-500);
 }
 
-/* Compact card variant */
 .card-compact .card-body {
   padding: var(--space-2);
 }
@@ -173,7 +154,6 @@
   padding: var(--space-2);
 }
 
-/* Flat card variant (no shadow/border) */
 .card-flat {
   box-shadow: none;
   border-left: none;
@@ -185,12 +165,10 @@
   box-shadow: var(--shadow-xs);
 }
 
-/* Ensure consistent form element spacing */
 .form-group:not(:last-child) {
   margin-bottom: 1rem;
 }
 
-/* Ensure SVG elements align properly */
 svg {
   vertical-align: middle;
 }

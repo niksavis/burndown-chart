@@ -1,12 +1,3 @@
-/* ====================
-   CONTAINERS
-   ==================== */
-
-/* ================================================================
-   Additional Container Components
-   ================================================================ */
-
-/* Breadcrumb navigation */
 .breadcrumb {
   background-color: transparent;
   padding: var(--space-2) 0;
@@ -40,7 +31,6 @@
   text-decoration: underline;
 }
 
-/* Nav pills enhancement */
 .nav-pills .nav-link {
   border-radius: var(--radius-full);
   padding: var(--space-2) var(--space-4);
@@ -63,7 +53,6 @@
   box-shadow: var(--shadow-sm);
 }
 
-/* Content sections with subtle dividers */
 .content-section {
   padding: var(--space-6) 0;
   border-bottom: 1px solid var(--color-neutral-100);
@@ -83,7 +72,6 @@
   display: inline-block;
 }
 
-/* Panel containers */
 .panel {
   background: var(--color-surface);
   border-radius: var(--radius-lg);
@@ -114,7 +102,6 @@
   line-height: var(--leading-relaxed);
 }
 
-/* Well container (deprecated in BS5 but useful) */
 .well {
   background-color: var(--color-surface-muted);
   border: 1px solid var(--color-border-subtle);

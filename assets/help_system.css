@@ -1,23 +1,14 @@
-/* 
-Progressive Disclosure Help System CSS
-Enhanced mobile responsiveness, accessibility, and performance optimizations
-*/
-
-/* Help Button Enhancements */
 .help-button-enhanced {
-  /* Enhanced touch targets for mobile */
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 44px !important; /* WCAG AA touch target minimum */
+  min-width: 44px !important;
   min-height: 44px !important;
 
-  /* Visual enhancements */
   border-radius: 50% !important;
   transition: all 0.2s ease-in-out;
 
-  /* Focus ring for keyboard accessibility */
   outline: none;
 }
 
@@ -35,13 +26,12 @@ Enhanced mobile responsiveness, accessibility, and performance optimizations
   transform: scale(0.95);
 }
 
-/* Help Modal Enhancements */
 .help-modal-enhanced .modal-content {
   border-radius: 0.75rem;
   border: none;
   box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
-  background-color: #fff; /* Ensure light background for Bootstrap FLATLY theme */
-  color: #212529; /* Ensure dark text for readability */
+  background-color: #fff;
+  color: #212529;
 }
 
 .help-modal-enhanced .modal-header {
@@ -54,14 +44,11 @@ Enhanced mobile responsiveness, accessibility, and performance optimizations
   color: #212529;
 }
 
-/* Help Modal Body Content Enhancements */
 .help-modal-body {
-  /* Improved readability */
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   color: #495057;
 
-  /* Better mobile scrolling */
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
@@ -94,7 +81,6 @@ Enhanced mobile responsiveness, accessibility, and performance optimizations
   line-height: 1.5;
 }
 
-/* Code blocks and formulas */
 .help-modal-body code,
 .help-modal-body pre {
   background-color: #f8f9fa !important;
@@ -117,7 +103,6 @@ Enhanced mobile responsiveness, accessibility, and performance optimizations
   border-left: 3px solid #0d6efd;
 }
 
-/* Inline code snippets */
 .help-modal-body code {
   padding: 0.2rem 0.4rem;
   font-size: 0.875rem;
@@ -125,7 +110,6 @@ Enhanced mobile responsiveness, accessibility, and performance optimizations
   border-left: none;
 }
 
-/* Alert boxes for important information */
 .help-modal-body .alert {
   border-radius: 0.5rem;
   border: none;
@@ -139,7 +123,6 @@ Enhanced mobile responsiveness, accessibility, and performance optimizations
   border-left: 4px solid #0d6efd;
 }
 
-/* Progressive Disclosure Container */
 .progressive-disclosure-container {
   display: inline-flex;
   align-items: center;
@@ -147,7 +130,6 @@ Enhanced mobile responsiveness, accessibility, and performance optimizations
   flex-wrap: wrap;
 }
 
-/* Mobile Responsiveness */
 @media (max-width: 576px) {
   .help-modal-enhanced .modal-dialog {
     margin: 0.5rem;
@@ -166,12 +148,11 @@ Enhanced mobile responsiveness, accessibility, and performance optimizations
   }
 
   .help-button-enhanced {
-    min-width: 48px !important; /* Slightly larger on mobile */
+    min-width: 48px !important;
     min-height: 48px !important;
   }
 }
 
-/* Tablet Responsiveness */
 @media (min-width: 577px) and (max-width: 991px) {
   .help-modal-enhanced .modal-dialog {
     max-width: 90vw;
@@ -182,7 +163,6 @@ Enhanced mobile responsiveness, accessibility, and performance optimizations
   }
 }
 
-/* Desktop Optimizations */
 @media (min-width: 992px) {
   .help-modal-body {
     max-height: 70vh;
@@ -193,7 +173,6 @@ Enhanced mobile responsiveness, accessibility, and performance optimizations
   }
 }
 
-/* High Contrast Mode Support */
 @media (prefers-contrast: more) {
   .help-button-enhanced {
     border: 2px solid currentColor !important;
@@ -209,7 +188,6 @@ Enhanced mobile responsiveness, accessibility, and performance optimizations
   }
 }
 
-/* Reduced Motion Support */
 @media (prefers-reduced-motion: reduce) {
   .help-button-enhanced,
   .help-modal-enhanced * {
@@ -218,10 +196,6 @@ Enhanced mobile responsiveness, accessibility, and performance optimizations
   }
 }
 
-/* Dark Mode Support - Removed to maintain Bootstrap FLATLY theme consistency */
-/* The application uses Bootstrap FLATLY (light theme) so dark mode overrides cause conflicts */
-
-/* Print Styles for Help Content */
 @media print {
   .help-button-enhanced {
     display: none !important;
@@ -235,20 +209,15 @@ Enhanced mobile responsiveness, accessibility, and performance optimizations
   }
 }
 
-/* Performance Optimizations */
 .help-modal-body * {
-  /* Enable hardware acceleration for smooth scrolling */
   will-change: transform;
 }
 
-/* Accessibility: Focus Management */
 .help-modal-enhanced[aria-hidden='false'] {
-  /* Trap focus within modal when open */
   position: fixed;
   z-index: 1055;
 }
 
-/* Loading State for Help Content */
 .help-content-loading {
   display: flex;
   align-items: center;

@@ -1,18 +1,9 @@
-/* ====================
-   MOBILE RESPONSIVE LAYOUT
-   ==================== */
-
-/* ===== CONSOLIDATED MOBILE STYLES ===== */
-/* All mobile-specific styles consolidated in one place for better maintainability */
-
 @media (max-width: 767px) {
-  /* General layout adjustments */
   .container-fluid {
     padding-left: 12px !important;
     padding-right: 12px !important;
   }
 
-  /* Typography adjustments */
   h1,
   .h1 {
     font-size: 1.75rem !important;
@@ -38,7 +29,6 @@
     font-size: 0.9rem !important;
   }
 
-  /* Card adjustments */
   .card-body {
     padding: 0.75rem !important;
   }
@@ -46,7 +36,6 @@
     padding: 0.75rem !important;
   }
 
-  /* Form elements */
   .btn {
     padding: 0.5rem 0.75rem !important;
     min-height: 44px !important;
@@ -57,7 +46,7 @@
   .form-select,
   .input-group .input-group-text {
     min-height: 44px !important;
-    font-size: 16px !important; /* Prevents zooming on iOS */
+    font-size: 16px !important;
   }
 
   .DateInput_input {
@@ -76,7 +65,6 @@
     height: 20px !important;
   }
 
-  /* Table styles */
   .dash-table-container {
     -webkit-overflow-scrolling: touch;
   }
@@ -87,7 +75,6 @@
     font-size: 14px !important;
   }
 
-  /* Pagination controls */
   .previous-next-container {
     gap: 3px !important;
     margin: 10px auto !important;
@@ -121,7 +108,6 @@
     line-height: 44px !important;
   }
 
-  /* Visibility & text handling */
   .mobile-hidden {
     display: none !important;
   }
@@ -141,7 +127,6 @@
     margin-bottom: 0.5rem !important;
   }
 
-  /* Modal adjustments */
   .modal-dialog {
     margin: 0.5rem;
     max-width: calc(100% - 1rem);

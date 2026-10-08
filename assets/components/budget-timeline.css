@@ -1,17 +1,7 @@
-/* ====================
-   BUDGET TIMELINE
-   ==================== */
-
-/* ========================================
-   Budget Timeline Card Styles
-   ======================================== */
-
-/* Timeline container */
 .timeline-container {
   position: relative;
 }
 
-/* Timeline item cards */
 .timeline-item {
   background-color: #ffffff;
   transition: all 0.2s ease;
@@ -24,7 +14,6 @@
   transform: translateX(2px);
 }
 
-/* Current date item - highlighted */
 .timeline-item-current {
   border-color: #6f42c1 !important;
   border-width: 2px !important;
@@ -34,13 +23,11 @@
   box-shadow: 0 4px 12px rgba(111, 66, 193, 0.15);
 }
 
-/* Icon wrapper styling */
 .timeline-icon-wrapper {
   position: relative;
   z-index: 1;
 }
 
-/* Timeline gaps section */
 .timeline-gaps .mb-2 {
   padding: 0.5rem;
   border-radius: 0.25rem;
@@ -52,7 +39,6 @@
   background-color: #e9ecef;
 }
 
-/* Responsive adjustments for mobile */
 @media (max-width: 576px) {
   .timeline-item .d-flex {
     flex-wrap: wrap;

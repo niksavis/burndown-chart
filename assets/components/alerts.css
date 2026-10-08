@@ -1,10 +1,3 @@
-/* ====================
-   ALERT COMPONENT
-   ==================== */
-
-/* ===== Alert Component Improvements ===== */
-
-/* Modern Alert Styling with Design Tokens */
 .alert {
   border: none;
   border-left: 4px solid;
@@ -21,7 +14,6 @@
   box-shadow: var(--shadow-md);
 }
 
-/* Alert Variants with Brand Colors */
 .alert-primary {
   border-left-color: var(--color-brand-500);
   background: var(--color-brand-50);
@@ -58,11 +50,10 @@
   color: var(--color-neutral-900);
 }
 
-/* Fix dismissable alert close button vertical alignment */
 .alert.alert-dismissible {
   display: flex;
   align-items: center;
-  padding-right: 3rem; /* Make room for close button */
+  padding-right: 3rem;
 }
 
 .alert.alert-dismissible .btn-close {
@@ -79,7 +70,6 @@
   opacity: 1;
 }
 
-/* White close button for colored alerts (better contrast) */
 .alert-warning .btn-close,
 .alert-info .btn-close,
 .alert-success .btn-close,
@@ -87,12 +77,10 @@
   filter: invert(1) grayscale(100%) brightness(200%);
 }
 
-/* Ensure alert content flexes properly */
 .alert.alert-dismissible > * {
   flex: 1;
 }
 
-/* Update notification alert helpers */
 .update-alert .update-alert-text {
   font-size: var(--text-sm);
 }

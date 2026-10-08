@@ -1,12 +1,3 @@
-/* ====================
-   SKELETON
-   ==================== */
-
-/* ================================================================
-   Skeleton Loading Animation
-   ================================================================ */
-
-/* Shimmer animation for visible skeleton loaders */
 @keyframes skeleton-shimmer {
   0% {
     background-position: calc(var(--skeleton-shimmer-size) * -1) 0;
@@ -29,10 +20,8 @@
   border-radius: var(--skeleton-radius);
 }
 
-/* Skeleton container - show immediately to prevent flash of empty content */
 .metric-cards-skeleton {
-  opacity: 1; /* Start visible immediately */
-  /* Remove animation - skeleton should be visible right away */
+  opacity: 1;
   margin-top: var(--metric-cards-grid-margin-top);
   padding-top: var(--metric-cards-grid-padding-top);
   padding-left: var(--metric-cards-grid-padding-x);
@@ -41,13 +30,11 @@
   margin-right: var(--metric-cards-grid-margin-x);
 }
 
-/* Content that replaces skeleton - smooth fade-in to prevent flicker */
 .metric-cards-grid,
 .empty-state-banner {
   animation: smoothFadeIn 0.15s ease-out;
 }
 
-/* Add top spacing so cards don't get cut off when they "fly up" */
 .metric-cards-grid {
   margin-top: var(--metric-cards-grid-margin-top);
   padding-top: var(--metric-cards-grid-padding-top);
@@ -57,20 +44,18 @@
   margin-right: var(--metric-cards-grid-margin-x);
 }
 
-/* Container for metric cards - prevent layout shift during updates */
 #dora-metrics-cards-container,
 #flow-metrics-cards-container,
 #flow-distribution-chart-container {
   min-height: var(--metric-cards-container-min-height);
   transition: min-height 0.2s ease-out;
-  overflow: visible !important; /* Allow cards to fly up without clipping */
+  overflow: visible !important;
 }
 
-/* Force text-style rendering for arrow characters to prevent emoji blue box backgrounds */
 .metric-card .small span:first-child,
 .metric-trend-arrow {
   font-family: inherit;
-  font-variant-emoji: text; /* Force text presentation, not emoji */
+  font-variant-emoji: text;
   -webkit-font-variant-emoji: text;
   -moz-font-variant-emoji: text;
 }
@@ -188,7 +173,6 @@
   }
 }
 
-/* Fade animations for smooth skeleton replacement */
 @keyframes fadeIn {
   0% {
     opacity: 0;
@@ -216,7 +200,6 @@
   }
 }
 
-/* Old skeleton animation (kept for compatibility) */
 @keyframes skeleton-loading {
   0% {
     background-color: rgba(200, 200, 200, 0.2);
@@ -228,12 +211,3 @@
     background-color: rgba(200, 200, 200, 0.2);
   }
 }
-
-/* DISABLED - Old approach with manual animation control */
-/*
-.metric-cards-grid,
-.empty-state-banner,
-#bug-analysis-tab-content {
-  animation: fadeIn 0.3s ease-in;
-}
-*/

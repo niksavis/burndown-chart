@@ -1,9 +1,3 @@
-/* ====================
-   FIELD MAPPING MODAL
-   ==================== */
-
-/* ===== FIELD MAPPING MODAL DROPDOWN FIX ===== */
-/* Allow dropdowns in field mapping modal to overflow and appear on top */
 #field-mapping-modal .modal-content,
 #field-mapping-modal .modal-body,
 #field-mapping-modal .modal-dialog,
@@ -12,29 +6,22 @@
   overflow: visible !important;
 }
 
-/* Override Bootstrap's default modal-body overflow */
 #field-mapping-modal .modal-body {
   overflow-y: visible !important;
   overflow-x: visible !important;
 }
 
-/* Ensure field mapping dropdowns appear above modal backdrop */
 #field-mapping-modal div[class*='__menu'],
 #field-mapping-modal .Select-menu-outer {
-  z-index: 1070 !important; /* Higher than modal backdrop (1055) */
+  z-index: 1070 !important;
 }
 
-/* Allow all rows and columns in field mapping form to overflow */
 #field-mapping-modal .row,
 #field-mapping-modal .col-md-4,
 #field-mapping-modal .col-md-8 {
   overflow: visible !important;
 }
 
-/* Fix dropdown stacking inside Types/Environment cards.
-   Global animation styles add transform: translateZ(0) to .card/.modal, which
-   creates stacking contexts and can cause open dropdown menus to render under
-   sibling cards. */
 #field-mapping-modal .modal,
 #field-mapping-modal .modal-dialog,
 #field-mapping-modal .modal-content,
@@ -48,7 +35,6 @@
   transform: none !important;
 }
 
-/* Ensure the active dropdown sits above neighboring components. */
 #field-mapping-modal .dash-dropdown,
 #field-mapping-modal .Select {
   position: relative;
@@ -64,8 +50,6 @@
   z-index: 1090 !important;
 }
 
-/* ===== FIELD MAPPING MODAL - CONSISTENT MONOSPACE STYLING ===== */
-/* Use monospace font for all technical inputs/dropdowns for visual uniformity */
 #field-mapping-modal input.form-control,
 #field-mapping-modal .Select-value-label,
 #field-mapping-modal .Select-placeholder,
@@ -83,7 +67,6 @@
   font-size: 0.9rem;
 }
 
-/* Dropdown menu styling */
 #field-mapping-modal div[class*='__menu'] {
   background-color: #fff;
   border: 2px solid #dee2e6;
@@ -105,7 +88,6 @@
   color: white;
 }
 
-/* Dropdown control styling to match namespace inputs */
 #field-mapping-modal div[class*='__control'] {
   background-color: #f8f9fa;
   border: 2px solid #dee2e6;
@@ -122,7 +104,6 @@
   box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15) !important;
 }
 
-/* Multi-value tags (selected items) styling */
 #field-mapping-modal div[class*='__multi-value'] {
   background-color: #e7f1ff;
   border: 1px solid #0d6efd;
@@ -139,7 +120,6 @@
   color: white;
 }
 
-/* Input fields within the modal */
 #field-mapping-modal input.form-control {
   background-color: #f8f9fa;
   border: 2px solid #dee2e6;
@@ -153,8 +133,6 @@
   box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
 }
 
-/* Namespace field inputs are rendered as Dash input wrappers.
-   Force the inner input to fill the wrapper so fields keep normal width. */
 #field-mapping-modal .namespace-input.dash-input-container {
   display: block;
   width: 100%;

@@ -1,14 +1,6 @@
-/* ====================
-   BURNDOWN CHART - MAIN STYLESHEET
-   Entry point that imports all modular CSS components
-   Follows CSS Architecture Guidelines (max 500 lines per file)
-   ==================== */
-
-/* === CORE === */
 @import url('core/variables.css');
 @import url('core/base.css');
 
-/* === LAYOUT === */
 @import url('layout/parameter-panel.css');
 @import url('layout/settings-panel.css');
 @import url('layout/grid.css');
@@ -17,7 +9,6 @@
 @import url('layout/dashboard.css');
 @import url('layout/responsive.css');
 
-/* === COMPONENTS === */
 @import url('components/modal.css');
 @import url('components/badges.css');
 @import url('components/flow-metrics.css');

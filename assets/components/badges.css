@@ -1,12 +1,6 @@
-/* ====================
-   BADGES - PERFORMANCE TIERS
-   ==================== */
-
-/* ===== Performance Tier Badge Colors (Semaphore Style) ===== */
-/* Custom badge color for orange tier (between yellow and red) */
 .badge.bg-tier-orange {
   background-color: var(--tier-low-orange) !important;
-  color: #fff !important; /* White text for better contrast */
+  color: #fff !important;
 }
 
 .badge.bg-tier-elite {
@@ -16,12 +10,12 @@
 
 .badge.bg-tier-high {
   background-color: var(--tier-high) !important;
-  color: #fff !important; /* White text for better contrast */
+  color: #fff !important;
 }
 
 .badge.bg-tier-medium {
   background-color: var(--tier-medium) !important;
-  color: #fff !important; /* White text for better contrast */
+  color: #fff !important;
 }
 
 .badge.bg-tier-critical {
@@ -29,7 +23,6 @@
   color: #fff !important;
 }
 
-/* Text color utilities for performance tiers */
 .text-tier-orange {
   color: var(--tier-low-orange) !important;
 }
@@ -50,7 +43,6 @@
   color: var(--tier-critical) !important;
 }
 
-/* Border colors for performance tiers (used in compact metric cards) */
 .border-tier-orange {
   border-color: var(--tier-low-orange) !important;
 }

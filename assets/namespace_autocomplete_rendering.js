@@ -1,27 +1,5 @@
-/**
- * Namespace Autocomplete - DOM Rendering and Input Handling
- *
- * Manages the autocomplete lifecycle for all namespace inputs:
- *   - Initialises each .namespace-input-container on DOM changes
- *   - Positions and populates the suggestions dropdown
- *   - Handles keyboard navigation, item selection, and React value sync
- *   - Watches the JIRA metadata store and triggers data build
- *
- * Depends on:
- *   namespace_autocomplete_data.js       (window._nsa.buildDataset, filterSuggestions, ...)
- *   namespace_autocomplete_validation.js (window._nsa.validateInput)
- */
-
 window._nsa = window._nsa || {};
 
-// ---------------------------------------------------------------------------
-// Metadata store watcher
-// ---------------------------------------------------------------------------
-
-/**
- * Watch the jira-metadata-store element for content changes and build
- * the autocomplete dataset whenever new data arrives.
- */
 window._nsa.watchMetadataStore = function () {
   var metadataStore = document.getElementById('jira-metadata-store');
   if (!metadataStore || metadataStore.dataset.watching) return;
@@ -43,16 +21,13 @@ window._nsa.watchMetadataStore = function () {
   console.log('[Autocomplete] Watching metadata store for changes');
 };
 
-/**
- * Parse the metadata store and build the autocomplete dataset if not yet ready.
- */
 window._nsa.tryBuildFromMetadata = function () {
   if (
     window._namespaceAutocompleteData &&
     window._namespaceAutocompleteData.fields &&
     window._namespaceAutocompleteData.fields.length > 0
   ) {
-    return; // Already have data
+    return;
   }
 
   var metadataStore = document.getElementById('jira-metadata-store');
@@ -63,28 +38,15 @@ window._nsa.tryBuildFromMetadata = function () {
     if (rawData && rawData.trim() && rawData !== 'null') {
       var metadata = JSON.parse(rawData);
       if (metadata && !metadata.error && metadata.fields) {
-        // Delegate to Dash-registered callback method for full compatibility
         window.dash_clientside.namespace_autocomplete.buildAutocompleteData(metadata);
         console.log('[Autocomplete] Built data from metadata store on change');
       }
     }
   } catch (e) {
-    // Store may not be ready yet - ignore parse errors
     void e;
   }
 };
 
-// ---------------------------------------------------------------------------
-// Dropdown helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Populate and position the suggestions dropdown for an input.
- *
- * @param {string} inputValue
- * @param {HTMLElement} dropdown
- * @param {HTMLElement} input
- */
 window._nsa.updateSuggestions = function (inputValue, dropdown, input) {
   var autocompleteData = window._namespaceAutocompleteData;
 
@@ -117,13 +79,6 @@ window._nsa.updateSuggestions = function (inputValue, dropdown, input) {
   window._nsa.positionDropdown(dropdown, input);
 };
 
-/**
- * Position the dropdown relative to its input using fixed coordinates.
- * The dropdown is moved to document.body to escape overflow:hidden parents.
- *
- * @param {HTMLElement} dropdown
- * @param {HTMLElement} input
- */
 window._nsa.positionDropdown = function (dropdown, input) {
   if (!dropdown || !input) return;
 
@@ -146,12 +101,6 @@ window._nsa.positionDropdown = function (dropdown, input) {
   dropdown.style.zIndex = '1200';
 };
 
-/**
- * Clear the dropdown and return it to its original container.
- *
- * @param {HTMLElement} dropdown
- * @param {HTMLElement} input
- */
 window._nsa.hideDropdown = function (dropdown, input) {
   if (!dropdown || !input) return;
   dropdown.innerHTML = '';
@@ -160,12 +109,6 @@ window._nsa.hideDropdown = function (dropdown, input) {
   }
 };
 
-/**
- * Update the active CSS class on keyboard-navigated dropdown items.
- *
- * @param {NodeList} items
- * @param {number} selectedIndex
- */
 window._nsa.updateSelection = function (items, selectedIndex) {
   items.forEach(function (item, idx) {
     if (idx === selectedIndex) {
@@ -177,20 +120,6 @@ window._nsa.updateSelection = function (items, selectedIndex) {
   });
 };
 
-// ---------------------------------------------------------------------------
-// React-compatible item selection
-// ---------------------------------------------------------------------------
-
-/**
- * Select a suggestion item: update the React-controlled input and close dropdown.
- *
- * React controlled inputs require the native value setter + an 'input' event
- * to detect the change. A blur/refocus cycle helps React finalize the state.
- *
- * @param {HTMLInputElement} input
- * @param {HTMLElement} item - Suggestion button with data-value attribute
- * @param {HTMLElement} dropdown
- */
 window._nsa.selectItem = function (input, item, dropdown) {
   var value = item.dataset.value;
   if (!value) return;
@@ -236,7 +165,6 @@ window._nsa.selectItem = function (input, item, dropdown) {
     delete input.dataset.programmaticUpdate;
   }
 
-  // Run validation after selection
   setTimeout(function () {
     if (!input.id) return;
     try {
@@ -255,7 +183,6 @@ window._nsa.selectItem = function (input, item, dropdown) {
         }
       }
     } catch (e) {
-      // Non-JSON ID - skip validation
       void e;
     }
   }, 50);
@@ -263,16 +190,6 @@ window._nsa.selectItem = function (input, item, dropdown) {
   input.focus();
 };
 
-// ---------------------------------------------------------------------------
-// Container initialisation
-// ---------------------------------------------------------------------------
-
-/**
- * Attach keyboard, input, blur, focus, and click handlers to a single
- * .namespace-input-container that has not yet been initialised.
- *
- * @param {HTMLElement} container
- */
 window._nsa.initContainer = function (container) {
   if (container.dataset.initialized) return;
   container.dataset.initialized = 'true';
@@ -281,7 +198,6 @@ window._nsa.initContainer = function (container) {
   var dropdown = container.querySelector('.namespace-suggestions-dropdown');
   if (!input || !dropdown) return;
 
-  // Resolve validation message container
   var validationContainer = null;
   try {
     var idObj = JSON.parse(input.id);
@@ -325,7 +241,6 @@ window._nsa.initContainer = function (container) {
     }, 300);
   }
 
-  // Input: update suggestions + validate + clear save errors
   input.addEventListener('input', function () {
     if (input.dataset.programmaticUpdate === 'true') {
       console.log('[Autocomplete] Skipping update - programmatic change');
@@ -348,7 +263,6 @@ window._nsa.initContainer = function (container) {
     }
   });
 
-  // Blur: run validation immediately + hide dropdown after click delay
   input.addEventListener('blur', function () {
     if (validationTimeout) clearTimeout(validationTimeout);
     if (validationContainer && window._namespaceAutocompleteData) {
@@ -365,7 +279,6 @@ window._nsa.initContainer = function (container) {
       }
     }
 
-    // Restore React-reverted values within the selection grace window
     var timeSinceSelection = input._selectionTimestamp
       ? Date.now() - input._selectionTimestamp
       : Infinity;
@@ -399,12 +312,10 @@ window._nsa.initContainer = function (container) {
     }, 200);
   });
 
-  // Run initial validation if input has a pre-filled value
   if (input.value && input.value.trim()) {
     setTimeout(runValidation, 500);
   }
 
-  // Keyboard navigation
   input.addEventListener('keydown', function (e) {
     var items = dropdown.querySelectorAll('.list-group-item');
     if (items.length === 0) return;
@@ -430,7 +341,6 @@ window._nsa.initContainer = function (container) {
     }
   });
 
-  // Click on suggestion
   dropdown.removeEventListener('click', dropdown._nsaClickHandler);
   dropdown._nsaClickHandler = function (e) {
     var item = e.target.closest('.list-group-item');
@@ -443,19 +353,16 @@ window._nsa.initContainer = function (container) {
   };
   dropdown.addEventListener('click', dropdown._nsaClickHandler);
 
-  // Prevent dropdown clicks from stealing focus
   dropdown.addEventListener('mousedown', function (e) {
     e.preventDefault();
   });
 
-  // Clear stale selection tracking
   setInterval(function () {
     if (input._selectionTimestamp && Date.now() - input._selectionTimestamp > 2000) {
       input._lastSelectedValue = null;
     }
   }, 1000);
 
-  // Focus: reopen suggestions if input has a value
   input.addEventListener('focus', function () {
     if (input.dataset.programmaticUpdate === 'true') {
       console.log('[Autocomplete] Skipping focus suggestions - programmatic update');
@@ -466,7 +373,6 @@ window._nsa.initContainer = function (container) {
     }
   });
 
-  // Reposition on scroll/resize when dropdown is visible
   var repositionDropdown = function () {
     if (
       dropdown.innerHTML &&
@@ -482,26 +388,17 @@ window._nsa.initContainer = function (container) {
   console.log('[Autocomplete] Initialized container for:', input.id);
 };
 
-/**
- * Scan the DOM for uninitialised .namespace-input-container elements
- * and attach handlers to each.
- */
 window._nsa.initAll = function () {
   document.querySelectorAll('.namespace-input-container').forEach(function (container) {
     window._nsa.initContainer(container);
   });
 };
 
-// ---------------------------------------------------------------------------
-// Bootstrap: DOMContentLoaded + MutationObserver
-// ---------------------------------------------------------------------------
-
 document.addEventListener('DOMContentLoaded', function () {
   window._nsa.initAll();
   window._nsa.watchMetadataStore();
 });
 
-// Re-initialise when Dash updates the DOM
 window._nsa.observer = new MutationObserver(function (mutations) {
   mutations.forEach(function (mutation) {
     if (mutation.addedNodes.length) {

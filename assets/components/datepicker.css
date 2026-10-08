@@ -1,11 +1,3 @@
-/* ====================
-   DATEPICKER COMPONENT
-   ==================== */
-
-/* ===== Date Picker Alignment ===== */
-/* Ensures consistent alignment of date pickers in the project timeline section with pixel-perfect precision */
-
-/* Standardize the SingleDatePicker appearance and alignment */
 .SingleDatePicker {
   width: 100%;
 }
@@ -31,7 +23,6 @@
   box-sizing: border-box !important;
 }
 
-/* Budget page datepicker - remove extra spacing */
 #budget-effective-date-picker .SingleDatePickerInput {
   display: flex !important;
   width: 100% !important;
@@ -59,7 +50,6 @@
   padding-right: 0 !important;
 }
 
-/* Exact pixel dimensions for both picker wrappers */
 #deadline-picker-wrapper,
 #milestone-picker-wrapper {
   padding: 0 !important;
@@ -67,8 +57,6 @@
   margin: 0 !important;
 }
 
-/* Force timeline inputs to occupy full width.
-   Newer dcc DatePicker renders these IDs on the actual input elements. */
 #deadline-picker,
 #milestone-picker {
   width: 100% !important;
@@ -77,17 +65,12 @@
   box-sizing: border-box !important;
 }
 
-/* Timeline section date picker alignment - normalize both */
 #deadline-picker-wrapper,
 #milestone-picker-wrapper {
   position: relative !important;
-  margin-top: 0 !important; /* No margin - labels provide the spacing */
+  margin-top: 0 !important;
 }
 
-/* Ensure font and line heights match.
-   Support both DOM variants:
-   1) ID on wrapper (legacy): #id .DateInput_input
-   2) ID on input   (current): #id.DateInput_input and #id.dash-datepicker-input */
 #deadline-picker .DateInput_input,
 #milestone-picker .DateInput_input,
 #deadline-picker.DateInput_input,
@@ -102,7 +85,6 @@
   height: 36px !important;
 }
 
-/* Ensure consistent borders */
 #deadline-picker .SingleDatePickerInput,
 #milestone-picker .SingleDatePickerInput {
   border: none !important;
@@ -111,14 +93,12 @@
   padding-right: 0 !important;
 }
 
-/* Ensure consistent inner DateInput component */
 #deadline-picker .DateInput,
 #milestone-picker .DateInput {
   width: 100% !important;
   flex: 1 !important;
 }
 
-/* Position clear button inside input box (matching budget effective date) */
 #deadline-picker .SingleDatePickerInput_clearDate,
 #milestone-picker .SingleDatePickerInput_clearDate {
   position: absolute !important;
@@ -126,44 +106,35 @@
   margin: 0 !important;
 }
 
-/* Fix for duplicate DatePickerSingle ID issue */
 .deadline-datepicker .DateInput_input {
-  /* Override the default id to prevent conflicts */
   position: relative;
 }
 
 .milestone-datepicker .DateInput_input {
-  /* Override the default id to prevent conflicts */
   position: relative;
 }
 
-/* Ensure both date pickers work properly */
 .DateInput_input[id='date'] {
-  /* This addresses the duplicate ID issue */
   pointer-events: auto;
 }
 
-/* Fix calendar dropdown z-index to appear on top */
 .SingleDatePicker__picker {
-  z-index: 1060 !important; /* Higher than Bootstrap modals (1055) */
+  z-index: 1060 !important;
 }
 
 .DateRangePickerInput {
   z-index: 1060 !important;
 }
 
-/* Fix DatePickerRange calendar popup z-index */
 .DateRangePicker_picker,
 .DateRangePicker__picker {
-  z-index: 1060 !important; /* Higher than metric cards and other content */
+  z-index: 1060 !important;
 }
 
-/* Ensure calendar overlay appears above all content */
 .SingleDatePicker_picker {
   z-index: 1060 !important;
 }
 
-/* Calendar day styling - gray out blocked and outside month dates */
 .CalendarDay__blocked_out_of_range,
 .CalendarDay__blocked_out_of_range:active,
 .CalendarDay__blocked_out_of_range:hover {
@@ -173,7 +144,6 @@
   cursor: not-allowed !important;
 }
 
-/* Days outside the current month should be lighter */
 .CalendarDay__outside {
   background: #fff !important;
   border: 1px solid #e4e7e7 !important;
@@ -186,7 +156,6 @@
   color: #cacccd !important;
 }
 
-/* Style for DatePickerRange inputs - more compact display */
 #dora-date-range-picker,
 #flow-date-range-picker {
   width: 100%;
@@ -196,9 +165,9 @@
 #flow-date-range-picker .DateRangePickerInput {
   display: flex;
   align-items: center;
-  border: none !important; /* Remove our custom border - component has its own */
-  background: transparent !important; /* Remove background - component handles it */
-  padding: 0 !important; /* Remove padding - component has its own */
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
 }
 
 #dora-date-range-picker .DateInput,
@@ -218,7 +187,6 @@
   color: var(--color-gray-600);
 }
 
-/* Make the arrow more prominent */
 #dora-date-range-picker .DateRangePickerInput_arrow svg,
 #flow-date-range-picker .DateRangePickerInput_arrow svg {
   fill: var(--color-gray-600);
@@ -226,32 +194,27 @@
   height: 20px;
 }
 
-/* Custom date range container positioning */
 #dora-custom-date-range-container,
 #flow-custom-date-range-container {
   position: relative;
   z-index: 1070;
 }
 
-/* Ensure calendar portal appears above everything */
 .DateRangePicker_picker__portal {
   z-index: 1070 !important;
 }
 
-/* Fix Dash Select dropdown menu z-index to appear above settings panel */
 .Select-menu-outer,
 .VirtualizedSelectOption,
 div[class*='__menu'] {
-  z-index: 1065 !important; /* Higher than modals and date pickers */
+  z-index: 1065 !important;
 }
 
-/* Ensure dropdown appears above collapsed panels */
 #jira-query-profile-selector .Select-menu-outer,
 #jira-query-profile-selector-mobile .Select-menu-outer {
   z-index: 1065 !important;
 }
 
-/* Force dropdown menu to use absolute positioning relative to viewport */
 .Select-menu-outer {
   position: absolute !important;
 }

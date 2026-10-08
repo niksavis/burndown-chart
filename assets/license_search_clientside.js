@@ -1,21 +1,8 @@
-/**
- * License Search/Filter - Clientside Callback
- *
- * Filters license accordion items by name or license type in real-time.
- */
-
 window.dash_clientside = Object.assign({}, window.dash_clientside, {
   about_dialog: {
-    /**
-     * Filter license accordion items based on search input
-     *
-     * @param {string} searchValue - Current search input value
-     * @returns {string} - Formatted count text
-     */
     filterLicenses: function (searchValue) {
       const accordion = document.getElementById('licenses-accordion');
       if (!accordion) {
-        // DOM not ready yet, retry after a short delay
         setTimeout(() => {
           const acc = document.getElementById('licenses-accordion');
           if (acc) {
@@ -35,11 +22,9 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
 
       items.forEach((item) => {
         if (!searchTerm) {
-          // No search term - show all
           item.style.display = '';
           visibleCount++;
         } else {
-          // Search in the accordion button title text (contains name, version, license type)
           const button = item.querySelector('.accordion-button');
           const titleText = button ? button.textContent.toLowerCase() : '';
 
@@ -50,13 +35,11 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         }
       });
 
-      // Show/hide no results message
       const noResults = document.getElementById('license-no-results');
       if (noResults) {
         noResults.style.display = searchTerm && visibleCount === 0 ? '' : 'none';
       }
 
-      // Return formatted count text
       const totalCount = items.length;
       if (searchTerm && visibleCount < totalCount) {
         return `Showing ${visibleCount} of ${totalCount} dependencies`;

@@ -1,8 +1,3 @@
-/* ====================
-   FLOW METRICS STYLING
-   ==================== */
-
-/* ===== Flow Metrics Type Classification Border Colors ===== */
 .border-flow-feature {
   border-color: var(--flow-feature-color) !important;
 }
@@ -19,7 +14,6 @@
   border-color: var(--flow-tech-debt-color) !important;
 }
 
-/* Icon colors for Flow type cards */
 .border-flow-feature .fa-lightbulb {
   color: var(--flow-feature-color) !important;
 }
