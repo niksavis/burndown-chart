@@ -1,14 +1,11 @@
-<!-- Dashboard Section -->
 <div class="section">
   <h2 class="section-title">
     <i class="fas fa-chart-line"></i>
     Project Health Overview
   </h2>
   {% if metrics.dashboard.has_data %}
-    <!-- Dashboard Overview with Progress Rings and Health Gauge -->
     <div class="dashboard-overview">
       <div class="row g-4">
-        <!-- Health Gauge -->
         <div class="col-md-4">
           <div class="health-gauge-container">
             {% if metrics.dashboard.health_status == 'GOOD' %}
@@ -89,7 +86,6 @@
             {% endif %}
           </div>
         </div>
-        <!-- Items Progress Ring -->
         <div class="col-md-4">
           <div class="progress-ring-container">
             {% set items_pct = metrics.dashboard.items_completion_pct %}
@@ -151,7 +147,6 @@
             </table>
           </div>
         </div>
-        <!-- Points Progress Ring -->
         {% if show_points %}
           <div class="col-md-4">
             <div class="progress-ring-container">
@@ -217,7 +212,6 @@
         {% endif %}
       </div>
     </div>
-    <!-- Velocity Cards -->
     <div class="velocity-cards">
       <div class="velocity-card" style="border-left-color: #0d6efd;">
         <div class="velocity-card-title">
@@ -259,7 +253,6 @@
         </div>
       {% endif %}
     </div>
-    <!-- Health Score Breakdown -->
     {% if metrics.dashboard.health_dimensions %}
       <h4 class="mt-4 mb-3">
         <i class="fas fa-chart-pie"></i> Health Score Breakdown ({{ metrics.dashboard.health_score|round|int }}%)
@@ -369,7 +362,6 @@
         {% endfor %}
       </div>
     {% endif %}
-    <!-- Health Score Explanation -->
     <p class="text-muted mt-3 mb-0" style="font-size: 0.875rem">
       <i class="fas fa-info-circle me-1"></i>
       <small>

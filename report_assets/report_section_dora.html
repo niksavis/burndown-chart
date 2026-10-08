@@ -1,15 +1,12 @@
-<!-- DORA Metrics Section -->
 {% if 'dora' in sections and metrics.dora.has_data %}
   <div class="section">
     <h2 class="section-title">
       <i class="fas fa-rocket"></i>
       DORA Metrics
     </h2>
-    <!-- DORA Metrics: Period aggregates matching app display exactly -->
     <p class="text-center text-muted mb-4">
       <i class="fas fa-info-circle"></i> {{ metrics.dora.weeks_count }}-Week Period • Lead Time & MTTR: median of weekly medians. Deployment Frequency: average. CFR: aggregate rate.
     </p>
-    <!-- DORA performance tier badge -->
     <div class="d-flex align-items-center justify-content-center gap-2 mb-4">
       <span style="background: {{ metrics.dora.overall_tier_color }};
                    color: #fff;

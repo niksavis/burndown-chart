@@ -1,15 +1,12 @@
-<!-- Flow Metrics Section -->
 {% if 'flow' in sections and metrics.flow.has_data %}
   <div class="section">
     <h2 class="section-title">
       <i class="fas fa-water"></i>
       Flow Metrics
     </h2>
-    <!-- Flow Metrics: Period aggregates matching app display exactly -->
     <p class="text-center text-muted mb-4">
       <i class="fas fa-info-circle"></i> {{ metrics.flow.weeks_count }}-Week Period • 4-week weighted average (40%, 30%, 20%, 10%)
     </p>
-    <!-- Flow performance level badge -->
     <div class="d-flex align-items-center justify-content-center gap-2 mb-4">
       <span style="background: {{ metrics.flow.performance_level_color }};
                    color: #fff;

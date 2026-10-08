@@ -1,11 +1,9 @@
-<!-- Bug Analysis Section (after Scope Changes) -->
 {% if 'burndown' in sections and metrics.bug_analysis.has_data %}
   <div class="section">
     <h2 class="section-title">
       <i class="fas fa-bug"></i>
       Bug Analysis
     </h2>
-    <!-- Bug Health badge -->
     <div class="d-flex align-items-center gap-2 mb-3">
       <span style="background: {{ metrics.bug_analysis.health_color }};
                    color: #fff;
