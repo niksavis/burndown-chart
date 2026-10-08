@@ -1,5 +1,3 @@
-"""ZIP extraction and integrity verification helpers for the updater."""
-
 from __future__ import annotations
 
 import hashlib
@@ -14,16 +12,7 @@ CHECKSUM_FILE_NAME = "BURNDOWN_CHECKSUMS.txt"
 
 
 def extract_update(zip_path: Path, extract_dir: Path, status: StatusFn) -> bool:
-    """Extract update ZIP to directory with path traversal protection.
 
-    Args:
-        zip_path: Path to ZIP file
-        extract_dir: Directory where to extract files
-        status: Callback for status output
-
-    Returns:
-        True if extraction succeeded, False otherwise
-    """
     try:
         status(f"Extracting update from {zip_path.name}")
 
@@ -84,15 +73,7 @@ def find_executable_in_extract(
     extract_dir: Path,
     names: list[str],
 ) -> Path | None:
-    """Find a matching executable in an extracted update directory.
 
-    Args:
-        extract_dir: Directory containing extracted update files.
-        names: Candidate executable names to search for.
-
-    Returns:
-        Path to the first matching executable, or None if not found.
-    """
     for name in names:
         direct_path = extract_dir / name
         if direct_path.exists():
@@ -108,16 +89,7 @@ def verify_checksums(
     expected_files: list[str],
     status: StatusFn,
 ) -> bool:
-    """Verify SHA256 checksums for required files in the update package.
 
-    Args:
-        extract_dir: Directory containing extracted update files.
-        expected_files: Filenames that must be present in checksum file.
-        status: Callback for status output
-
-    Returns:
-        True if checksums are valid, False otherwise
-    """
     checksum_path = extract_dir / CHECKSUM_FILE_NAME
     if not checksum_path.exists():
         status(f"ERROR: Missing checksum file: {CHECKSUM_FILE_NAME}")

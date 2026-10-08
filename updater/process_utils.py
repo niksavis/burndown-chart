@@ -1,5 +1,3 @@
-"""Process utilities for updater."""
-
 from __future__ import annotations
 
 import os
@@ -12,16 +10,7 @@ StatusFn = Callable[[str], None]
 
 
 def wait_for_process_exit(pid: int, status: StatusFn, timeout: int = 10) -> bool:
-    """Wait for a process to exit.
 
-    Args:
-        pid: Process ID to wait for
-        status: Callback for status output
-        timeout: Maximum time to wait in seconds
-
-    Returns:
-        True if process exited, False if timeout
-    """
     status(f"Waiting for process {pid} to exit (timeout: {timeout}s)...")
 
     try:

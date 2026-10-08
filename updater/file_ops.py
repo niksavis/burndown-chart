@@ -1,5 +1,3 @@
-"""File operations for updater with retry logic."""
-
 from __future__ import annotations
 
 import shutil
@@ -11,15 +9,7 @@ StatusFn = Callable[[str], None]
 
 
 def backup_file(file_path: Path, status: StatusFn) -> Path | None:
-    """Create backup of a file.
 
-    Args:
-        file_path: Path to file to backup
-        status: Callback for status output
-
-    Returns:
-        Path to backup file, or None if backup failed
-    """
     backup_path = file_path.with_suffix(file_path.suffix + ".bak")
 
     try:
@@ -37,16 +27,7 @@ def restore_from_backup(
     target_path: Path,
     status: StatusFn,
 ) -> bool:
-    """Restore file from backup.
 
-    Args:
-        backup_path: Path to backup file
-        target_path: Path where to restore the file
-        status: Callback for status output
-
-    Returns:
-        True if restore succeeded, False otherwise
-    """
     max_retries = 20
     retry_delay = 1.0
     start_time = time.time()
@@ -100,16 +81,7 @@ def replace_executable(
     target_exe_path: Path,
     status: StatusFn,
 ) -> bool:
-    """Replace old executable with new one.
 
-    Args:
-        new_exe_path: Path to new executable
-        target_exe_path: Path where to place the new executable
-        status: Callback for status output
-
-    Returns:
-        True if replacement succeeded, False otherwise
-    """
     max_retries = 20
     retry_delay = 1.0
     start_time = time.time()
@@ -178,17 +150,7 @@ def copy_executable(
     description: str,
     status: StatusFn,
 ) -> bool:
-    """Copy an executable with retry logic for transient locks.
 
-    Args:
-        source_path: Path to the source executable
-        target_path: Destination path for the copy
-        description: Human-readable description for status logs
-        status: Callback for status output
-
-    Returns:
-        True if copy succeeded, False otherwise
-    """
     max_retries = 10
     retry_delay = 0.5
 
@@ -220,16 +182,7 @@ def remove_legacy_executable(
     description: str,
     status: StatusFn,
 ) -> bool:
-    """Remove a legacy executable with retry logic.
 
-    Args:
-        legacy_path: Path to the legacy executable
-        description: Human-readable description for status logs
-        status: Callback for status output
-
-    Returns:
-        True if removal succeeded or file is absent, False otherwise
-    """
     if not legacy_path.exists():
         return True
 

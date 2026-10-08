@@ -1,5 +1,3 @@
-"""Support file replacement helpers for the updater."""
-
 from __future__ import annotations
 
 import shutil
@@ -17,15 +15,7 @@ SUPPORT_FILE_NAMES = [
 
 
 def find_file_in_extract(extract_dir: Path, filename: str) -> Path | None:
-    """Find a file in an extracted update directory (case-insensitive).
 
-    Args:
-        extract_dir: Directory containing extracted update files.
-        filename: Target filename to locate.
-
-    Returns:
-        Path to the first matching file, or None if not found.
-    """
     target = filename.lower()
     direct_path = extract_dir / filename
     if direct_path.exists():
@@ -42,17 +32,7 @@ def replace_support_file(
     description: str,
     status: StatusFn,
 ) -> bool:
-    """Replace a support file with retry logic for transient locks.
 
-    Args:
-        source_path: Path to the source file
-        target_path: Destination path for the copy
-        description: Human-readable description for status logs
-        status: Callback for status output
-
-    Returns:
-        True if replacement succeeded, False otherwise
-    """
     max_retries = 10
     retry_delay = 0.5
 
@@ -84,7 +64,6 @@ def replace_support_files(
     install_dir: Path,
     status: StatusFn,
 ) -> None:
-    """Replace README, LICENSE, and third-party licenses from update ZIP."""
     status("Updating README and license files")
     for filename in SUPPORT_FILE_NAMES:
         source_path = find_file_in_extract(extract_dir, filename)
