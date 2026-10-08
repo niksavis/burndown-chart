@@ -1,18 +1,3 @@
-"""Every tracker operation a consumer needs that is not a create, a show or a list.
-
-One operation per function, each taking a ledger directory and returning JSON-shaped data;
-``cli.py`` owns the argument surface above it. The boundary is that split: nothing here
-parses an argument and nothing there folds an event.
-
-**Why it exists** (§4 in `SPEC.md`): the kit promised a tracker a repository can run
-with nothing on PATH, and shipped three verbs. The engine reached ranking, the blocked set,
-edges and deletion through these modules directly, so a consumer with no engine could
-create a record and never advance one.
-
-Every write holds the ledger's own lock across its read and its append, for the reason
-``cli.create_record`` states. Kit rules are in `.basicly/core/kit/README.md`.
-"""
-
 from __future__ import annotations
 
 import importlib.util
@@ -25,7 +10,6 @@ _HERE = Path(__file__).resolve().parent
 
 
 def _load(file_name: str, module_name: str) -> Any:
-    """Load a sibling kit module by path, under the kit's fixed ``sys.modules`` name."""
     cached = sys.modules.get(module_name)
     if cached is not None:
         return cached
@@ -40,39 +24,66 @@ def _load(file_name: str, module_name: str) -> Any:
 
 queries = _load("queries.py", "basicly_tracker_kit_queries")
 label_shape = _load("label_shape.py", "basicly_tracker_kit_label_shape")
+templates = _load("templates.py", "basicly_tracker_kit_templates")
+writers = _load("writers.py", "basicly_tracker_kit_writers")
+recurrence = _load("recurrence.py", "basicly_tracker_kit_recurrence")
+values = _load("values.py", "basicly_tracker_kit_values")
+holders = _load("holders.py", "basicly_tracker_kit_holders")
+pin = _load("pin.py", "basicly_tracker_kit_pin")
+forks = _load("forks.py", "basicly_tracker_kit_forks")
+edges = _load("edges.py", "basicly_tracker_kit_edges")
+review = _load("review.py", "basicly_tracker_kit_review")
+claims = _load("claims.py", "basicly_tracker_kit_claims")
 differential = queries.differential
 events = differential.events
 migrate = differential.migrate
 ids = events.ids
 
-# The field a record's labels live under, the separator one argv joins them with, and the
-# split that gets them back. Declared in `label_shape.py` and re-exported rather than
-# respelled: `fsck.py` checks the same shape and a second copy of the separator is how a
-# checker and a writer come to disagree about one log (basicly-0cpn51).
 LABELS_FIELD = label_shape.LABELS_FIELD
 LABEL_SEPARATOR = label_shape.LABEL_SEPARATOR
 labels_of = label_shape.labels_of
 
-# The status a close moves a record to, and the field the reason lands under.
 CLOSED_STATUS = "closed"
 CLOSE_REASON_FIELD = "close_reason"
 
 
 class TrackerCommandError(events.LedgerError):
-    """An operation the ledger cannot carry out.
+    pass
 
-    A subclass of the ledger's own error so ``cli.main`` reports it on the path it already
-    has, rather than growing a second handler the kit's one-class-per-handler rule forbids.
-    """
+
+def _is_repository(path: Path) -> bool:
+    return (path / ".git").exists() or (path / ".basicly").is_dir()
+
+
+def _holds_ledger(path: Path) -> bool:
+    return (
+        any(path.glob(events.LOG_GLOB))
+        or any(path.glob(events.PENDING_GLOB))
+        or (path / templates.TEMPLATE_FILE).is_file()
+    )
+
+
+def resolve_ledger(directory: Path | str, *, starts: bool = False) -> Path:
+
+    given = Path(directory)
+    if _is_repository(given):
+        raise TrackerCommandError(
+            f"{given} is a repository, not a ledger; name the ledger directory inside it"
+        )
+    if starts:
+        return given
+    if not given.is_dir():
+        raise TrackerCommandError(f"{given} is not a ledger directory")
+    if _holds_ledger(given) or not any(one.name != pin.PIN_FILE for one in given.iterdir()):
+        return given
+    raise TrackerCommandError(
+        f"{given} holds no ledger ({events.LOG_GLOB} or {events.PENDING_GLOB}); "
+        f"name the ledger directory"
+    )
 
 
 def _ledger(directory: Path | str) -> Path:
-    """*directory* as a ledger path.
 
-    Raises:
-        TrackerCommandError: it is not a directory. Refused rather than read as an empty
-            ledger, so a mistyped path cannot answer "no such record".
-    """
     ledger = Path(directory)
     if not ledger.is_dir():
         raise TrackerCommandError(str(ledger) + " is not a ledger directory")
@@ -80,12 +91,7 @@ def _ledger(directory: Path | str) -> Path:
 
 
 def _require(ledger: Path, record: str) -> Any:
-    """*record*'s folded state.
 
-    Raises:
-        TrackerCommandError: it is absent or tombstoned. A write against an absent id
-            would otherwise mint a record under a name nobody chose.
-    """
     state = events.fold(events.read_events(ledger)[0]).records.get(record)
     if state is None or state.tombstoned:
         raise TrackerCommandError("the ledger holds no record " + record)
@@ -93,20 +99,29 @@ def _require(ledger: Path, record: str) -> Any:
 
 
 def _append(
-    ledger: Path, drafts: Sequence[Any], redact: Callable[[str], str] | None, lock: Any
+    ledger: Path,
+    drafts: Sequence[Any],
+    redact: Callable[[str], str] | None,
+    lock: Any,
+    *,
+    repeat: bool = False,
 ) -> list:
-    """Append *drafts* under a lock the caller already holds."""
-    return events.append(ledger, list(drafts), redact=redact, held_lock=lock)
-
-
-# --- the writes ----------------------------------------------------------------
+    template = templates.load(ledger)
+    values.refuse(events, drafts, template)
+    found = events.read_events(ledger)[0]
+    states = events.fold(found).records
+    holders.refuse(states, drafts)
+    review.refuse(states, drafts, writers.writer_class(), template, found=found)
+    resolved = recurrence.at_the_generation_this_write_needs(
+        events, ledger, drafts, repeat=repeat, redact=redact
+    )
+    return events.append(
+        ledger, resolved, actor=writers.writer_class(), redact=redact, held_lock=lock
+    )
 
 
 def _resolved_labels(state: Any, add: Iterable[str], remove: Iterable[str]) -> str:
-    """The record's label set after *add* and *remove*, in the joined storage form.
 
-    Order is kept rather than sorted: a reordering reads as a change in every comparison.
-    """
     labels = list(labels_of(state.fields.get(LABELS_FIELD)))
     for name in _split_all(add):
         if name not in labels:
@@ -118,7 +133,6 @@ def _resolved_labels(state: Any, add: Iterable[str], remove: Iterable[str]) -> s
 
 
 def _split_all(values: Iterable[str]) -> list[str]:
-    """Every non-empty label named across *values*, each of which may be a joined list."""
     found: list[str] = []
     for value in values:
         found.extend(part.strip() for part in value.split(LABEL_SEPARATOR) if part.strip())
@@ -134,21 +148,19 @@ def update(  # noqa: PLR0913 — one argument per thing an update can set; see t
     add_labels: Sequence[str] = (),
     remove_labels: Sequence[str] = (),
     redact: Callable[[str], str] | None = None,
+    if_seq: int | None = None,
+    claimant: str = "",
 ) -> list:
-    """Set *record*'s fields, its status, or its labels.
 
-    The whole call is one critical section because the label pair is a read-modify-write:
-    resolving the set outside the lock loses a second writer's label.
-
-    Raises:
-        TrackerCommandError: the ledger holds no such record, or nothing was asked for.
-    """
     ledger = _ledger(directory)
     named = dict(fields or {})
     if not named and not status and not add_labels and not remove_labels:
         raise TrackerCommandError("update " + record + " asks for no change")
     with events.LedgerLock(ledger) as lock:
         state = _require(ledger, record)
+        if if_seq is not None:
+            touched = {*named, *([LABELS_FIELD] if add_labels or remove_labels else [])}
+            _refuse_stale(ledger, record, if_seq, touched | ({STATUS_NAME} if status else set()))
         drafts = [
             events.Draft(record, events.KIND_FIELD, {"name": name, "value": value})
             for name, value in sorted(named.items())
@@ -160,7 +172,30 @@ def update(  # noqa: PLR0913 — one argument per thing an update can set; see t
             )
         if status:
             drafts.append(events.Draft(record, events.KIND_STATUS, {"status": status}))
+        drafts = holders.claimed_by({record: state}, drafts, claimant)
         return _append(ledger, drafts, redact, lock)
+
+
+STATUS_NAME = "status"
+
+
+def _refuse_stale(ledger: Path, record: str, if_seq: int, touched: set[str]) -> None:
+
+    changed = sorted(
+        {
+            STATUS_NAME if event.kind == events.KIND_STATUS else str(event.payload.get("name"))
+            for event in events.read_events(ledger)[0]
+            if event.record == record
+            and event.seq > if_seq
+            and event.kind in (events.KIND_FIELD, events.KIND_STATUS)
+        }
+        & touched
+    )
+    if changed:
+        raise TrackerCommandError(
+            f"{record} changed {', '.join(changed)} after you read it at seq {if_seq}; "
+            f"reload it and apply your edit again"
+        )
 
 
 def close(
@@ -168,15 +203,10 @@ def close(
     records: Sequence[str],
     *,
     reason: str = "",
+    resolution: str = "completed",
     redact: Callable[[str], str] | None = None,
 ) -> list:
-    """Move each of *records* to the closed status, recording *reason* as a field.
 
-    Every id under one lock, so a close naming several either lands whole or not at all.
-
-    Raises:
-        TrackerCommandError: the ledger holds no such record, or none was named.
-    """
     ledger = _ledger(directory)
     if not records:
         raise TrackerCommandError("close names no record")
@@ -192,6 +222,11 @@ def close(
                         {"name": CLOSE_REASON_FIELD, "value": reason},
                     )
                 )
+            drafts.append(
+                events.Draft(
+                    record, events.KIND_FIELD, {"name": "close_resolution", "value": resolution}
+                )
+            )
             drafts.append(events.Draft(record, events.KIND_STATUS, {"status": CLOSED_STATUS}))
         return _append(ledger, drafts, redact, lock)
 
@@ -203,16 +238,7 @@ def comment(
     *,
     redact: Callable[[str], str] | None = None,
 ) -> list:
-    """Append one prose entry to *record*'s work log.
 
-    Written as :data:`events.KIND_NOTE`, the kind that carries prose (basicly-vkh0.30). The
-    **command** keeps the external tracker's word because its name is a consumer surface and
-    moves under its own deprecation window; the kind is not, so it moves now.
-
-    Raises:
-        TrackerCommandError: the ledger holds no such record, or the body is empty. An
-            empty entry records nothing and is indistinguishable from a lost one.
-    """
     ledger = _ledger(directory)
     if not text:
         raise TrackerCommandError("a comment on " + record + " needs a body")
@@ -231,58 +257,35 @@ def add_dependency(
     edge_type: str = "",
     redact: Callable[[str], str] | None = None,
 ) -> list:
-    """Record an edge from *record* to *target*, on the dependent — where the fold reads it.
 
-    Refused when it would close a cycle, because a cycle makes the ready set undefined:
-    every record on it waits for another on it, so none is ever dispatchable and nothing
-    reports why.
-
-    Raises:
-        TrackerCommandError: either end is absent, the type is empty, or the edge closes a
-            cycle.
-    """
     ledger = _ledger(directory)
     if not edge_type:
         edge_type = differential.DEFAULT_VOCABULARY.parent_child_type
     with events.LedgerLock(ledger) as lock:
         _require(ledger, record)
         _require(ledger, target)
-        _refuse_cycle(ledger, record, target, edge_type)
+        edges.refuse_edge(ledger, record, target, edge_type)
+        edges.refuse_cycle(ledger, record, target, edge_type)
         payload = {migrate.EDGE_FROM: record, migrate.EDGE_TO: target, migrate.EDGE_TYPE: edge_type}
         return _append(ledger, [events.Draft(record, migrate.KIND_EDGE, payload)], redact, lock)
 
 
-def _refuse_cycle(ledger: Path, record: str, target: str, edge_type: str) -> None:
-    """Refuse an edge whose target already reaches *record* over edges of the same type.
+def remove_dependency(
+    directory: Path | str,
+    record: str,
+    target: str,
+    *,
+    edge_type: str = "blocks",
+    redact: Callable[[str], str] | None = None,
+) -> list:
 
-    Same-type only: a ``blocks`` path and a ``parent-child`` path crossing is a shape the
-    graph is meant to hold, and refusing it would refuse an ordinary decomposition.
-
-    Raises:
-        TrackerCommandError: *target* already reaches *record*.
-    """
-    views, _ = queries.views_and_children(ledger)
-    seen = set()
-    frontier = [target]
-    while frontier:
-        current = frontier.pop()
-        if current == record:
-            raise TrackerCommandError(
-                "an edge "
-                + record
-                + " -> "
-                + target
-                + " of type "
-                + edge_type
-                + " closes a cycle, which leaves every record on it permanently unready"
-            )
-        if current in seen:
-            continue
-        seen.add(current)
-        view = views.get(current)
-        if view is None:
-            continue
-        frontier.extend(edge.target for edge in view.dependencies if edge.type == edge_type)
+    ledger = _ledger(directory)
+    with events.LedgerLock(ledger) as lock:
+        _require(ledger, record)
+        edges.refuse_retraction(queries.views_and_children(ledger)[0], record, target, edge_type)
+        payload = {migrate.EDGE_FROM: record, migrate.EDGE_TO: target, migrate.EDGE_TYPE: edge_type}
+        drafts = [events.Draft(record, events.KIND_EDGE_RETRACTED, payload)]
+        return _append(ledger, drafts, redact, lock)
 
 
 def delete(
@@ -291,14 +294,7 @@ def delete(
     *,
     redact: Callable[[str], str] | None = None,
 ) -> list:
-    """Tombstone *record*, which is how an append-only log expresses a removal.
 
-    The record and its history stay, every read treats it as absent, and its id is never
-    minted again (`ids.minted_ever`).
-
-    Raises:
-        TrackerCommandError: the ledger holds no such record, or already tombstoned it.
-    """
     ledger = _ledger(directory)
     with events.LedgerLock(ledger) as lock:
         _require(ledger, record)
@@ -313,15 +309,7 @@ def create_root(
     status: str = "open",
     redact: Callable[[str], str] | None = None,
 ) -> list:
-    """Mint a root id under *prefix* and append the record's first two events.
 
-    Two events rather than one, because status is its own kind: the fold reads status only
-    from a ``status`` event, so a record written without one answers no query.
-
-    Raises:
-        events.LockUnavailableError: another writer held the ledger. Retryable.
-        ids.IdSpaceExhaustedError: no free id under *prefix*.
-    """
     ledger = Path(directory)
     ledger.mkdir(parents=True, exist_ok=True)
     with events.LedgerLock(ledger) as lock:
@@ -348,14 +336,7 @@ def create_child(
     status: str = "open",
     redact: Callable[[str], str] | None = None,
 ) -> list:
-    """Mint the next child id under *parent* and append the record with its edge.
 
-    Minting reads every id the ledger ever held, so the mint and the append are one
-    critical section — a writer in between could be handed the same id.
-
-    Raises:
-        TrackerCommandError: the ledger holds no such parent.
-    """
     ledger = _ledger(directory)
     with events.LedgerLock(ledger) as lock:
         _require(ledger, parent)
@@ -372,3 +353,120 @@ def create_child(
             events.Draft(record, migrate.KIND_EDGE, edge),
         ]
         return _append(ledger, drafts, redact, lock)
+
+
+def migrate_fields(directory: Path | str, *, redact: Callable[[str], str] | None = None) -> list:
+
+    ledger = _ledger(directory)
+    shaping = values.fields.shaping
+    with events.LedgerLock(ledger) as lock:
+        states = events.fold(events.read_events(ledger)[0]).records
+        drafts = []
+        for record, state in sorted(states.items()):
+            if state.tombstoned or state.status == CLOSED_STATUS:
+                continue
+            body = state.fields.get(shaping.DESCRIPTION_FIELD)
+            text = body if isinstance(body, str) else ""
+            for heading, name in shaping.SECTIONS:
+                held = state.fields.get(name)
+                entries = shaping.section_entries(text, heading) or tuple(
+                    line for line in shaping.section_text(text, heading).splitlines() if line
+                )
+                if entries and not (isinstance(held, str) and held.strip()):
+                    value = "\n".join(f"- {entry}" for entry in entries)
+                    payload = {"name": name, "value": value}
+                    drafts.append(events.Draft(record, events.KIND_FIELD, payload))
+        return _append(ledger, drafts, redact, lock) if drafts else []
+
+
+def _holder_draft(record: str, holder: str, take: bool) -> Any:
+
+    if not holder:
+        raise TrackerCommandError(
+            "no holder name: set git config user.name, or name the holder with --to"
+        )
+    payload: dict[str, object] = {"name": holders.HOLDER_FIELD, "value": holder}
+    if take:
+        payload[holders.TAKE_KEY] = True
+    return events.Draft(record, events.KIND_FIELD, payload)
+
+
+def assign(
+    directory: Path | str,
+    record: str,
+    holder: str,
+    *,
+    take: bool = False,
+    redact: Callable[[str], str] | None = None,
+) -> list:
+
+    ledger = _ledger(directory)
+    drafts = [_holder_draft(record, holder, take)]
+    with events.LedgerLock(ledger) as lock:
+        _require(ledger, record)
+        return _append(ledger, drafts, redact, lock)
+
+
+def claim(
+    directory: Path | str,
+    record: str,
+    holder: str,
+    *,
+    take: bool = False,
+    redact: Callable[[str], str] | None = None,
+) -> list:
+
+    ledger = _ledger(directory)
+    drafts = [
+        _holder_draft(record, holder, take),
+        events.Draft(record, events.KIND_STATUS, {"status": "in_progress"}),
+    ]
+    with events.LedgerLock(ledger) as lock:
+        holders.refuse_a_claim_on_a_closed_record(_require(ledger, record), ledger, record)
+        return _append(ledger, drafts, redact, lock)
+
+
+def unassign(
+    directory: Path | str, record: str, *, redact: Callable[[str], str] | None = None
+) -> list:
+
+    ledger = _ledger(directory)
+    with events.LedgerLock(ledger) as lock:
+        _require(ledger, record)
+        payload = {"name": holders.HOLDER_FIELD, "value": ""}
+        return _append(ledger, [events.Draft(record, events.KIND_FIELD, payload)], redact, lock)
+
+
+def _restated(record: str, state: Any, key: str) -> list:
+
+    if key == forks.STATUS_KEY:
+        drafts = [events.Draft(record, events.KIND_STATUS, {"status": state.status})]
+        if state.status == CLOSED_STATUS:
+            reason = {"name": CLOSE_REASON_FIELD, "value": state.fields.get(CLOSE_REASON_FIELD)}
+            drafts.insert(0, events.Draft(record, events.KIND_FIELD, reason))
+        return drafts
+    payload: dict[str, object] = {"name": key, "value": state.fields.get(key)}
+    if key == holders.HOLDER_FIELD:
+        payload[holders.TAKE_KEY] = True
+    return [events.Draft(record, events.KIND_FIELD, payload)]
+
+
+def resolve(
+    directory: Path | str, record: str, *, redact: Callable[[str], str] | None = None
+) -> list:
+
+    ledger = _ledger(directory)
+    with events.LedgerLock(ledger) as lock:
+        state = _require(ledger, record)
+        ordered = events.canonical_order(events.read_events(ledger)[0])
+        keys = sorted({one["key"] for one in forks.of_record(ordered, record)})
+        if not keys:
+            raise TrackerCommandError(f"{record} has no unresolved conflict to resolve")
+        drafts = [draft for key in keys for draft in _restated(record, state, str(key))]
+        appended = _append(ledger, drafts, redact, lock, repeat=True)
+        if not appended:
+            raise TrackerCommandError(f"resolve {record} appended nothing, so the fork stays")
+        return appended
+
+
+record_process = review.process.record_process

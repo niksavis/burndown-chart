@@ -278,6 +278,7 @@ models/*
 !package-lock.json
 !tsconfig.json
 !*.example.json
+!.basicly/ledger/template.json
 !.prettierrc.json
 !.vscode/*.json
 !.github/codebase_context_metrics.json
@@ -307,3 +308,4 @@ basicly.local.toml
 .basicly/ledger/checkpoint-*.jsonl
 # Your copy of a file basicly replaced; delete it once you have merged what you want.
 *.basicly-bak
+.basicly/ledger/.events.lock

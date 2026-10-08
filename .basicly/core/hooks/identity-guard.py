@@ -1,45 +1,18 @@
-r"""Block commits made with an unconfigured or auto-derived git identity.
-
-Installed as a pre-commit hook via pre-commit. It refuses a commit when the
-committer identity is missing or looks like git's hostname fallback (for example
-``user@laptop.local``), which silently pollutes history with a machine address —
-the exact failure this repo hit when a global ``user.email`` was left unset.
-
-The check is intentionally generic and carries NO project-specific identities, so
-it is safe to distribute: it only verifies that ``user.name``/``user.email`` are
-explicitly configured and not an obvious auto-generated value. Configure the real
-per-repo/per-host identity yourself (``git config --local user.email ...`` or a
-conditional include — see the ``tool-git`` skill); this hook guards against the
-*absence* of that configuration, not the value.
-
-Optional strict mode: set ``basicly.identityAllowEmail`` to a regular expression
-(``git config basicly.identityAllowEmail '@example\.com$'``) and the committer
-email must match it — useful to keep a repo's commits on a company/personal domain.
-
-An opt-in per-agent bot identity (``basicly-smzg``) overrides the recorded
-author/committer via the ``GIT_AUTHOR_*``/``GIT_COMMITTER_*`` environment without
-touching config, so the guard also validates the *effective* identity git will
-actually stamp (via ``git var``), not just the config value — otherwise a bot
-could commit under an email the allow-email pattern forbids.
-"""
-
 from __future__ import annotations
 
+import json
 import re
 import subprocess  # nosec B404
 import sys
+from collections import Counter
 from pathlib import Path
 
-# Emails git fabricates from the hostname when identity is unset end in these
-# machine-local suffixes (e.g. ``user@workstation.local``, ``user@host.(none)``).
 FALLBACK_EMAIL_PATTERN = re.compile(r"\.(local|lan|localdomain)$|\.?\(none\)$", re.IGNORECASE)
 
-# ``git var GIT_{AUTHOR,COMMITTER}_IDENT`` renders as ``Name <email> unixtime +tz``.
 IDENT_PATTERN = re.compile(r"^(?P<name>.*) <(?P<email>[^>]*)> \d+ [-+]\d{4}$")
 
 
 def git_config(key: str, repo_root: Path) -> str:
-    """Return the trimmed value of a git config key, or '' if unset."""
     result = subprocess.run(
         ["git", "config", key],
         cwd=repo_root,
@@ -51,15 +24,7 @@ def git_config(key: str, repo_root: Path) -> str:
 
 
 def effective_identity(role: str, repo_root: Path) -> tuple[str, str]:
-    """The name/email git will actually stamp for *role* (``AUTHOR``/``COMMITTER``).
 
-    ``git var GIT_<role>_IDENT`` resolves the effective identity from the
-    ``GIT_<role>_NAME``/``GIT_<role>_EMAIL`` environment first (an opt-in bot
-    identity, basicly-smzg), then config — so the guard validates what history
-    records, not only what config says. Returns ``("", "")`` when the output
-    cannot be parsed; the caller treats that as "no override to check" so a parse
-    miss never false-blocks a commit the config check already cleared.
-    """
     result = subprocess.run(
         ["git", "var", f"GIT_{role}_IDENT"],
         cwd=repo_root,
@@ -74,7 +39,6 @@ def effective_identity(role: str, repo_root: Path) -> tuple[str, str]:
 
 
 def check_identity(name: str, email: str, allow_email: str = "") -> tuple[bool, str]:
-    """Validate a git identity. Return (ok, message); ok False blocks the commit."""
     if not email:
         return False, (
             "no git user.email is configured — git would fall back to a hostname "
@@ -98,8 +62,80 @@ def check_identity(name: str, email: str, allow_email: str = "") -> tuple[bool, 
     return True, f"git identity OK: {name} <{email}>"
 
 
+LEDGER_PREFIX = ".basicly/ledger/"
+HOLDER_FIELD = "assignee"
+MIN_NAME_CHARS = 3
+
+
+def added_lines(repo_root: Path) -> list[tuple[str, str]]:
+    result = subprocess.run(
+        ["git", "diff", "--cached", "-U0", "--no-color"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )  # nosec
+    return net_added(result.stdout)
+
+
+def net_added(diff: str) -> list[tuple[str, str]]:
+    added, removed, path = [], Counter(), ""
+    for line in diff.splitlines():
+        if line.startswith("+++ "):
+            path = line[6:] if line.startswith("+++ b/") else ""
+        elif line.startswith("--- "):
+            continue
+        elif line.startswith("+") and path:
+            added.append((path, line[1:]))
+        elif line.startswith("-"):
+            removed[line[1:]] += 1
+    found = []
+    for path, text in added:
+        if removed[text] > 0:
+            removed[text] -= 1
+            continue
+        found.append((path, text))
+    return found
+
+
+def _forms(name: str) -> tuple[str, ...]:
+    return (name, json.dumps(name)[1:-1])
+
+
+def _only_the_holder(line: str, name: str, holder: str) -> bool:
+    try:
+        event = json.loads(line)
+    except ValueError:
+        return False
+    if not isinstance(event, dict):
+        return False
+    fields = event.get("fields")
+    if isinstance(fields, dict) and fields.get(HOLDER_FIELD) == holder:
+        rest = json.dumps({**event, "fields": {**fields, HOLDER_FIELD: ""}})
+        return not any(form in rest for form in _forms(name))
+    payload = event.get("payload")
+    if not isinstance(payload, dict) or payload.get("name") != HOLDER_FIELD:
+        return False
+    if payload.get("value") != holder:
+        return False
+    rest = json.dumps({**event, "payload": {**payload, "value": ""}})
+    return not any(form in rest for form in _forms(name))
+
+
+def name_findings(lines: list[tuple[str, str]], name: str, holder: str) -> list[str]:
+    if len(name) < MIN_NAME_CHARS:
+        return []
+    findings = []
+    for path, line in lines:
+        if not any(form in line for form in _forms(name)):
+            continue
+        if path.startswith(LEDGER_PREFIX) and _only_the_holder(line, name, holder):
+            continue
+        findings.append(path)
+    return sorted(set(findings))
+
+
 def main() -> int:
-    """Entry point for the identity-guard pre-commit hook."""
     repo_root = Path.cwd()
     name = git_config("user.name", repo_root)
     email = git_config("user.email", repo_root)
@@ -109,13 +145,17 @@ def main() -> int:
     if not ok:
         print(f"ERROR: {message}", file=sys.stderr)
         return 1
+    holder = git_config("basicly.holder", repo_root) or name
+    if found := name_findings(added_lines(repo_root), name, holder):
+        print(
+            f"ERROR: the commit adds your git user.name to {', '.join(found)}. Commit no user "
+            "name; the tracker holder field is the one exception, and "
+            "`git config basicly.holder <name>` chooses what it records",
+            file=sys.stderr,
+        )
+        return 1
     print(message)
 
-    # An opt-in bot identity (basicly-smzg) overrides the recorded author/committer
-    # via GIT_AUTHOR_*/GIT_COMMITTER_* env without touching config. Validate the
-    # effective identity git will actually stamp so the allow-email gate binds the
-    # bot too. When it equals config (no override) or cannot be parsed, skip it —
-    # the config check above already covered the base identity.
     for role in ("AUTHOR", "COMMITTER"):
         eff_name, eff_email = effective_identity(role, repo_root)
         if not eff_email or (eff_name, eff_email) == (name, email):

@@ -4,10 +4,10 @@ repos:
   hooks:
   - id: ruff-check
     args: [--fix]
+    # basicly writes these; `basicly skills-build` restores any rewrite.
+    exclude: ^(\.basicly/core|\.claude/skills|\.agents/skills)/
   - id: ruff-format
-    # Vendored, upstream-managed Python formatted at basicly's line-length 100.
-    # ruff-check still covers it; only the rewrite is suppressed.
-    exclude: ^\.basicly/
+    exclude: ^(\.basicly/|\.claude/skills/|\.agents/skills/)
 
 - repo: https://github.com/PyCQA/bandit
   rev: 1.9.4
@@ -49,6 +49,16 @@ repos:
   hooks:
   - id: markdownlint
     args: [--config, .markdownlint.json]
+    # basicly projects these; its own markdownlint hook below checks them.
+    exclude: |
+      (?x)^(
+        \.basicly/core/.*|
+        \.claude/skills/.*|
+        \.agents/skills/.*|
+        \.claude/CLAUDE\.md|
+        AGENTS\.md|
+        \.github/copilot-instructions\.md
+      )$
 
 - repo: https://github.com/Yelp/detect-secrets
   rev: v1.5.0
@@ -64,7 +74,8 @@ repos:
         requirements.*\.txt|
         package-lock\.json|
         assets/vendor/.*|
-        \.basicly/ledger/.*
+        \.basicly/ledger/.*|
+        \.basicly/core/.*
       )$
 - repo: local
   hooks:
@@ -124,6 +135,14 @@ repos:
     - pre-commit
     pass_filenames: false
     always_run: true
+  - id: no-comments
+    name: no-comments
+    entry: uv run --no-project python .basicly/core/hooks/no-comments.py
+    language: system
+    stages:
+    - pre-commit
+    pass_filenames: true
+    files: \.(py|pyi|js|jsx|mjs|cjs|ts|tsx|mts|cts|java|kt|kts|cs|c|cc|cpp|cxx|h|hpp|go|rs|swift|scala|php|m|mm|css|scss|sass|less|html|htm|xhtml|vue|svelte|cshtml|razor|sh|bash|zsh|ksh|ps1|psm1|psd1|sql|vb|vbs)$
   - id: kit-boundary
     name: kit-boundary
     entry: uv run --no-project python .basicly/core/hooks/kit-boundary.py
@@ -142,6 +161,13 @@ repos:
   - id: tracker-commit-msg-script
     name: tracker-commit-msg-script
     entry: uv run --no-project python .basicly/core/hooks/tracker-commit-msg.py
+    language: system
+    stages:
+    - commit-msg
+    pass_filenames: true
+  - id: tracker-claim-script
+    name: tracker-claim-script
+    entry: uv run --no-project python .basicly/core/hooks/tracker-claim.py
     language: system
     stages:
     - commit-msg

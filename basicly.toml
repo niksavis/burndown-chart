@@ -174,4 +174,3 @@ rank1_floor = 0.891
 # refused verbatim. The prefix was de-hyphenated on import. Git history still carries the old
 # `burndown-chart-XXXX` form in commit trailers: `burndown-chart-2rm1` is `burndownchart-2rm1`
 # here. The mapping is that one hyphen, nothing else.
-prefix = "burndownchart"

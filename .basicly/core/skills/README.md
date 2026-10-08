@@ -12,52 +12,37 @@ Every source in this directory, with its own routing fields — generated and ga
 `.scripts/docs_claims.py`. A technologies-tagged source ships only to a repo that
 selects that tag (`[catalog] technologies` in `basicly.toml`), so this is the catalog,
 not the projection of any one consumer. A user-invoked source carries no description
-by design: that absence is what keeps it out of the model's always-loaded index.
+field: every skill root advertises its first body paragraph instead.
 
 <!-- docs-claims:begin catalog-skills -->
 
 | Skill | Invocation | Technologies | Description |
 | --- | --- | --- | --- |
-| `catalog-authoring` | `model` | any | Author and improve basicly catalog sources — skills and fragments — in their YAML source format (never a discoverable .md), then project and verify them. Use when adding or editing a skill or fragment, building a catalog, or deciding where guidance should live (always-on fragment vs on-demand skill). |
-| `conventional-commits` | `model` | any | Construct a valid Conventional Commits message for this repo before running `git commit`, covering type/scope, the "!" breaking-change marker, description rules, and the required trailing tracker record id. Use whenever writing or reviewing a commit message, or when a commit is rejected by the commit-msg/tracker-commit-msg hooks. |
-| `decompose-plan` | `model` | any | Cut a unit of work into children the plan gate will accept — testable acceptance criteria in EARS, disjoint or declared scope globs, an acyclic dependency graph, a token budget, an integrity level, and the command that demonstrates each child end to end. Use at DECOMPOSE, when a plan gate has just refused a child, or when a child turns out to have no consumer-visible behaviour to check. |
-| `falsify-first` | `model` | any | Attempt to break a claim - an invariant, a design premise, a measurement - with a concrete counterexample search before defending or adopting it, and read each kill for the precondition that carried the weight. Use before an invariant enters a plan, a design note or a gate, before a measured number becomes a claim, and whenever a candidate rule survived only because nobody attacked it. |
-| `harness-client` | `model` | any | Attach to a running basicly supervisor as a second session — observe live status, present its pending decisions to a human conversationally, and record the answers. Use when a supervisor is already running (or may be) and you are not the one driving it, to check what the factory is doing, unblock a lane that waits on a judgment, or answer a queued decision. |
-| `harness-loop` | `model` | any | Drive a unit of work through the basicly harness loop end-to-end (intake → classify → decompose → build → verify → validate → ship → done) with `basicly loop` over the owned tracker ledger, agent-agnostic across Claude/Codex/Copilot. Teardown is folded into the ship advance and the retro is a tracker comment; neither is a phase. Use when starting or resuming non-trivial development in a harness-enabled repo, when deciding what phase a tracked issue is in, or when coordinating the checkpoints, gates, and bounded rework the loop enforces. |
-| `interface-facts` | `model` | any | Establish a fact about an external interface - a CLI flag, an API field, a model id, a price, a limit, a version - by fetching the vendor's current documentation instead of recalling it. Use before writing code, a design note, or any claim that depends on how a third-party tool behaves, and whenever a repo document already asserts such a behaviour. |
-| `node` | `model` | `node` | Use Node and npm in this repo for the markdownlint git hook and other node tooling. Use when running npm or npx committing or pushing from a script or background job on WSL or debugging a node-based hook that resolves the wrong node binary. |
-| `python` | `model` | `python` | Write and edit Python for this repo — type hints pathlib and cross-platform subprocess and shell-out. Use when creating or changing .py files wiring up a subprocess call chasing a test that passes on POSIX but fails only on Windows CI (a WinError 2 or a mangled backslash path) or second-guessing syntax that looks wrong for an older Python (an unparenthesized multi-exception except clause). |
-| `python-guidelines` | `model` | `python` | Make the design calls no linter can check — where an oversized file splits, whether a name or docstring carries meaning, whether an abstraction earns its keep, when a suppression is legitimate, and how to satisfy a size or complexity ratchet without gaming it. Use when a size or complexity gate has just failed, before adding a noqa or nosec, when deciding what to raise and what to catch, or when shared state is reached from more than one concurrent lane. |
-| `release-process` | `model` | any | Cut a release of this repository with `basicly release`, then do the three steps that command deliberately leaves to a human - deciding the version, pushing, and replacing the release page with the highlights. Use when asked to cut a release, tag a version, prepare release notes, or check whether a release published. |
-| `repair-in-place` | `model` | any | Fix a named defect in the lane's own worktree, briefed with the actual findings and without re-planning or widening scope. Use at REPAIR after verify or validate failed, when a landing bounced, or whenever the temptation is to re-read the requirement and start again. |
-| `root-cause` | `model` | any | Establish why something actually happened by iterating why until the answer stops changing, with each link citing an observation - and know the two ways the method lies. Use before filing a bead off a failure, before proposing a rule or a gate to prevent a recurrence, when a fix addresses a symptom, or when a retro asks for a cause. |
-| `session-finish` | `model` | any | Close out a working session with a usage-statistics report, a self-improvement retro, and a pickup-clean handoff summary. Use when the user says the session is done ("wrap up", "finish the session", "close out"), before ending a long autonomous run, or whenever a summary of what changed and what the agent actually used is wanted. |
-| `test-discipline` | `model` | any | Write isolated order-independent automated tests that assert on observable behavior rather than private internals. Use when writing reviewing or debugging any test (unit integration or end-to-end) in any language especially when tests share fixtures touch global or filesystem state flake depending on run order or reach into implementation details. |
-| `tier-injection` | `model` | any | Install the portable tier injection kit so a subagent spawns on the model its declared tier resolves to, instead of the host default. Use when setting up tier injection in this or another repository, when a subagent ignores the tier its definition declares, or when deciding whether a host can pin a spawn's model at all. |
-| `tool-ast-grep` | `user` | any |  |
-| `tool-bat` | `user` | any |  |
-| `tool-curl` | `user` | any |  |
-| `tool-fd` | `user` | any |  |
-| `tool-fzf` | `user` | any |  |
-| `tool-git` | `user` | any |  |
-| `tool-git-delta` | `user` | any |  |
-| `tool-jq` | `user` | any |  |
-| `tool-ripgrep` | `user` | any |  |
-| `tool-sd` | `user` | any |  |
-| `tool-shellcheck` | `user` | any |  |
-| `tool-starship` | `user` | `starship` |  |
-| `tool-tmux` | `user` | `tmux` |  |
-| `tool-tree` | `user` | any |  |
-| `tool-typos` | `user` | any |  |
-| `tool-uv` | `user` | `python` |  |
-| `tool-wezterm` | `user` | `wezterm` |  |
-| `tool-wget` | `user` | any |  |
-| `tool-xh` | `user` | any |  |
-| `tool-yq` | `user` | any |  |
-| `tool-zsh` | `user` | `zsh` |  |
-| `validate-as-consumer` | `model` | any | Exercise a verified change the way a consumer would — in the operational environment, against the requirement that asked for it — instead of re-running the gate suite that already passed. Use at VALIDATE, before claiming a capability on a README or release note, or whenever "the tests pass" is standing in for "the feature works". |
-| `work-tracker` | `model` | any | Use the owned work tracker - the append-only event ledger under .basicly/ledger/ - as the primary task/issue tracker for this repo, reading it through the kit CLI and writing it through the engine seam, and know what it refuses. Trigger when planning work, creating or claiming an issue, checking what is ready to work on, counting or querying issues in bulk, or preparing a commit that must reference a tracker issue id. |
-| `worktree-isolation` | `model` | any | Isolate non-trivial work in a sibling git worktree using `basicly worktree`, covering sibling placement on a harness branch, dependency + git-hook provisioning, and safe cleanup. Use when starting a unit of work that should not touch the main checkout, when parallel tracks would collide, or when deciding whether a change needs its own worktree. |
-| `wsl` | `model` | `wsl` | Configure and operate WSL (Windows Subsystem for Linux) — wsl.exe management, Windows and Linux interop and PATH gotchas, filesystem layout and performance, and how non-interactive shells differ from login shells. Use when setting up or troubleshooting WSL crossing the Windows and Linux boundary hitting slow /mnt/c file access or debugging a tool that behaves differently in a script than in your terminal. |
+| `best-practices-audit` | `model` | any | Audits skills, instructions, hooks, agents and permissions against the newest vendor docs. Use after a Claude Code or Codex release. |
+| `catalog-authoring` | `model` | any | Authors catalog sources (skills, fragments, styles) in YAML and projects them. Use when adding a new skill or fragment to the catalog. |
+| `cli-tools` | `model` | any | Picks the fast tool for a shell task: rg to find every file that mentions a word, fd to list files, jq or yq for a JSON or YAML field, curl for an HTTP endpoint. |
+| `conventional-commits` | `model` | any | Writes a commit subject that passes the hooks: type, scope, breaking-change marker, record id. Use for a commit message or after a hook refused one. |
+| `decompose-plan` | `model` | any | Cuts work into children the plan gate accepts: EARS criteria, scope globs, budgets, a demo command. Use at DECOMPOSE or when a plan gate refuses a child. |
+| `falsify-first` | `model` | any | Tries to break a claim, invariant or measurement with a concrete counterexample. Use before it enters a plan, a design or a gate. |
+| `find-skills` | `model` | any | Searches the catalog, then skills.sh, for an existing community skill out there, and installs one only after the user agrees. Use when asking: is there a skill for this? |
+| `harness-client` | `model` | any | Attaches to a running supervisor: shows what the factory is doing and records answers to its decisions. Use while a supervisor runs or a lane waits on a human judgment. |
+| `harness-loop` | `model` | any | Drives tracked work through the basicly loop, intake to ship. Use to start or resume work, or to move an issue past a checkpoint or gate. |
+| `interface-facts` | `model` | any | Establishes a third-party CLI flag, API field, model, price or limit from the tool and live vendor docs. Use before code depends on it. |
+| `no-comments` | `model` | any | Edits code in a repo that bans prose comments: where a fact goes, which directives stay. Use when editing code or when the no-comments gate refuses. |
+| `node` | `model` | `node` | Runs Node and npm for the markdownlint hook and other node tools. Use when npm or npx fails or resolves the wrong node binary, often on WSL. |
+| `plain-english` | `model` | any | Writes plain prose for readers of any language: READMEs, release notes, design docs, records. Use when writing text for a person. |
+| `python` | `model` | `python` | Writes typed Python with pathlib and Windows-safe subprocesses, and judges whether an abstraction earns its keep. Use for .py edits, an except clause, a size gate or a silenced warning. |
+| `release-process` | `model` | any | Cuts a release with basicly release, pushes it and confirms it published. Use when cutting, tagging or checking a release. |
+| `repair-in-place` | `model` | any | Fixes a named defect in the lane's own worktree from its findings, with no new plan. Use at REPAIR after verify or validate failed. |
+| `retention-probe` | `model` | any | Tests if this session still holds the always-on instruction file. Use when a repo rule seems missing, in a new subagent or after compaction. |
+| `root-cause` | `model` | any | Finds why a failure happened, with evidence for each why, and names the control that refuses it. Use after a failure, before a fix or a gate. |
+| `session-finish` | `model` | any | Closes a session with a usage report, a retro and a handover of what changed and what is open. Use when the user wraps up or a long run ends. |
+| `skill-creator` | `model` | any | Writes a new skill or improves one with evals, a benchmark, graded versions and trigger tuning. Use when turning a workflow into a skill or when a skill never gets picked up. |
+| `test-discipline` | `model` | any | Writes isolated, order-independent tests that assert what the caller sees, not private helpers. Use for tests with shared fixtures, leaked state or run order. |
+| `tier-injection` | `model` | any | Installs the tier kit so a subagent runs on the model its tier names. Use when a host must pin the model of a spawn or a subagent ignores its tier. |
+| `validate-as-consumer` | `model` | any | Runs a verified change the way a consumer does, against its requirement. Use at VALIDATE or before a README claims a capability. |
+| `work-tracker` | `model` | any | Reads, files, claims and closes records in the ledger tracker. Use to plan work, check what is ready, file a bug, or claim an issue before work on it starts. |
+| `worktree-isolation` | `model` | any | Isolates work in a sibling git worktree, then merges and cleans up. Use to keep a change out of the main checkout or when parallel tracks collide. |
+| `wsl` | `model` | `wsl` | Operates WSL: wsl.exe, interop, PATH, slow /mnt/c. Use when crossing Windows and Linux, or when a tool works in a terminal but not from a script. |
 
 <!-- docs-claims:end catalog-skills -->
