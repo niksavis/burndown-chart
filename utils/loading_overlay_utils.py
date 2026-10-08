@@ -1,5 +1,3 @@
-"""Shared loading overlay helpers for non-UI layers."""
-
 from __future__ import annotations
 
 import dash_bootstrap_components as dbc
@@ -43,7 +41,6 @@ def create_loading_overlay(
     opacity: float = 0.7,
     className: str = "",
 ):
-    """Create a loading overlay component wrapping arbitrary children."""
     if not is_loading:
         return html.Div(children, className=className)
 

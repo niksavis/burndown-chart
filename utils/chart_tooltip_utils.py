@@ -1,12 +1,5 @@
-"""Shared chart tooltip helpers for visualization and UI layers.
-
-This module provides a UI-independent home for hoverlabel and hover template
-helpers so visualization modules do not depend on the ui/ layer.
-"""
-
 from __future__ import annotations
 
-# Keep values aligned with ui.style_constants tooltip defaults.
 TOOLTIP_STYLES: dict[str, dict[str, str | int]] = {
     "default": {
         "bgcolor": "rgba(33, 37, 41, 0.95)",
