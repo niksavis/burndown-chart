@@ -1,10 +1,3 @@
-"""
-Unit Tests for JIRA Query Profile Manager
-
-Tests the core functionality of saving, loading, and managing JQL query profiles.
-Covers the recently implemented data layer for multiple JQL queries feature.
-"""
-
 import json
 import os
 import tempfile
@@ -24,19 +17,14 @@ from data.jira.query_profiles import (
 
 
 class TestQueryProfileManager:
-    """Test JIRA query profile management functionality"""
-
     def test_load_query_profiles_returns_empty_when_no_file(self):
-        """Test that empty list is returned when no user profiles exist"""
         with patch("data.jira.query_profiles.os.path.exists", return_value=False):
             profiles = load_query_profiles()
 
-            # Should return empty list
             assert len(profiles) == 0
             assert profiles == []
 
     def test_load_query_profiles_returns_user_profiles(self):
-        """Test that user profiles are loaded from file"""
         mock_user_profiles = [
             {
                 "id": str(uuid.uuid4()),
@@ -55,15 +43,12 @@ class TestQueryProfileManager:
         ):
             profiles = load_query_profiles()
 
-            # Should have only 1 user profile
             assert len(profiles) == 1
 
-            # Should be the user profile
             assert not profiles[0].get("is_default")
             assert profiles[0]["name"] == "Custom Query"
 
     def test_save_query_profile_creates_new_profile(self):
-        """Test saving a new query profile"""
         with (
             patch("data.jira.query_profiles._load_profiles_from_disk", return_value=[]),
             patch(
@@ -84,11 +69,9 @@ class TestQueryProfileManager:
             assert "created_at" in profile
             assert "last_used" in profile
 
-            # Verify save was called
             mock_save.assert_called_once()
 
     def test_save_query_profile_prevents_duplicate_names(self):
-        """Test that duplicate profile names are prevented"""
         existing_profiles = [
             {
                 "id": str(uuid.uuid4()),
@@ -104,7 +87,7 @@ class TestQueryProfileManager:
             return_value=existing_profiles,
         ):
             profile = save_query_profile(
-                name="Existing Query",  # Duplicate name
+                name="Existing Query",
                 jql="project = NEW",
                 description="Should fail",
             )
@@ -112,22 +95,17 @@ class TestQueryProfileManager:
             assert profile is None
 
     def test_save_query_profile_validates_inputs(self):
-        """Test input validation for save_query_profile"""
-        # Test empty name
         profile = save_query_profile(name="", jql="project = TEST")
         assert profile is None
 
-        # Test whitespace-only name
         profile = save_query_profile(name="   ", jql="project = TEST")
         assert profile is None
 
     def test_delete_query_profile_prevents_default_deletion(self):
-        """Test that default profiles cannot be deleted"""
         result = delete_query_profile("default-all-issues")
         assert result is False
 
     def test_delete_query_profile_removes_user_profile(self):
-        """Test deleting a user-created profile"""
         profile_id = str(uuid.uuid4())
         existing_profiles = [
             {
@@ -151,11 +129,9 @@ class TestQueryProfileManager:
             result = delete_query_profile(profile_id)
 
             assert result is True
-            # Verify empty list was saved (profile removed)
             mock_save.assert_called_once_with([])
 
     def test_get_query_profile_by_id_returns_correct_profile(self):
-        """Test retrieving a specific profile by ID"""
         with patch("data.jira.query_profiles.load_query_profiles") as mock_load:
             test_profile = {
                 "id": "test-id",
@@ -169,34 +145,27 @@ class TestQueryProfileManager:
             assert result == test_profile
 
     def test_get_query_profile_by_id_returns_none_if_not_found(self):
-        """Test that None is returned when profile ID is not found"""
         with patch("data.jira.query_profiles.load_query_profiles", return_value=[]):
             result = get_query_profile_by_id("nonexistent-id")
             assert result is None
 
     def test_validate_profile_name_unique_with_existing_name(self):
-        """Test name uniqueness validation"""
         with patch("data.jira.query_profiles.load_query_profiles") as mock_load:
             mock_load.return_value = [{"id": "existing-id", "name": "Existing Name"}]
 
-            # Should return False for duplicate name
             assert not validate_profile_name_unique("Existing Name")
 
-            # Should return True for new name
             assert validate_profile_name_unique("New Name")
 
-            # Should return True when excluding the existing profile
             assert validate_profile_name_unique(
                 "Existing Name", exclude_id="existing-id"
             )
 
     def test_update_profile_last_used_skips_defaults(self):
-        """Test that default profiles are not updated for last_used"""
         result = update_profile_last_used("default-all-issues")
-        assert result is True  # Should succeed but do nothing
+        assert result is True
 
     def test_update_profile_last_used_updates_user_profile(self):
-        """Test updating last_used timestamp for user profiles"""
         profile_id = str(uuid.uuid4())
         existing_profiles = [
             {
@@ -221,34 +190,26 @@ class TestQueryProfileManager:
             assert result is True
             mock_save.assert_called_once()
 
-            # Verify timestamp was updated
             saved_profiles = mock_save.call_args[0][0]
             assert saved_profiles[0]["last_used"] != "2025-01-01T00:00:00"
 
 
 @pytest.fixture
 def temp_query_profiles_file():
-    """Create a temporary file for query profiles testing"""
     with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
         temp_file = f.name
 
     yield temp_file
 
-    # Cleanup
     if os.path.exists(temp_file):
         os.unlink(temp_file)
 
 
 class TestQueryProfileFileOperations:
-    """Test file I/O operations for query profiles"""
-
     def test_file_operations_with_real_file(self, temp_query_profiles_file):
-        """Integration test with actual file operations"""
-        # Mock the file path to use our temporary file
         with patch(
             "data.jira.query_profiles.QUERY_PROFILES_FILE", temp_query_profiles_file
         ):
-            # Save a profile
             profile = save_query_profile(
                 name="File Test Query",
                 jql="project = FILETEST",
@@ -257,7 +218,6 @@ class TestQueryProfileFileOperations:
 
             assert profile is not None
 
-            # Verify file was created and contains data
             assert os.path.exists(temp_query_profiles_file)
 
             with open(temp_query_profiles_file) as f:

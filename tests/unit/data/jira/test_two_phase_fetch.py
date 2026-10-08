@@ -1,5 +1,3 @@
-"""Tests for two-phase JIRA fetch behavior and fallback logic."""
-
 from data.jira.two_phase_fetch import (
     build_devops_linked_jql,
     fetch_jira_issues_two_phase,
@@ -7,7 +5,6 @@ from data.jira.two_phase_fetch import (
 
 
 def test_two_phase_falls_back_to_linked_issues_when_fixversion_fetch_empty() -> None:
-    """When fixVersion filtering returns no RI tasks, linked fallback should run."""
     user_jql = 'project = "DEV"'
     config = {
         "jql_query": user_jql,
@@ -57,7 +54,6 @@ def test_two_phase_falls_back_to_linked_issues_when_fixversion_fetch_empty() -> 
 
 
 def test_two_phase_uses_linked_fallback_when_no_fixversions_in_dev_issues() -> None:
-    """When dev issues have no fixVersions, linked fallback should fetch RI tasks."""
     user_jql = 'project = "DEV"'
     config = {
         "jql_query": user_jql,
@@ -100,7 +96,6 @@ def test_two_phase_uses_linked_fallback_when_no_fixversions_in_dev_issues() -> N
 
 
 def test_build_devops_linked_jql_batches_large_key_lists() -> None:
-    """linkedIssuesOf clauses should be batched to avoid oversized subqueries."""
     issue_keys = [f"DEV-{n}" for n in range(1, 402)]
 
     jql = build_devops_linked_jql(

@@ -1,5 +1,3 @@
-"""Unit tests for Active Work Timeline callbacks."""
-
 from datetime import UTC, datetime
 
 import dash_bootstrap_components as dbc
@@ -9,8 +7,6 @@ from callbacks.active_work_timeline import _render_active_work_timeline_content
 
 
 class FakeBackend:
-    """Minimal backend stub for callback tests."""
-
     def __init__(self, issues=None, app_state=None):
         self._issues = issues or []
         self._app_state = app_state or {}
@@ -23,7 +19,6 @@ class FakeBackend:
 
 
 def test_render_returns_no_issues_when_no_active_profile(monkeypatch):
-    """Test empty state when active profile/query is missing."""
     backend = FakeBackend(
         app_state={"active_profile_id": None, "active_query_id": None}
     )
@@ -41,7 +36,6 @@ def test_render_returns_no_issues_when_no_active_profile(monkeypatch):
 
 
 def test_render_returns_no_issues_when_issue_list_empty(monkeypatch):
-    """Test empty state when backend returns no issues."""
     backend = FakeBackend(
         issues=[],
         app_state={"active_profile_id": "profile", "active_query_id": "query"},
@@ -60,7 +54,6 @@ def test_render_returns_no_issues_when_issue_list_empty(monkeypatch):
 
 
 def test_render_builds_timeline_when_data_available(monkeypatch):
-    """Test rendering timeline when issues and settings are valid."""
     now = datetime.now(UTC)
     issues = [
         {
@@ -112,7 +105,7 @@ def test_render_builds_timeline_when_data_available(monkeypatch):
     )
     monkeypatch.setattr(
         "callbacks.active_work_timeline.get_completed_items_by_week",
-        lambda *args, **kwargs: {},  # Return empty dict for completed items
+        lambda *args, **kwargs: {},
     )
 
     captured = {}

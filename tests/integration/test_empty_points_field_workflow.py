@@ -1,24 +1,3 @@
-"""
-Test for empty points field caching scenarios - reproduces and tests user reported bug.
-
-User Reported Bug:
-- Points Field is empty but Remaining Total Points shows 1394 instead of 0
-- Remaining Total Items shows 295 instead of expected value
-- This happens before clicking "Calculate Scope"
-    - suggests caching issue with "Update Data"
-
-Root Cause Analysis:
-The bug was NOT in cache invalidation (which works correctly) but in user workflow:
-1. User has old project_data.json with votes calculation
-2. User changes UI to empty Points Field
-3. User expects immediate change but needs to click "Update Data" to recalculate
-4. Browser/UI might show stale values until refresh
-
-This test verifies the fix works correctly.
-
-MIGRATED: Uses SQLite database backend via temp_database fixture (from conftest.py).
-"""
-
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -26,7 +5,6 @@ from unittest.mock import patch
 
 import pytest
 
-# Add parent to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from data.persistence.adapters.scope import (
@@ -41,16 +19,12 @@ from data.query_manager import create_query
 
 
 class TestEmptyPointsFieldCachingWorkflow:
-    """Test empty points field caching workflow scenarios using database backend."""
-
     @pytest.fixture(autouse=True)
     def setup_test_data(self, temp_database):
-        """Set up test profile and query using database backend."""
         from data.persistence.factory import get_backend
 
         self.backend = get_backend()
 
-        # Create test profile with JIRA configured
         self.test_profile_id = "test_profile"
         profile_data = {
             "id": self.test_profile_id,
@@ -65,18 +39,14 @@ class TestEmptyPointsFieldCachingWorkflow:
         }
         self.backend.save_profile(profile_data)
 
-        # Create test query
         self.test_query_id = create_query(
             self.test_profile_id, "Main Query", "project = TEST"
         )
 
-        # Set as active profile/query
         self.backend.set_app_state("active_profile_id", self.test_profile_id)
         self.backend.set_app_state("active_query_id", self.test_query_id)
 
         yield
-
-        # Cleanup handled by temp_database fixture
 
     @pytest.mark.xfail(
         strict=True,
@@ -88,13 +58,6 @@ class TestEmptyPointsFieldCachingWorkflow:
         ),
     )
     def test_empty_points_field_workflow_fix(self):
-        """
-        Test the complete workflow fix for empty points field:
-        1. Start with cached votes calculation (user's state)
-        2. Change points field to empty and run Update Data
-        3. Verify all values are correctly recalculated to 0/False
-        """
-        # Step 1: Simulate user's current problematic state (from project_data.json)
         problematic_state = {
             "project_scope": {
                 "total_items": 364,
@@ -105,8 +68,8 @@ class TestEmptyPointsFieldCachingWorkflow:
                 "remaining_points": 618,
                 "estimated_items": 295,
                 "estimated_points": 618,
-                "remaining_total_points": 1930.2469135802469,  # Should become 0
-                "points_field_available": True,  # Should become False
+                "remaining_total_points": 1930.2469135802469,
+                "points_field_available": True,
                 "status_breakdown": {
                     "Closed": {"items": 67, "points": 326},
                     "Gathering Interest": {"items": 173, "points": 302},
@@ -115,8 +78,8 @@ class TestEmptyPointsFieldCachingWorkflow:
                     "method": "status_category",
                     "calculated_at": "2025-07-20T14:16:22.989077",
                     "total_issues_processed": 364,
-                    "points_field": "votes",  # Should become ""
-                    "points_field_valid": True,  # Should become False
+                    "points_field": "votes",
+                    "points_field_valid": True,
                 },
                 "source": "jira",
                 "last_jira_sync": "2025-07-20T14:16:23.018802",
@@ -129,10 +92,8 @@ class TestEmptyPointsFieldCachingWorkflow:
             },
         }
 
-        # Save the problematic state
         save_unified_project_data(problematic_state)
 
-        # Verify we start with the problematic values
         loaded_data = load_unified_project_data()
         initial_scope = loaded_data["project_scope"]
         assert initial_scope.get("remaining_total_points") == 1930.2469135802469
@@ -141,27 +102,21 @@ class TestEmptyPointsFieldCachingWorkflow:
             initial_scope.get("calculation_metadata", {}).get("points_field") == "votes"
         )
 
-        # Step 2: Mock JIRA response (reduced dataset for performance)
-        # Use smaller sample that still tests the workflow
         mock_issues = []
 
-        # Add 10 completed issues (was 69)
         for i in range(10):
             mock_issues.append(
                 {
                     "key": f"JRASERVER-{i + 1}",
                     "fields": {
                         "status": {"name": "Closed", "statusCategory": {"key": "done"}},
-                        "votes": {
-                            "votes": 5
-                        },  # Has votes but should be ignored when empty field
+                        "votes": {"votes": 5},
                         "created": "2025-02-01T10:00:00.000Z",
                         "resolutiondate": "2025-02-05T10:00:00.000Z",
                     },
                 }
             )
 
-        # Add 20 remaining issues (was 295)
         statuses = [
             ("Gathering Interest", "new"),
             ("Gathering Impact", "new"),
@@ -179,41 +134,33 @@ class TestEmptyPointsFieldCachingWorkflow:
                             "name": status_name,
                             "statusCategory": {"key": category},
                         },
-                        "votes": {
-                            "votes": 3
-                        },  # Should be ignored when points field empty
+                        "votes": {"votes": 3},
                         "created": "2025-01-15T10:00:00.000Z",
                         "resolutiondate": None,
                     },
                 }
             )
 
-        # Step 3: Simulate user clicking "Update Data" with EMPTY points field
         with patch("data.jira.main_fetch.fetch_jira_issues") as mock_fetch:
             mock_fetch.return_value = (True, mock_issues)
 
-            # User's actual configuration with EMPTY points field
             ui_config = {
                 "jql_query": "project = JRASERVER AND created > endOfMonth(-6)",
                 "api_endpoint": "https://jira.atlassian.com/rest/api/2/search",
                 "token": "",
-                "story_points_field": "",  # EMPTY - the key fix!
+                "story_points_field": "",
                 "cache_max_size_mb": 100,
             }
 
-            # This should completely recalculate and fix the issue
             success, message = update_project_scope_from_jira(
                 ui_config["jql_query"], ui_config
             )
 
-            # Verify operation succeeded
             assert success, f"Update Data should succeed: {message}"
 
-            # Step 4: Verify the fix - all point values should be 0/False
             loaded_data = load_unified_project_data()
             updated_scope = loaded_data["project_scope"]
 
-            # THE FIX: These should all be corrected now
             assert updated_scope.get("remaining_total_points") == 0.0, (
                 "remaining_total_points should be 0 when points field is empty"
             )
@@ -230,7 +177,6 @@ class TestEmptyPointsFieldCachingWorkflow:
                 "estimated_points should be 0 when points field is empty"
             )
 
-            # Metadata should reflect empty field
             metadata = updated_scope.get("calculation_metadata", {})
             assert metadata.get("points_field") == "", (
                 "metadata points_field should be empty string"
@@ -240,7 +186,6 @@ class TestEmptyPointsFieldCachingWorkflow:
                 "metadata points_field_valid should be False"
             )
 
-            # Item counts should be recalculated correctly (reduced from 364/69/295)
             assert updated_scope.get("total_items") == 30, (
                 "total_items should match issue count (30 issues)"
             )
@@ -253,7 +198,6 @@ class TestEmptyPointsFieldCachingWorkflow:
                 "remaining_items should be recalculated (20 remaining)"
             )
 
-            # All point-related fields should be 0
             assert updated_scope.get("total_points") == 0
             assert updated_scope.get("completed_points") == 0
             assert updated_scope.get("remaining_points") == 0
@@ -267,10 +211,6 @@ class TestEmptyPointsFieldCachingWorkflow:
         ),
     )
     def test_cache_invalidation_votes_to_empty(self):
-        """Test cache invalidation when switching from votes to empty."""
-
-        # This test verifies the cache invalidation logic works correctly
-        # (which it does based on our previous tests)
 
         initial_data = {
             "project_scope": {
@@ -297,12 +237,11 @@ class TestEmptyPointsFieldCachingWorkflow:
         with patch("data.jira.main_fetch.fetch_jira_issues") as mock_fetch:
             mock_fetch.return_value = (True, mock_issues)
 
-            # Empty points field should trigger recalculation
             ui_config = {
                 "jql_query": "project = TEST",
                 "api_endpoint": "https://test.com/rest/api/2/search",
                 "token": "",
-                "story_points_field": "",  # Empty!
+                "story_points_field": "",
                 "cache_max_size_mb": 50,
             }
 
@@ -311,7 +250,6 @@ class TestEmptyPointsFieldCachingWorkflow:
             )
             assert success
 
-            # Should be completely recalculated
             scope = get_project_scope()
             assert scope.get("remaining_total_points") == 0
             assert scope.get("points_field_available") is False

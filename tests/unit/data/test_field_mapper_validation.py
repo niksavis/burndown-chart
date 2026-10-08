@@ -1,17 +1,8 @@
-"""Unit tests for DORA/Flow JIRA compatibility validation.
-
-Tests the validate_dora_jira_compatibility() function that detects
-inappropriate field mappings and recommends validation modes.
-"""
-
 from data.field_mapper import validate_dora_jira_compatibility
 
 
 class TestDoraJiraCompatibilityValidation:
-    """Test JIRA data source validation for DORA/Flow metrics."""
-
     def test_devops_tracking_with_proper_fields(self):
-        """Test validation with proper DevOps-specific custom fields."""
         field_mappings = {
             "deployment_date": "customfield_10100_deployment_date",
             "deployment_successful": "customfield_10101_deployment_status",
@@ -28,7 +19,6 @@ class TestDoraJiraCompatibilityValidation:
         assert result["alternative_metrics_available"] is False
 
     def test_issue_tracker_with_proxy_fields(self):
-        """Validate standard JIRA fields used as proxy mappings."""
         field_mappings = {
             "deployment_date": "resolutiondate",
             "incident_detected_at": "created",
@@ -43,7 +33,6 @@ class TestDoraJiraCompatibilityValidation:
         assert result["error_count"] >= 2
         assert result["alternative_metrics_available"] is True
 
-        # Check for specific warnings
         warnings = result["warnings"]
         deployment_warning = next(
             (w for w in warnings if w["field"] == "deployment_date"), None
@@ -53,7 +42,6 @@ class TestDoraJiraCompatibilityValidation:
         assert "resolved issues" in deployment_warning["issue"].lower()
 
     def test_recommended_interpretations_for_issue_tracker(self):
-        """Verify alternative metric interpretations for issue trackers."""
         field_mappings = {
             "deployment_date": "resolutiondate",
             "incident_detected_at": "created",
@@ -73,10 +61,8 @@ class TestDoraJiraCompatibilityValidation:
         assert "Not Applicable" in interpretations["change_failure_rate"]
 
     def test_missing_field_mappings(self):
-        """Test validation with missing required fields."""
         field_mappings = {
             "flow_item_type": "issuetype",
-            # Missing deployment and incident fields
         }
 
         result = validate_dora_jira_compatibility(field_mappings)
@@ -85,15 +71,14 @@ class TestDoraJiraCompatibilityValidation:
         missing_warnings = [
             w for w in warnings if w["mapped_to"] is None and w["severity"] == "warning"
         ]
-        assert len(missing_warnings) >= 3  # deployment_date, incident fields, etc.
+        assert len(missing_warnings) >= 3
 
     def test_partial_devops_tracking(self):
-        """Test validation with mix of proper and proxy fields."""
         field_mappings = {
-            "deployment_date": "customfield_10100_deployment",  # Good
-            "deployment_successful": "customfield_10101_status",  # Good
-            "incident_detected_at": "created",  # Bad proxy
-            "incident_resolved_at": "resolutiondate",  # Bad proxy
+            "deployment_date": "customfield_10100_deployment",
+            "deployment_successful": "customfield_10101_status",
+            "incident_detected_at": "created",
+            "incident_resolved_at": "resolutiondate",
         }
 
         result = validate_dora_jira_compatibility(field_mappings)
@@ -105,9 +90,8 @@ class TestDoraJiraCompatibilityValidation:
         assert result["error_count"] <= 2
 
     def test_custom_field_unclear_purpose(self):
-        """Test validation with custom fields that don't match DevOps patterns."""
         field_mappings = {
-            "deployment_date": "customfield_10200",  # Custom but unclear
+            "deployment_date": "customfield_10200",
             "flow_item_type": "customfield_10201",
         }
 
@@ -122,12 +106,10 @@ class TestDoraJiraCompatibilityValidation:
         assert len(unclear_warnings) >= 1
 
     def test_validation_result_structure(self):
-        """Test that validation result has all required keys."""
         field_mappings = {"deployment_date": "resolutiondate"}
 
         result = validate_dora_jira_compatibility(field_mappings)
 
-        # Check required keys
         required_keys = [
             "validation_mode",
             "compatibility_level",
@@ -143,7 +125,6 @@ class TestDoraJiraCompatibilityValidation:
         for key in required_keys:
             assert key in result, f"Missing required key: {key}"
 
-        # Check warning structure
         if result["warnings"]:
             warning = result["warnings"][0]
             assert "severity" in warning
@@ -152,7 +133,6 @@ class TestDoraJiraCompatibilityValidation:
             assert "recommendation" in warning
 
     def test_empty_field_mappings(self):
-        """Test validation with no field mappings."""
         field_mappings = {}
 
         result = validate_dora_jira_compatibility(field_mappings)
@@ -160,5 +140,4 @@ class TestDoraJiraCompatibilityValidation:
         assert result["validation_mode"] == "unknown"
         assert result["devops_field_count"] == 0
         assert result["proxy_field_count"] == 0
-        # Should have warnings about missing fields
         assert result["warning_count"] >= 4

@@ -1,5 +1,3 @@
-"""Unit tests for velocity projections module."""
-
 from datetime import datetime, timedelta
 
 import pytest
@@ -15,36 +13,31 @@ from data.velocity_projections import (
 
 
 class TestCalculateRequiredVelocity:
-    """Tests for calculate_required_velocity function."""
-
     def test_basic_calculation_weeks(self):
-        """Test basic required velocity calculation in weeks."""
         current_date = datetime(2026, 2, 1)
-        deadline = datetime(2026, 3, 1)  # 28 days = 4 weeks
+        deadline = datetime(2026, 3, 1)
         remaining_work = 50.0
 
         required = calculate_required_velocity(
             remaining_work, deadline, current_date, time_unit="week"
         )
 
-        assert required == pytest.approx(12.5, rel=0.01)  # 50 / 4 = 12.5
+        assert required == pytest.approx(12.5, rel=0.01)
 
     def test_basic_calculation_days(self):
-        """Test basic required velocity calculation in days."""
         current_date = datetime(2026, 2, 1)
-        deadline = datetime(2026, 2, 11)  # 10 days
+        deadline = datetime(2026, 2, 11)
         remaining_work = 20.0
 
         required = calculate_required_velocity(
             remaining_work, deadline, current_date, time_unit="day"
         )
 
-        assert required == pytest.approx(2.0, rel=0.01)  # 20 / 10 = 2.0
+        assert required == pytest.approx(2.0, rel=0.01)
 
     def test_deadline_passed(self):
-        """Test when deadline has already passed."""
         current_date = datetime(2026, 2, 10)
-        deadline = datetime(2026, 2, 5)  # 5 days ago
+        deadline = datetime(2026, 2, 5)
         remaining_work = 50.0
 
         required = calculate_required_velocity(
@@ -54,9 +47,8 @@ class TestCalculateRequiredVelocity:
         assert required == float("inf")
 
     def test_deadline_today(self):
-        """Test when deadline is today."""
         current_date = datetime(2026, 2, 1)
-        deadline = datetime(2026, 2, 1)  # Same day
+        deadline = datetime(2026, 2, 1)
         remaining_work = 50.0
 
         required = calculate_required_velocity(
@@ -66,7 +58,6 @@ class TestCalculateRequiredVelocity:
         assert required == float("inf")
 
     def test_default_current_date(self, monkeypatch):
-        """Test with default current_date (now)."""
         fixed_now = datetime(2026, 2, 1, 12, 0, 0)
 
         class FixedDateTime(datetime):
@@ -88,7 +79,6 @@ class TestCalculateRequiredVelocity:
         assert required == pytest.approx(14.0, rel=0.01)
 
     def test_invalid_time_unit(self):
-        """Test with invalid time unit."""
         current_date = datetime(2026, 2, 1)
         deadline = datetime(2026, 3, 1)
         remaining_work = 50.0
@@ -99,7 +89,6 @@ class TestCalculateRequiredVelocity:
             )
 
     def test_zero_remaining_work(self):
-        """Test with zero remaining work."""
         current_date = datetime(2026, 2, 1)
         deadline = datetime(2026, 3, 1)
         remaining_work = 0.0
@@ -112,10 +101,7 @@ class TestCalculateRequiredVelocity:
 
 
 class TestCalculateVelocityGap:
-    """Tests for calculate_velocity_gap function."""
-
     def test_behind_pace(self):
-        """Test when current velocity is behind required."""
         current = 10.0
         required = 12.5
 
@@ -126,7 +112,6 @@ class TestCalculateVelocityGap:
         assert gap_data["ratio"] == pytest.approx(0.8, rel=0.01)
 
     def test_ahead_of_pace(self):
-        """Test when current velocity is ahead of required."""
         current = 15.0
         required = 12.0
 
@@ -137,7 +122,6 @@ class TestCalculateVelocityGap:
         assert gap_data["ratio"] == pytest.approx(1.25, rel=0.01)
 
     def test_exactly_on_pace(self):
-        """Test when current velocity exactly matches required."""
         current = 10.0
         required = 10.0
 
@@ -148,7 +132,6 @@ class TestCalculateVelocityGap:
         assert gap_data["ratio"] == 1.0
 
     def test_zero_required_velocity(self):
-        """Test edge case with zero required velocity."""
         current = 10.0
         required = 0.0
 
@@ -160,10 +143,7 @@ class TestCalculateVelocityGap:
 
 
 class TestAssessPaceHealth:
-    """Tests for assess_pace_health function."""
-
     def test_healthy_status(self):
-        """Test healthy status (>=100% of required)."""
         current = 15.0
         required = 12.0
 
@@ -176,7 +156,6 @@ class TestAssessPaceHealth:
         assert health["ratio"] == pytest.approx(1.25, rel=0.01)
 
     def test_healthy_exactly_on_pace(self):
-        """Test healthy status when exactly on pace."""
         current = 10.0
         required = 10.0
 
@@ -187,7 +166,6 @@ class TestAssessPaceHealth:
         assert health["ratio"] == 1.0
 
     def test_at_risk_status(self):
-        """Test at risk status (80-99% of required)."""
         current = 10.0
         required = 12.0
 
@@ -200,7 +178,6 @@ class TestAssessPaceHealth:
         assert health["ratio"] == pytest.approx(0.833, rel=0.01)
 
     def test_behind_status(self):
-        """Test behind status (<80% of required)."""
         current = 8.0
         required = 12.0
 
@@ -213,7 +190,6 @@ class TestAssessPaceHealth:
         assert health["ratio"] == pytest.approx(0.667, rel=0.01)
 
     def test_zero_required_velocity(self):
-        """Test with zero required velocity."""
         current = 10.0
         required = 0.0
 
@@ -224,7 +200,6 @@ class TestAssessPaceHealth:
         assert health["ratio"] == 0.0
 
     def test_deadline_passed(self):
-        """Test with infinity required velocity (deadline passed)."""
         current = 10.0
         required = float("inf")
 
@@ -236,47 +211,37 @@ class TestAssessPaceHealth:
 
 
 class TestGetPaceHealthIndicator:
-    """Tests for get_pace_health_indicator function."""
-
     def test_healthy_indicator(self):
-        """Test healthy indicator."""
         assert get_pace_health_indicator(1.0) == "✓"
         assert get_pace_health_indicator(1.5) == "✓"
         assert get_pace_health_indicator(2.0) == "✓"
 
     def test_at_risk_indicator(self):
-        """Test at risk indicator."""
         assert get_pace_health_indicator(0.8) == "○"
         assert get_pace_health_indicator(0.9) == "○"
         assert get_pace_health_indicator(0.99) == "○"
 
     def test_behind_indicator(self):
-        """Test behind indicator."""
         assert get_pace_health_indicator(0.79) == "❄"
         assert get_pace_health_indicator(0.5) == "❄"
         assert get_pace_health_indicator(0.1) == "❄"
 
 
 class TestCalculateCompletionProjection:
-    """Tests for calculate_completion_projection function."""
-
     def test_basic_projection(self):
-        """Test basic completion projection."""
         current_date = datetime(2026, 2, 1)
         remaining_work = 50.0
-        current_velocity = 10.0  # 10 items/week
+        current_velocity = 10.0
 
         projection = calculate_completion_projection(
             remaining_work, current_velocity, current_date, time_unit="week"
         )
 
-        # 50 / 10 = 5 weeks = 35 days
         assert projection["periods_remaining"] == 5.0
         assert projection["days_from_now"] == 35
         assert projection["projected_date"] == datetime(2026, 3, 8)
 
     def test_zero_velocity(self):
-        """Test with zero current velocity."""
         current_date = datetime(2026, 2, 1)
         remaining_work = 50.0
         current_velocity = 0.0
@@ -290,7 +255,6 @@ class TestCalculateCompletionProjection:
         assert projection["periods_remaining"] is None
 
     def test_negative_velocity(self):
-        """Test with negative current velocity."""
         current_date = datetime(2026, 2, 1)
         remaining_work = 50.0
         current_velocity = -5.0
@@ -302,16 +266,14 @@ class TestCalculateCompletionProjection:
         assert projection["projected_date"] is None
 
     def test_projection_with_days(self):
-        """Test projection using days as time unit."""
         current_date = datetime(2026, 2, 1)
         remaining_work = 20.0
-        current_velocity = 2.0  # 2 items/day
+        current_velocity = 2.0
 
         projection = calculate_completion_projection(
             remaining_work, current_velocity, current_date, time_unit="day"
         )
 
-        # 20 / 2 = 10 days
         assert projection["periods_remaining"] == 10.0
         assert projection["days_from_now"] == 10
         assert projection["projected_date"] == datetime(2026, 2, 11)

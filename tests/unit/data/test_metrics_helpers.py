@@ -1,5 +1,3 @@
-"""Tests for metrics helper functions."""
-
 import re
 
 from data.metrics.helpers import get_current_iso_week

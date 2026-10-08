@@ -1,21 +1,11 @@
-"""
-Integration tests for data points filtering across all data processing functions.
-
-This module tests the integration between different data processing functions
-with the data_points_count parameter to ensure they work together correctly
-and provide consistent filtering behavior across the application.
-"""
-
 import sys
 import unittest
 from pathlib import Path
 
 import pandas as pd
 
-# Add the project root to the Python path so we can import the application modules
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-# Import the functions to test
 from data.processing import (
     calculate_performance_trend,
     calculate_weekly_averages,
@@ -29,11 +19,7 @@ from data.scope_metrics import (
 
 
 class TestDataPointsFilteringIntegration(unittest.TestCase):
-    """Integration tests for data_points_count behavior across processing layer."""
-
     def setUp(self):
-        """Set up comprehensive test data."""
-        # Create realistic test data representing 12 weeks of project history
         self.statistics_data = [
             {
                 "date": "2024-10-01",
@@ -121,19 +107,15 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
             },
         ]
 
-        # Create DataFrame version for scope metrics
         self.df = pd.DataFrame(self.statistics_data)
         self.df["date"] = pd.to_datetime(self.df["date"])
 
-        # Baseline values for scope calculations
         self.baseline_items = 100
         self.baseline_points = 500
 
     def test_consistent_filtering_across_all_functions(self):
-        """All functions filter data consistently for same data_points_count."""
         data_points_count = 6
 
-        # Test all processing functions with same filtering
         weekly_avg = calculate_weekly_averages(
             self.statistics_data, data_points_count=data_points_count
         )
@@ -147,7 +129,6 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
             data_points_count=data_points_count,
         )
 
-        # Test all scope functions with same filtering
         scope_rate = calculate_scope_creep_rate(
             self.df,
             self.baseline_items,
@@ -164,7 +145,6 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
             data_points_count=data_points_count,
         )
 
-        # All functions should return valid results
         self.assertIsInstance(weekly_avg, tuple)
         self.assertEqual(len(weekly_avg), 4)
 
@@ -185,9 +165,7 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
         self.assertIn("items_stability", scope_stability)
 
     def test_progressive_filtering_consistency(self):
-        """Progressively smaller data_points_count produces consistent results."""
-        # Test with different filtering levels
-        filter_sizes = [12, 8, 6, 4]  # From all data down to 4 weeks
+        filter_sizes = [12, 8, 6, 4]
 
         weekly_avgs = []
         forecasts = []
@@ -203,9 +181,7 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
             weekly_avgs.append(avg)
             forecasts.append(forecast["items"]["most_likely_value"])
 
-        # Results should be different as we use less data
         for i in range(1, len(weekly_avgs)):
-            # At least one metric should change as we filter more data
             self.assertTrue(
                 weekly_avgs[i] != weekly_avgs[i - 1]
                 or forecasts[i] != forecasts[i - 1],
@@ -214,36 +190,26 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
             )
 
     def test_forecast_and_velocity_consistency(self):
-        """Test that forecast and velocity calculations use the same filtered data."""
         data_points_count = 5
 
-        # Get velocity from weekly averages
         avg_items, avg_points, med_items, med_points = calculate_weekly_averages(
             self.statistics_data, data_points_count=data_points_count
         )
 
-        # Get forecast values
         forecast = generate_weekly_forecast(
             self.statistics_data, pert_factor=3, data_points_count=data_points_count
         )
 
-        # Forecast most_likely should be related to average velocity
-        # (They use the same underlying data, though different calculations)
         forecast_items = forecast["items"]["most_likely_value"]
 
-        # Both should be positive and reasonable
         self.assertGreater(avg_items, 0)
         self.assertGreater(forecast_items, 0)
 
-        # Forecast should be in a reasonable range relative to average
-        # (allowing for PERT calculation differences)
-        self.assertLess(abs(forecast_items - avg_items) / avg_items, 2.0)  # Within 200%
+        self.assertLess(abs(forecast_items - avg_items) / avg_items, 2.0)
 
     def test_trend_and_scope_consistency(self):
-        """Test that trend analysis and scope metrics use consistent filtering."""
         data_points_count = 4
 
-        # Get trend for items
         trend_items = calculate_performance_trend(
             self.statistics_data,
             "completed_items",
@@ -251,20 +217,16 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
             data_points_count=data_points_count,
         )
 
-        # Get scope growth for same period
         scope_growth = calculate_weekly_scope_growth(
             self.df, data_points_count=data_points_count
         )
 
-        # Both should analyze the same time period
         self.assertLessEqual(len(scope_growth), data_points_count)
 
-        # Trend should have valid analysis
         self.assertIn(trend_items["trend_direction"], ["up", "down", "stable"])
         self.assertIsInstance(trend_items["percent_change"], (int, float))
 
     def test_all_functions_handle_edge_cases_consistently(self):
-        """Test that all functions handle edge cases consistently."""
         edge_cases = [
             {"name": "None", "data_points_count": None},
             {"name": "Zero", "data_points_count": 0},
@@ -275,7 +237,6 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
         for case in edge_cases:
             dpc = case["data_points_count"]
 
-            # All functions should handle edge case without errors
             try:
                 avg = calculate_weekly_averages(
                     self.statistics_data, data_points_count=dpc
@@ -303,7 +264,6 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
                     data_points_count=dpc,
                 )
 
-                # All should return valid structures
                 self.assertIsInstance(avg, tuple)
                 self.assertIsInstance(forecast, dict)
                 self.assertIsInstance(trend, dict)
@@ -318,8 +278,6 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
                 )
 
     def test_backward_compatibility_integration(self):
-        """All functions maintain backward compatibility when used together."""
-        # Test calling all functions without data_points_count (old way)
         try:
             avg_old = calculate_weekly_averages(self.statistics_data)
             forecast_old = generate_weekly_forecast(self.statistics_data, pert_factor=3)
@@ -338,8 +296,6 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
         except Exception as e:
             self.fail(f"Backward compatibility broken: {e}")
 
-        # Test all functions with data_points_count=None
-        # (should be same as old way)
         avg_none = calculate_weekly_averages(
             self.statistics_data, data_points_count=None
         )
@@ -360,7 +316,6 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
             self.df, self.baseline_items, self.baseline_points, data_points_count=None
         )
 
-        # Results should be identical
         self.assertEqual(avg_old, avg_none)
         self.assertEqual(
             forecast_old["items"]["most_likely_value"],
@@ -372,10 +327,8 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
         self.assertEqual(scope_stability_old, scope_stability_none)
 
     def test_data_type_consistency_list_vs_dataframe(self):
-        """Test that functions handle both list and DataFrame inputs consistently."""
         data_points_count = 6
 
-        # Test with list input
         avg_list = calculate_weekly_averages(
             self.statistics_data, data_points_count=data_points_count
         )
@@ -389,7 +342,6 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
             data_points_count=data_points_count,
         )
 
-        # Test with DataFrame input (where applicable)
         df_stats = pd.DataFrame(self.statistics_data)
         avg_df = calculate_weekly_averages(
             df_stats, data_points_count=data_points_count
@@ -401,7 +353,6 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
             df_stats, "completed_items", 2, data_points_count=data_points_count
         )
 
-        # Results should be the same regardless of input type
         self.assertEqual(avg_list, avg_df)
         self.assertEqual(
             forecast_list["items"]["most_likely_value"],
@@ -410,8 +361,6 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
         self.assertEqual(trend_list, trend_df)
 
     def test_realistic_project_scenario(self):
-        """Test a realistic project scenario with various data_points_count values."""
-        # Simulate different analysis scenarios
         scenarios = [
             {
                 "name": "Full project history",
@@ -440,7 +389,6 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
         for scenario in scenarios:
             dpc = scenario["data_points_count"]
 
-            # Calculate all metrics for this scenario
             avg = calculate_weekly_averages(self.statistics_data, data_points_count=dpc)
             forecast = generate_weekly_forecast(
                 self.statistics_data, pert_factor=3, data_points_count=dpc
@@ -458,27 +406,22 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
 
             result = {
                 "scenario": scenario["name"],
-                "avg_velocity": avg[0],  # avg_items
+                "avg_velocity": avg[0],
                 "forecast_velocity": forecast["items"]["most_likely_value"],
                 "trend": trend["trend_direction"],
                 "scope_rate": scope_rate["items_rate"],
             }
             results.append(result)
 
-        # Validate that scenarios produce reasonable and different results
         velocities = [r["avg_velocity"] for r in results]
         forecasts = [r["forecast_velocity"] for r in results]
 
-        # All velocities should be positive
         for v in velocities:
             self.assertGreater(v, 0)
 
-        # All forecasts should be positive
         for f in forecasts:
             self.assertGreater(f, 0)
 
-        # At least some scenarios should produce different results
-        # (unless data is perfectly uniform, which is unlikely)
         unique_velocities = len(set(f"{v:.2f}" for v in velocities))
         self.assertGreaterEqual(
             unique_velocities,

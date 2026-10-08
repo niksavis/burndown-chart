@@ -1,10 +1,3 @@
-"""
-Unit tests for health calculation consistency between app and report.
-
-Ensures health scores are calculated identically in both app dashboard
-and report generation, preventing divergence across queries and data points.
-"""
-
 import pytest
 
 from data.project_health_calculator import (
@@ -14,11 +7,8 @@ from data.project_health_calculator import (
 
 
 class TestHealthConsistency:
-    """Test suite ensuring app and report calculate identical health scores."""
-
     @pytest.fixture
     def sample_dashboard_metrics(self):
-        """Sample dashboard metrics for testing."""
         return {
             "completion_percentage": 65.5,
             "current_velocity_items": 5.2,
@@ -31,7 +21,6 @@ class TestHealthConsistency:
 
     @pytest.fixture
     def sample_extended_metrics(self):
-        """Sample extended metrics (DORA, Flow, Bug) for testing."""
         return {
             "dora": {
                 "has_data": True,
@@ -73,14 +62,11 @@ class TestHealthConsistency:
 
     @pytest.fixture
     def sample_scope_metrics(self):
-        """Sample scope metrics for testing."""
         return {"scope_change_rate": 15.2}
 
     def test_health_calculation_consistency_full_metrics(
         self, sample_dashboard_metrics, sample_extended_metrics, sample_scope_metrics
     ):
-        """Test health scores match when all extended metrics are available."""
-        # Prepare dashboard metrics using shared function (same as app/report)
         dashboard_metrics = prepare_dashboard_metrics_for_health(
             completion_percentage=sample_dashboard_metrics["completion_percentage"],
             current_velocity_items=sample_dashboard_metrics["current_velocity_items"],
@@ -91,7 +77,6 @@ class TestHealthConsistency:
             completion_confidence=sample_dashboard_metrics["completion_confidence"],
         )
 
-        # Simulate app calculation
         app_health = calculate_comprehensive_project_health(
             dashboard_metrics=dashboard_metrics,
             dora_metrics=sample_extended_metrics.get("dora"),
@@ -101,7 +86,6 @@ class TestHealthConsistency:
             scope_metrics=sample_scope_metrics,
         )
 
-        # Simulate report calculation (using same function)
         report_health = calculate_comprehensive_project_health(
             dashboard_metrics=dashboard_metrics,
             dora_metrics=sample_extended_metrics.get("dora"),
@@ -111,17 +95,14 @@ class TestHealthConsistency:
             scope_metrics=sample_scope_metrics,
         )
 
-        # Health scores must match exactly
         assert app_health["overall_score"] == report_health["overall_score"], (
             "Health mismatch: "
             f"app={app_health['overall_score']}, "
             f"report={report_health['overall_score']}"
         )
 
-        # Formula versions must match
         assert app_health["formula_version"] == report_health["formula_version"]
 
-        # Dimension scores must match
         for dimension in app_health.get("dimensions", {}).keys():
             assert (
                 app_health["dimensions"][dimension]["score"]
@@ -131,8 +112,6 @@ class TestHealthConsistency:
     def test_health_calculation_consistency_no_extended_metrics(
         self, sample_dashboard_metrics, sample_scope_metrics
     ):
-        """Test health scores match when extended metrics are unavailable."""
-        # Prepare dashboard metrics using shared function
         dashboard_metrics = prepare_dashboard_metrics_for_health(
             completion_percentage=sample_dashboard_metrics["completion_percentage"],
             current_velocity_items=sample_dashboard_metrics["current_velocity_items"],
@@ -143,7 +122,6 @@ class TestHealthConsistency:
             completion_confidence=sample_dashboard_metrics["completion_confidence"],
         )
 
-        # Simulate app calculation without extended metrics
         app_health = calculate_comprehensive_project_health(
             dashboard_metrics=dashboard_metrics,
             dora_metrics=None,
@@ -153,7 +131,6 @@ class TestHealthConsistency:
             scope_metrics=sample_scope_metrics,
         )
 
-        # Simulate report calculation without extended metrics
         report_health = calculate_comprehensive_project_health(
             dashboard_metrics=dashboard_metrics,
             dora_metrics=None,
@@ -163,7 +140,6 @@ class TestHealthConsistency:
             scope_metrics=sample_scope_metrics,
         )
 
-        # Health scores must match exactly (with dynamic weight redistribution)
         assert app_health["overall_score"] == report_health["overall_score"], (
             "Health mismatch without extended metrics: "
             f"app={app_health['overall_score']}, "
@@ -173,8 +149,6 @@ class TestHealthConsistency:
     def test_health_calculation_consistency_partial_metrics(
         self, sample_dashboard_metrics, sample_extended_metrics, sample_scope_metrics
     ):
-        """Test health scores match with partial extended metrics (e.g., DORA only)."""
-        # Prepare dashboard metrics
         dashboard_metrics = prepare_dashboard_metrics_for_health(
             completion_percentage=sample_dashboard_metrics["completion_percentage"],
             current_velocity_items=sample_dashboard_metrics["current_velocity_items"],
@@ -185,7 +159,6 @@ class TestHealthConsistency:
             completion_confidence=sample_dashboard_metrics["completion_confidence"],
         )
 
-        # Test with only DORA metrics
         app_health = calculate_comprehensive_project_health(
             dashboard_metrics=dashboard_metrics,
             dora_metrics=sample_extended_metrics.get("dora"),
@@ -206,7 +179,6 @@ class TestHealthConsistency:
 
         assert app_health["overall_score"] == report_health["overall_score"]
 
-        # Test with only Bug metrics
         app_health_bugs = calculate_comprehensive_project_health(
             dashboard_metrics=dashboard_metrics,
             dora_metrics=None,
@@ -228,24 +200,14 @@ class TestHealthConsistency:
         assert app_health_bugs["overall_score"] == report_health_bugs["overall_score"]
 
     def test_extended_metrics_key_consistency(self):
-        """Test that extended metrics use consistent keys between app and report."""
-        # This test documents the expected key names
         expected_keys = ["dora", "flow", "bug_analysis", "budget"]
 
-        # These keys must be used consistently in both:
-        # - callbacks/visualization.py (app)
-        # - data/report_generator.py (report)
-        # - ui/dashboard.py (dashboard)
-
-        # Verify the keys are documented
         assert "dora" in expected_keys
         assert "flow" in expected_keys
-        assert "bug_analysis" in expected_keys  # NOT "bug"
+        assert "bug_analysis" in expected_keys
         assert "budget" in expected_keys
 
     def test_prepare_metrics_function_idempotency(self, sample_dashboard_metrics):
-        """Test that prepare_dashboard_metrics_for_health is deterministic."""
-        # Call function twice with same inputs
         metrics1 = prepare_dashboard_metrics_for_health(
             completion_percentage=sample_dashboard_metrics["completion_percentage"],
             current_velocity_items=sample_dashboard_metrics["current_velocity_items"],
@@ -266,15 +228,11 @@ class TestHealthConsistency:
             completion_confidence=sample_dashboard_metrics["completion_confidence"],
         )
 
-        # Results must be identical
         assert metrics1 == metrics2
 
     def test_health_calculation_with_different_data_points(
         self, sample_dashboard_metrics, sample_extended_metrics, sample_scope_metrics
     ):
-        """Test health consistency when data_points_count varies (simulating slider)."""
-        # Simulate different time windows by varying metrics slightly
-        # In real scenario, data_points_count affects which weeks are included
 
         dashboard_metrics = prepare_dashboard_metrics_for_health(
             completion_percentage=sample_dashboard_metrics["completion_percentage"],
@@ -286,7 +244,6 @@ class TestHealthConsistency:
             completion_confidence=sample_dashboard_metrics["completion_confidence"],
         )
 
-        # Both app and report should use same calculation regardless of window
         app_health = calculate_comprehensive_project_health(
             dashboard_metrics=dashboard_metrics,
             dora_metrics=sample_extended_metrics.get("dora"),
@@ -308,8 +265,6 @@ class TestHealthConsistency:
         assert app_health["overall_score"] == report_health["overall_score"]
 
     def test_health_calculation_edge_cases(self, sample_scope_metrics):
-        """Test health consistency with edge case inputs."""
-        # Test with 0% completion
         dashboard_metrics_zero = prepare_dashboard_metrics_for_health(
             completion_percentage=0.0,
             current_velocity_items=0.0,
@@ -340,7 +295,6 @@ class TestHealthConsistency:
 
         assert app_health["overall_score"] == report_health["overall_score"]
 
-        # Test with 100% completion
         dashboard_metrics_complete = prepare_dashboard_metrics_for_health(
             completion_percentage=100.0,
             current_velocity_items=10.0,

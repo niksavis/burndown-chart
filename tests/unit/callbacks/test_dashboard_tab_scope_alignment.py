@@ -1,5 +1,3 @@
-"""Tests for dashboard forecast scope alignment with current remaining work."""
-
 from datetime import datetime
 
 import pandas as pd
@@ -10,7 +8,6 @@ from callbacks.visualization_helpers import dashboard_tab
 def test_render_dashboard_uses_current_remaining_scope_for_forecast(
     monkeypatch,
 ) -> None:
-    """Forecast should use unified project remaining scope, not settings totals."""
     stats_df = pd.DataFrame(
         {
             "date": [datetime(2026, 4, 28)],

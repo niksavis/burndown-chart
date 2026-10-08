@@ -1,10 +1,3 @@
-"""
-Unit tests for data/flow_type_classifier.py
-
-All functions are pure logic operating on dict or simple-namespace issue objects.
-No database, no network, no I/O needed.
-"""
-
 from types import SimpleNamespace
 
 import pytest
@@ -22,15 +15,10 @@ from data.flow_type_classifier import (
 
 EFFORT_FIELD = "customfield_10099"
 
-###############################################################################
-# Helpers
-###############################################################################
-
 
 def _dict_issue(
     issue_type: str, effort_category: object = None, key: str = "T-1"
 ) -> dict:
-    """Build a JIRA issue in the nested dict (JSON) format."""
     fields: dict = {"issuetype": {"name": issue_type}}
     if effort_category is not None:
         fields[EFFORT_FIELD] = effort_category
@@ -38,18 +26,12 @@ def _dict_issue(
 
 
 def _obj_issue(issue_type: str, effort_category: object = None, key: str = "T-1"):
-    """Build a JIRA issue in the object (JIRA library) format."""
     issuetype = SimpleNamespace(name=issue_type)
     fields_kw: dict = {"issuetype": issuetype}
     if effort_category is not None:
         fields_kw[EFFORT_FIELD] = effort_category
     fields = SimpleNamespace(**fields_kw)
     return SimpleNamespace(key=key, fields=fields)
-
-
-###############################################################################
-# get_flow_type — dict format
-###############################################################################
 
 
 class TestGetFlowTypeDictFormat:
@@ -126,18 +108,12 @@ class TestGetFlowTypeDictFormat:
         assert get_flow_type(issue, EFFORT_FIELD) == FLOW_TYPE_FEATURE
 
     def test_effort_category_as_dict_with_value_key(self) -> None:
-        # JIRA select field format: {"value": "Technical debt"}
         issue = _dict_issue("Task", effort_category={"value": "Technical debt"})
         assert get_flow_type(issue, EFFORT_FIELD) == FLOW_TYPE_TECHNICAL_DEBT
 
     def test_unknown_effort_category_defaults_to_feature(self) -> None:
         issue = _dict_issue("Task", effort_category="Some Other Category")
         assert get_flow_type(issue, EFFORT_FIELD) == FLOW_TYPE_FEATURE
-
-
-###############################################################################
-# get_flow_type — object format
-###############################################################################
 
 
 class TestGetFlowTypeObjectFormat:
@@ -164,11 +140,6 @@ class TestGetFlowTypeObjectFormat:
     def test_no_fields_attribute_defaults_to_feature(self) -> None:
         issue = SimpleNamespace(key="T-1")
         assert get_flow_type(issue, EFFORT_FIELD) == FLOW_TYPE_FEATURE
-
-
-###############################################################################
-# classify_issues_by_flow_type
-###############################################################################
 
 
 class TestClassifyIssuesByFlowType:
@@ -205,11 +176,6 @@ class TestClassifyIssuesByFlowType:
         }
 
 
-###############################################################################
-# count_by_flow_type
-###############################################################################
-
-
 class TestCountByFlowType:
     def test_counts_match_classification(self) -> None:
         issues = [
@@ -230,11 +196,6 @@ class TestCountByFlowType:
     def test_returns_int_values(self) -> None:
         result = count_by_flow_type([_dict_issue("Bug")], EFFORT_FIELD)
         assert all(isinstance(v, int) for v in result.values())
-
-
-###############################################################################
-# get_flow_distribution
-###############################################################################
 
 
 class TestGetFlowDistribution:

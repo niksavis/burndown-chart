@@ -1,10 +1,3 @@
-"""
-Unit tests for data/error_handling.py
-
-All logic is pure (string matching, dataclass construction, aggregation).
-No network, no database, no I/O needed.
-"""
-
 from data.error_handling import (
     ContextualError,
     ErrorCategory,
@@ -15,10 +8,6 @@ from data.error_handling import (
     get_error_summary_for_dashboard,
     should_show_error_in_setup_step,
 )
-
-###############################################################################
-# Helpers
-###############################################################################
 
 
 def _status(jira_connected: bool = False, fields_mapped: bool = False) -> dict:
@@ -31,11 +20,6 @@ def _status(jira_connected: bool = False, fields_mapped: bool = False) -> dict:
 
 def _err(msg: str = "test error") -> Exception:
     return RuntimeError(msg)
-
-
-###############################################################################
-# ContextualError
-###############################################################################
 
 
 class TestContextualError:
@@ -111,11 +95,6 @@ class TestContextualError:
         assert d["remediation"] == ["Step 1", "Step 2"]
 
 
-###############################################################################
-# ErrorCategory / ErrorSeverity enums
-###############################################################################
-
-
 class TestErrorEnums:
     def test_error_category_values(self) -> None:
         assert ErrorCategory.CONFIGURATION.value == "configuration"
@@ -130,11 +109,6 @@ class TestErrorEnums:
         assert ErrorSeverity.HIGH.value == "high"
         assert ErrorSeverity.MEDIUM.value == "medium"
         assert ErrorSeverity.LOW.value == "low"
-
-
-###############################################################################
-# analyze_error_with_context
-###############################################################################
 
 
 class TestAnalyzeErrorWithContext:
@@ -176,7 +150,6 @@ class TestAnalyzeErrorWithContext:
         assert result.category in allowed
 
     def test_validation_error(self) -> None:
-        # Error must NOT contain jira/field/customfield/jql to avoid JIRA config path
         err = _err("required parameter is invalid or missing")
         result = analyze_error_with_context(err, _status(), "save")
         assert result.category == ErrorCategory.VALIDATION
@@ -201,11 +174,6 @@ class TestAnalyzeErrorWithContext:
         err = _err("connection timeout")
         result = analyze_error_with_context(err, _status(), "fetch")
         assert len(result.remediation) > 0
-
-
-###############################################################################
-# get_error_recovery_workflow
-###############################################################################
 
 
 class TestGetErrorRecoveryWorkflow:
@@ -253,11 +221,6 @@ class TestGetErrorRecoveryWorkflow:
         assert all("success_indicator" in s for s in steps)
 
 
-###############################################################################
-# format_error_for_ui
-###############################################################################
-
-
 class TestFormatErrorForUi:
     def _make_err(
         self, severity: ErrorSeverity = ErrorSeverity.HIGH
@@ -302,11 +265,6 @@ class TestFormatErrorForUi:
         assert isinstance(result["severity"], str)
 
 
-###############################################################################
-# should_show_error_in_setup_step
-###############################################################################
-
-
 class TestShouldShowErrorInSetupStep:
     def _err_for_step(
         self,
@@ -340,11 +298,6 @@ class TestShouldShowErrorInSetupStep:
     def test_medium_different_step_not_shown(self) -> None:
         err = self._err_for_step("some_other_step", ErrorSeverity.MEDIUM)
         assert should_show_error_in_setup_step(err, "jira_connection") is False
-
-
-###############################################################################
-# get_error_summary_for_dashboard
-###############################################################################
 
 
 class TestGetErrorSummaryForDashboard:

@@ -1,5 +1,3 @@
-"""Unit tests for changelog import/export helpers."""
-
 from data.import_export_changelog import (
     collect_changelog_entries,
     normalize_imported_changelog_entries,

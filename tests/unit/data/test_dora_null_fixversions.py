@@ -1,13 +1,3 @@
-"""
-Unit tests for DORA metrics handling of null/None fixVersions.
-
-Guards against Bug 1: fixVersions stored as None (from JSON null) causing
-TypeError when iterating in deployment counting and release map building.
-
-Guards against Bug 3: load_dora_metrics_from_cache using snapshot-aware
-week selection instead of only looking backward from today.
-"""
-
 from datetime import datetime
 
 from data.fixversion_matcher import (
@@ -22,10 +12,6 @@ from data.metrics._weekly_dora_prep import (
     filter_issues_by_deployment_week,
 )
 
-###############################################################################
-# Helpers
-###############################################################################
-
 _FLOW_END_STATUSES = ["Done", "Resolved", "Closed"]
 
 _FV_RELEASE = {"name": "v1.0", "releaseDate": "2026-05-22"}
@@ -38,7 +24,6 @@ def _flat_issue(
     issue_type: str = "Operational Task",
     key: str = "OP-1",
 ) -> dict:
-    """Build a flat (database) format issue."""
     issue = {
         "key": key,
         "issue_key": key,
@@ -54,7 +39,6 @@ def _nested_issue(
     fix_versions=None,
     key: str = "DEV-1",
 ) -> dict:
-    """Build a nested (JIRA API) format issue."""
     return {
         "key": key,
         "fields": {
@@ -64,16 +48,8 @@ def _nested_issue(
     }
 
 
-###############################################################################
-# count_deployments_for_week - None fixVersions
-###############################################################################
-
-
 class TestCountDeploymentsNullFixVersions:
-    """Guard: count_deployments_for_week must not crash on None fixVersions."""
-
     def test_flat_issue_with_none_fixversions(self) -> None:
-        """Flat issue with fixVersions=None should not raise."""
         issues = [_flat_issue(status="Done", fix_versions=None)]
         result = count_deployments_for_week(
             issues,
@@ -85,7 +61,6 @@ class TestCountDeploymentsNullFixVersions:
         assert result["2026-W21"]["deployments"] == 0
 
     def test_nested_issue_with_none_fixversions(self) -> None:
-        """Nested issue with fixVersions=None should not raise."""
         issues = [_nested_issue(status="Done", fix_versions=None)]
         result = count_deployments_for_week(
             issues,
@@ -97,7 +72,6 @@ class TestCountDeploymentsNullFixVersions:
         assert result["2026-W21"]["deployments"] == 0
 
     def test_mixed_none_and_valid_fixversions(self) -> None:
-        """Issues with None fixVersions mixed with valid ones count correctly."""
         issues = [
             _flat_issue(status="Done", fix_versions=None, key="OP-1"),
             _flat_issue(status="Done", fix_versions=[_FV_RELEASE], key="OP-2"),
@@ -113,7 +87,6 @@ class TestCountDeploymentsNullFixVersions:
         assert "v1.0" in result["2026-W21"]["release_names"]
 
     def test_empty_list_fixversions(self) -> None:
-        """Issues with empty list fixVersions should return 0 deployments."""
         issues = [_flat_issue(status="Done", fix_versions=[])]
         result = count_deployments_for_week(
             issues,
@@ -125,14 +98,7 @@ class TestCountDeploymentsNullFixVersions:
         assert result["2026-W21"]["deployments"] == 0
 
 
-###############################################################################
-# filter_issues_by_deployment_week - None fixVersions
-###############################################################################
-
-
 class TestFilterIssuesByDeploymentWeekNull:
-    """Guard: filter_issues_by_deployment_week handles None fixVersions."""
-
     def test_flat_none_fixversions(self) -> None:
         issues = [_flat_issue(fix_versions=None)]
         result = filter_issues_by_deployment_week(
@@ -148,14 +114,7 @@ class TestFilterIssuesByDeploymentWeekNull:
         assert result == []
 
 
-###############################################################################
-# build_fixversion_release_map - None fixVersions
-###############################################################################
-
-
 class TestBuildFixversionReleaseMapNull:
-    """Guard: build_fixversion_release_map handles None fixVersions."""
-
     def test_flat_none_fixversions(self) -> None:
         issues = [_flat_issue(status="Done", fix_versions=None)]
         result = build_fixversion_release_map(
@@ -171,7 +130,6 @@ class TestBuildFixversionReleaseMapNull:
         assert result == {}
 
     def test_mixed_none_and_valid(self) -> None:
-        """Valid fixVersions should still be picked up."""
         issues = [
             _flat_issue(status="Done", fix_versions=None, key="OP-1"),
             _flat_issue(status="Done", fix_versions=[_FV_RELEASE], key="OP-2"),
@@ -183,14 +141,7 @@ class TestBuildFixversionReleaseMapNull:
         assert result["v1.0"] == datetime(2026, 5, 22)
 
 
-###############################################################################
-# get_deployment_date_for_issue - None fixVersions
-###############################################################################
-
-
 class TestGetDeploymentDateNull:
-    """Guard: get_deployment_date_for_issue handles None fixVersions."""
-
     def test_flat_none_fixversions(self) -> None:
         issue = _flat_issue(fix_versions=None)
         release_map = {"v1.0": datetime(2026, 5, 22)}
@@ -210,14 +161,7 @@ class TestGetDeploymentDateNull:
         assert result == datetime(2026, 5, 22)
 
 
-###############################################################################
-# filter_issues_deployed_in_week - None fixVersions
-###############################################################################
-
-
 class TestFilterIssuesDeployedInWeekNull:
-    """Guard: filter_issues_deployed_in_week handles None fixVersions."""
-
     def test_flat_none_fixversions(self) -> None:
         issues = [_flat_issue(fix_versions=None)]
         release_map = {"v1.0": datetime(2026, 5, 22)}
@@ -243,14 +187,7 @@ class TestFilterIssuesDeployedInWeekNull:
         assert result == []
 
 
-###############################################################################
-# count_deployments_for_week - valid_fix_versions filtering
-###############################################################################
-
-
 class TestCountDeploymentsFixVersionFiltering:
-    """Guard: fixVersion name must match valid_fix_versions set exactly."""
-
     def test_matching_fixversion_counted(self) -> None:
         issues = [_flat_issue(status="Done", fix_versions=[_FV_RELEASE])]
         result = count_deployments_for_week(
@@ -271,7 +208,7 @@ class TestCountDeploymentsFixVersionFiltering:
             "2026-W21",
             datetime(2026, 5, 18),
             datetime(2026, 5, 25),
-            valid_fix_versions={"v2.0"},  # Does not match v1.0
+            valid_fix_versions={"v2.0"},
         )
         assert result["2026-W21"]["deployments"] == 0
 
@@ -288,7 +225,6 @@ class TestCountDeploymentsFixVersionFiltering:
 
     def test_release_date_outside_week_excluded(self) -> None:
         issues = [_flat_issue(status="Done", fix_versions=[_FV_RELEASE])]
-        # Week before the release date
         result = count_deployments_for_week(
             issues,
             _FLOW_END_STATUSES,
@@ -299,16 +235,8 @@ class TestCountDeploymentsFixVersionFiltering:
         assert result["2026-W20"]["deployments"] == 0
 
 
-###############################################################################
-# load_dora_metrics_from_cache - snapshot-aware week selection (Bug 3)
-###############################################################################
-
-
 class TestLoadDoraMetricsWeekSelection:
-    """Guard: load_dora_metrics_from_cache uses snapshot weeks, not just today."""
-
     def test_returns_none_when_no_snapshots(self, monkeypatch) -> None:
-        """When no snapshot data exists, returns None."""
         monkeypatch.setattr(
             "data.dora_metrics_calculator.get_metric_snapshot", lambda *a: None
         )
@@ -320,8 +248,6 @@ class TestLoadDoraMetricsWeekSelection:
         assert result is None
 
     def test_includes_future_week_with_data(self, monkeypatch) -> None:
-        """Weeks with saved DORA data beyond today are included."""
-        # Simulate snapshots for a future week (2026-W21 = May 18-24)
         fake_snapshots = {
             "2026-W19": {
                 "dora_deployment_frequency": {
@@ -364,23 +290,14 @@ class TestLoadDoraMetricsWeekSelection:
 
         result = load_dora_metrics_from_cache(n_weeks=12)
         assert result is not None
-        # W21 should be in weekly_labels
         labels = result["deployment_frequency"]["weekly_labels"]
         assert "2026-W21" in labels
-        # Deployment count from W21 should be included
         values = result["deployment_frequency"]["weekly_values"]
         w21_idx = labels.index("2026-W21")
         assert values[w21_idx] == 2
 
 
-###############################################################################
-# classify_dora_issues - resilient issue type matching
-###############################################################################
-
-
 class TestClassifyDoraIssuesTypeMatching:
-    """Guard: issue type matching is case-insensitive and whitespace-tolerant."""
-
     def test_matches_operational_task_case_insensitively(self) -> None:
         app_settings = {
             "devops_task_types": ["Operational Task"],
@@ -418,14 +335,7 @@ class TestClassifyDoraIssuesTypeMatching:
         assert production_bugs == []
 
 
-###############################################################################
-# _calculate_deployment_frequency - release-map fallback
-###############################################################################
-
-
 class TestDeploymentFrequencyFallback:
-    """Guard: deployment count falls back to release map when no op tasks loaded."""
-
     def test_release_map_fallback_when_no_operational_tasks(self) -> None:
         week_start = datetime(2026, 4, 20)
         week_end = datetime(2026, 4, 27)

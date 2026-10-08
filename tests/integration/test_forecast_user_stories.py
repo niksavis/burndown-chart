@@ -1,15 +1,3 @@
-"""Verification script for User Stories 3, 4, 5 (Feature 009).
-
-Tests:
-- US3: Historical performance review (forecast data in past weeks)
-- US4: WIP health with forecast ranges (Flow Load bidirectional)
-- US5: Baseline building (<4 weeks of data)
-
-Run:
-    .\\.venv\\Scripts\\activate
-    pytest tests/integration/test_forecast_user_stories.py -v
-"""
-
 import tempfile
 from datetime import UTC
 from pathlib import Path
@@ -31,7 +19,6 @@ from ui.metric_cards import create_forecast_section
 
 @pytest.fixture(autouse=True)
 def isolated_metrics_snapshots():
-    """Isolate metrics snapshots tests from real data using temp database."""
     from unittest.mock import patch
 
     from data.database import get_db_connection as real_get_db_connection
@@ -39,21 +26,17 @@ def isolated_metrics_snapshots():
     from data.persistence.factory import reset_backend
     from data.persistence.sqlite.backend import SQLiteBackend
 
-    # Create temporary directory and database
     _tmpdir = tempfile.TemporaryDirectory(prefix="forecast_test_")
     temp_dir = _tmpdir.name
     temp_profiles_dir = Path(temp_dir) / "profiles"
     temp_profiles_dir.mkdir(parents=True, exist_ok=True)
     temp_db_path = Path(temp_profiles_dir / "test_burndown.db")
 
-    # Initialize temp database with schema using schema_manager
     initialize_schema(db_path=temp_db_path)
 
-    # Create test backend instance
     test_backend = SQLiteBackend(str(temp_db_path))
     reset_backend()
 
-    # Create test profile and query
     from data.profile_manager import Profile
 
     test_profile = Profile(
@@ -69,7 +52,6 @@ def isolated_metrics_snapshots():
     )
     test_backend.save_profile(test_profile.to_dict())
 
-    # Create test query with all required fields
     from datetime import datetime
 
     now = datetime.now(UTC).isoformat()
@@ -83,7 +65,6 @@ def isolated_metrics_snapshots():
     }
     test_backend.save_query("p_test_forecast", test_query)
 
-    # Set as active
     test_backend.set_app_state("active_profile_id", "p_test_forecast")
     test_backend.set_app_state("active_query_id", "q_test_forecast")
 
@@ -91,15 +72,11 @@ def isolated_metrics_snapshots():
         return test_backend
 
     def mock_get_db_connection(db_path=None):
-        """Always use test database."""
         return real_get_db_connection(temp_db_path)
 
-    # Patch backend and database connection
     patches = [
         patch("data.persistence.factory.get_backend", side_effect=mock_get_backend),
         patch("data.database.get_db_connection", side_effect=mock_get_db_connection),
-        # Note: sqlite.backend no longer exposes get_db_connection
-        # (uses internal connection)
     ]
 
     for p in patches:
@@ -123,10 +100,8 @@ def isolated_metrics_snapshots():
     ),
 )
 def test_user_story_3_historical_review():
-    """Test US3: Forecast data persists and loads for historical weeks."""
     print("\n=== User Story 3: Historical Performance Review ===")
 
-    # Simulate saving multiple weeks of Flow Velocity data
     weeks_data = [
         ("2025-W43", {"completed_count": 10, "distribution": {}}),
         ("2025-W44", {"completed_count": 12, "distribution": {}}),
@@ -139,11 +114,9 @@ def test_user_story_3_historical_review():
         save_metric_snapshot(week, "flow_velocity", data)
         print(f"  Saved {week}: {data['completed_count']} items")
 
-    # Add forecasts to week 46 (should use W43-45 as history)
     print("\n2. Calculating forecast for 2025-W46...")
     add_forecasts_to_week("2025-W46")
 
-    # Load the snapshot and verify forecast was saved
     snapshot = get_metric_snapshot("2025-W46", "flow_velocity")
     print("\n3. Loading historical snapshot for 2025-W46...")
 
@@ -156,12 +129,10 @@ def test_user_story_3_historical_review():
         print(f"  [OK] Weeks used: {forecast['weeks_available']}")
 
         if trend:
-            # Use repr() to avoid Unicode encoding issues in Windows console
             print(f"  [OK] Trend direction: {trend.get('direction', 'N/A')}")
             print(f"  [OK] Trend status: {trend['status_text']}")
             print(f"  [OK] Color: {trend['color_class']}")
 
-        # Test: US3 requirement - forecasts persist and load correctly
         assert forecast["forecast_value"] > 0, "Forecast value should be positive"
         assert forecast["weeks_available"] >= 2, (
             "Should have at least 2 weeks of history"
@@ -174,10 +145,8 @@ def test_user_story_3_historical_review():
 
 
 def test_user_story_4_wip_health_ranges():
-    """Test US4: Flow Load displays as range with bidirectional health check."""
     print("\n\n=== User Story 4: WIP Health with Forecast Ranges ===")
 
-    # Test Flow Load range calculation
     print("\n1. Testing Flow Load range calculation...")
     forecast_value = 15.0
     range_data = calculate_flow_load_range(forecast_value, range_percent=0.20)
@@ -185,13 +154,11 @@ def test_user_story_4_wip_health_ranges():
     print(f"  Forecast: {forecast_value:.1f} items")
     print(f"  Range (±20%): {range_data['lower']:.1f} - {range_data['upper']:.1f}")
 
-    # Test: US4 requirement - range bounds calculated correctly
     assert range_data["lower"] == 12.0, "Lower bound should be 15 * 0.8 = 12"
     assert range_data["upper"] == 18.0, "Upper bound should be 15 * 1.2 = 18"
 
     print("  [OK] Range calculation correct")
 
-    # Test different WIP scenarios
     print("\n2. Testing bidirectional WIP health scenarios...")
 
     test_scenarios = [
@@ -204,7 +171,7 @@ def test_user_story_4_wip_health_ranges():
         trend = calculate_trend_vs_forecast(
             current_value=float(wip),
             forecast_value=forecast_value,
-            metric_type="higher_better",  # Simplified for testing
+            metric_type="higher_better",
         )
 
         if wip > range_data["upper"]:
@@ -223,10 +190,8 @@ def test_user_story_4_wip_health_ranges():
 
 
 def test_user_story_5_baseline_building():
-    """Test US5: Baseline building with <4 weeks of data."""
     print("\n\n=== User Story 5: Baseline Building ===")
 
-    # Test with 2 weeks (minimum data)
     print("\n1. Testing with 2 weeks of data...")
     forecast_2w = calculate_forecast([10.0, 12.0])
 
@@ -238,7 +203,6 @@ def test_user_story_5_baseline_building():
     print(f"  [OK] Confidence: {forecast_2w['confidence']}")
     print(f"  [OK] Weeks: {forecast_2w['weeks_available']}")
 
-    # Test with 3 weeks
     print("\n2. Testing with 3 weeks of data...")
     forecast_3w = calculate_forecast([10.0, 11.0, 12.0])
 
@@ -252,7 +216,6 @@ def test_user_story_5_baseline_building():
     print(f"  [OK] Confidence: {forecast_3w['confidence']}")
     print(f"  [OK] Weeks: {forecast_3w['weeks_available']}")
 
-    # Test with 4 weeks (established baseline)
     print("\n3. Testing with 4 weeks of data...")
     forecast_4w = calculate_forecast([10.0, 12.0, 11.0, 13.0])
 
@@ -266,17 +229,14 @@ def test_user_story_5_baseline_building():
     print(f"  [OK] Confidence: {forecast_4w['confidence']}")
     print(f"  [OK] Weeks: {forecast_4w['weeks_available']}")
 
-    # Test with 1 week (insufficient data)
     print("\n4. Testing with 1 week of data (insufficient)...")
     forecast_1w = calculate_forecast([10.0], min_weeks=2)
 
     assert forecast_1w is None, "Should return None with insufficient data"
     print("  [OK] Correctly returns None for insufficient data")
 
-    # Test UI display
     print("\n5. Testing UI forecast section display...")
 
-    # Test "Building baseline" badge
     forecast_section_building = create_forecast_section(
         forecast_data=forecast_2w,
         trend_vs_forecast={
@@ -289,14 +249,12 @@ def test_user_story_5_baseline_building():
         unit="items/week",
     )
 
-    # Verify "Building baseline" badge appears
     section_html = str(forecast_section_building)
     assert "Building baseline" in section_html, (
         "Should display 'Building baseline' badge"
     )
     print("  [OK] 'Building baseline' badge displays correctly")
 
-    # Test established baseline (no badge)
     forecast_section_established = create_forecast_section(
         forecast_data=forecast_4w,
         trend_vs_forecast={

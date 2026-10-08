@@ -1,7 +1,3 @@
-"""
-Unit tests for the visualization helpers module.
-"""
-
 from datetime import datetime
 from unittest.mock import patch
 
@@ -11,10 +7,8 @@ import pytest
 from visualization.data_preparation import prepare_visualization_data
 
 
-# Test data for prepare_visualization_data function
 @pytest.fixture
 def sample_dataframe():
-    """Create a sample DataFrame for testing."""
     return pd.DataFrame(
         {
             "date": pd.date_range(start="2025-01-01", periods=10),
@@ -28,7 +22,6 @@ def sample_dataframe():
 
 @pytest.fixture
 def sample_dict_list():
-    """Create a sample list of dictionaries for testing."""
     return [
         {
             "date": "2025-01-01",
@@ -54,9 +47,7 @@ def sample_dict_list():
     ]
 
 
-# Tests for unhashable DataFrame issue in prepare_visualization_data function
 def test_prepare_visualization_data_with_dataframe(sample_dataframe):
-    """Test that prepare_visualization_data handles DataFrame input correctly."""
     with (
         patch("visualization.data_preparation.calculate_rates") as mock_calculate_rates,
         patch(
@@ -69,10 +60,8 @@ def test_prepare_visualization_data_with_dataframe(sample_dataframe):
             "visualization.data_preparation.generate_burndown_forecast"
         ) as mock_generate_burndown_forecast,
     ):
-        # Mock the calculate_rates function to return sample data
         mock_calculate_rates.return_value = (10.0, 1.0, 0.5, 20.0, 2.0, 1.0)
 
-        # Mock compute_weekly_throughput to return a DataFrame
         mock_compute_weekly_throughput.return_value = pd.DataFrame(
             {
                 "year_week": ["2025-1", "2025-2"],
@@ -81,7 +70,6 @@ def test_prepare_visualization_data_with_dataframe(sample_dataframe):
             }
         )
 
-        # Mock the daily_forecast_burnup and generate_burndown_forecast functions
         mock_daily_forecast_burnup.return_value = ([datetime.now()], [10.0])
         mock_generate_burndown_forecast.return_value = {
             "avg": ([datetime.now()], [10.0]),
@@ -89,19 +77,15 @@ def test_prepare_visualization_data_with_dataframe(sample_dataframe):
             "pes": ([datetime.now()], [5.0]),
         }
 
-        # Call the function with DataFrame input
         result = prepare_visualization_data(
             sample_dataframe, total_items=100, total_points=200, pert_factor=3
         )
 
-        # Check that calculate_rates was called with a DataFrame.
-        # This matches the expected implementation behavior.
         args, kwargs = mock_calculate_rates.call_args
         assert isinstance(args[0], pd.DataFrame), (
             "calculate_rates should be called with a DataFrame"
         )
 
-        # Check that the function returns expected data types
         assert isinstance(result, dict), "Result should be a dictionary"
         assert "df_calc" in result, "Result should contain df_calc key"
         assert "pert_time_items" in result, "Result should contain pert_time_items key"
@@ -112,7 +96,6 @@ def test_prepare_visualization_data_with_dataframe(sample_dataframe):
 
 
 def test_prepare_visualization_data_with_dict_list(sample_dict_list):
-    """Test list-of-dictionaries input handling in prepare_visualization_data."""
     with (
         patch("visualization.data_preparation.calculate_rates") as mock_calculate_rates,
         patch(
@@ -125,16 +108,13 @@ def test_prepare_visualization_data_with_dict_list(sample_dict_list):
             "visualization.data_preparation.generate_burndown_forecast"
         ) as mock_generate_burndown_forecast,
     ):
-        # Mock the calculate_rates function to return sample data
         mock_calculate_rates.return_value = (10.0, 1.0, 0.5, 20.0, 2.0, 1.0)
 
-        # Mock compute_weekly_throughput to return a list of dictionaries
         mock_compute_weekly_throughput.return_value = [
             {"year_week": "2025-1", "completed_items": 10, "completed_points": 20},
             {"year_week": "2025-2", "completed_items": 15, "completed_points": 30},
         ]
 
-        # Mock the daily_forecast_burnup and generate_burndown_forecast functions
         mock_daily_forecast_burnup.return_value = ([datetime.now()], [10.0])
         mock_generate_burndown_forecast.return_value = {
             "avg": ([datetime.now()], [10.0]),
@@ -142,20 +122,16 @@ def test_prepare_visualization_data_with_dict_list(sample_dict_list):
             "pes": ([datetime.now()], [5.0]),
         }
 
-        # Call the function with list of dictionaries input
         result = prepare_visualization_data(
             sample_dict_list, total_items=100, total_points=200, pert_factor=3
         )
 
-        # Check that calculate_rates was called with a DataFrame converted
-        # from the input list of dictionaries.
         args, kwargs = mock_calculate_rates.call_args
         assert isinstance(args[0], pd.DataFrame), (
             "calculate_rates should be called with a DataFrame "
             "(converted from input list)"
         )
 
-        # Check that the function returns expected data types
         assert isinstance(result, dict), "Result should be a dictionary"
         assert "df_calc" in result, "Result should contain df_calc key"
         assert "pert_time_items" in result, "Result should contain pert_time_items key"
@@ -166,14 +142,10 @@ def test_prepare_visualization_data_with_dict_list(sample_dict_list):
 
 
 def test_prepare_visualization_data_empty_input():
-    """Test that prepare_visualization_data handles empty input correctly."""
-    # Call the function with empty input - no mocking needed since the function
-    # has a special case for empty input that doesn't call any external functions
     result = prepare_visualization_data(
         pd.DataFrame(), total_items=100, total_points=200, pert_factor=3
     )
 
-    # Check that the function returns expected data types for empty input
     assert isinstance(result, dict), "Result should be a dictionary"
     assert "df_calc" in result, "Result should contain df_calc key"
     assert "pert_time_items" in result, "Result should contain pert_time_items key"

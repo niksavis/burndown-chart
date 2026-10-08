@@ -1,5 +1,3 @@
-"""Integration tests for Active Work Timeline flow."""
-
 import unittest
 from datetime import UTC, datetime, timedelta
 
@@ -10,10 +8,7 @@ from ui.active_work_epic_timeline import create_nested_epic_timeline
 
 
 class TestActiveWorkTimelineFlow(unittest.TestCase):
-    """Integration coverage for active work timeline data to UI pipeline."""
-
     def test_active_work_data_renders_timeline_component(self):
-        """Test end-to-end flow from data aggregation to UI component."""
         now = datetime.now(UTC)
         issues = [
             {

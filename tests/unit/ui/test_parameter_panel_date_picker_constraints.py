@@ -1,5 +1,3 @@
-"""Regression tests for parameter panel timeline date picker constraints."""
-
 from dash import dcc
 
 from ui.parameter_panel.expanded_panel import (
@@ -9,7 +7,6 @@ from ui.parameter_panel.expanded_panel import (
 
 
 def test_timeline_date_picker_allows_historical_dates() -> None:
-    """Timeline date picker should not enforce a today-based minimum date."""
     field_components = _create_date_picker_field(
         "Deadline",
         "deadline-picker",
@@ -25,7 +22,6 @@ def test_timeline_date_picker_allows_historical_dates() -> None:
 
 
 def test_timeline_date_pickers_hydrate_from_settings_on_refresh() -> None:
-    """Expanded panel should render persisted timeline dates on initial load."""
     panel = create_parameter_panel_expanded(
         settings={
             "pert_factor": 6,

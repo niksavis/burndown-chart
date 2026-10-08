@@ -1,16 +1,3 @@
-"""
-Test Coverage Summary for Data Source Switching Feature
-
-This file documents test coverage for the recently implemented
-multiple JQL queries feature.
-Run these commands to validate the implementation.
-"""
-
-# Test Commands for Data Source Switching Feature
-# ===============================================
-
-# 1. Unit Tests - Data Layer
-# Test the core query profile management functionality
 UNIT_DATA_TESTS = [
     r".\.venv\Scripts\activate; pytest tests/unit/data/test_jira_query_manager.py -v",
     (
@@ -19,14 +6,10 @@ UNIT_DATA_TESTS = [
     ),
 ]
 
-# 2. Unit Tests - UI Layer
-# Test the UI helper functions for data source selection
 UNIT_UI_TESTS = [
     r".\.venv\Scripts\activate; pytest tests/unit/ui/test_data_source_components.py -v",
 ]
 
-# 3. Integration Tests
-# Test end-to-end workflows and data flow integration
 INTEGRATION_TESTS = [
     (
         r".\.venv\Scripts\activate; pytest "
@@ -34,8 +17,6 @@ INTEGRATION_TESTS = [
     ),
 ]
 
-# 4. Run All New Tests
-# Command to run all tests for the data source switching feature
 ALL_NEW_TESTS = [
     (
         r".\.venv\Scripts\activate; pytest "
@@ -46,8 +27,6 @@ ALL_NEW_TESTS = [
     )
 ]
 
-# Test Coverage Areas
-# ===================
 
 COVERED_FUNCTIONALITY = {
     "Data Layer": [
@@ -75,8 +54,6 @@ COVERED_FUNCTIONALITY = {
     ],
 }
 
-# Key Test Scenarios
-# ==================
 
 CRITICAL_TEST_SCENARIOS = [
     "Loading default profiles when no user profiles exist",
@@ -93,8 +70,6 @@ CRITICAL_TEST_SCENARIOS = [
     "Data source switching workflow simulation",
 ]
 
-# Manual Testing Checklist
-# =========================
 
 MANUAL_TESTING_STEPS = [
     "1. [OK] Verify JIRA API appears first in radio button options",
@@ -104,8 +79,6 @@ MANUAL_TESTING_STEPS = [
     "5. [OK] Test backward compatibility with existing functionality",
 ]
 
-# Performance Considerations
-# ==========================
 
 PERFORMANCE_NOTES = [
     "File I/O operations are minimized with proper caching",

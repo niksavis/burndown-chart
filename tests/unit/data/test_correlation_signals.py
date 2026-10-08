@@ -1,10 +1,3 @@
-"""Unit tests for data/recommendations/correlation_signals.py.
-
-Tests each cross-domain correlation signal (H1-H7) in isolation with
-controlled metric inputs, and verifies that missing optional inputs
-produce no errors (graceful skipping).
-"""
-
 import pandas as pd
 
 from data.recommendations.correlation_signals import build_correlation_signals
@@ -14,7 +7,6 @@ def _make_df(
     completed: list[int],
     created: list[int] | None = None,
 ) -> pd.DataFrame:
-    """Build a minimal statistics DataFrame."""
     n = len(completed)
     rows = {"completed_items": completed}
     if created is not None:
@@ -52,8 +44,6 @@ class TestH1UnstableDeliveryScopeCreep:
         return {"runway_weeks": 10}
 
     def test_fires_when_high_cv_and_scope_growing(self):
-        # High CV: alternating 1/10 creates high variance
-        # Scope growing: created > completed
         completed = [1, 10] * 6
         created = [8, 8] * 6
         df = _make_df(completed, created)
@@ -68,9 +58,8 @@ class TestH1UnstableDeliveryScopeCreep:
         assert _find(signals, "unstable_delivery_scope_creep") is None
 
     def test_does_not_fire_when_scope_not_growing(self):
-        # High CV but created_sum (12) does not exceed completed_sum*0.2 (13.2)
-        completed = [1, 10] * 6  # sum = 66
-        created = [1, 1] * 6  # sum = 12; 12 < 66 * 0.2 = 13.2
+        completed = [1, 10] * 6
+        created = [1, 1] * 6
         df = _make_df(completed, created)
         signals = build_correlation_signals(df, budget_data=self._budget())
         assert _find(signals, "unstable_delivery_scope_creep") is None
@@ -103,11 +92,10 @@ class TestH2BudgetForecastUncertainty:
 
 class TestH3PerformanceSurplus:
     def test_fires_when_velocity_accelerating_and_budget_surplus(self):
-        # First half slow, second half fast → acceleration
         completed = [3, 3, 3, 3, 6, 6, 6, 6]
         df = _make_df(completed)
         budget = {"runway_weeks": 20}
-        pert = {"pert_time_items": 42}  # 6 weeks
+        pert = {"pert_time_items": 42}
         signals = build_correlation_signals(df, budget_data=budget, pert_data=pert)
         s = _find(signals, "performance_surplus")
         assert s is not None
@@ -151,7 +139,6 @@ class TestH4HighWipLongLeadTime:
 
 class TestH5BugVelocityDrain:
     def test_fires_when_high_bug_pct_and_declining_velocity(self):
-        # First half fast, second half slow → decline
         completed = [8, 8, 8, 8, 4, 4, 4, 4]
         df = _make_df(completed)
         bug = {"has_data": True, "bug_investment_pct": 30, "resolution_rate": 60}

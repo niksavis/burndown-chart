@@ -1,5 +1,3 @@
-"""Tests for metrics week range calculation."""
-
 from datetime import datetime, timedelta
 
 from callbacks.settings.metrics import _calculate_weeks_from_statistics

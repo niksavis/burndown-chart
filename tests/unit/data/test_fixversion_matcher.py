@@ -1,9 +1,3 @@
-"""
-Unit tests for data/fixversion_matcher.py
-
-These tests cover pure logic paths only — no I/O, no database, no network.
-"""
-
 from datetime import date
 
 from data.fixversion_matcher import (
@@ -15,18 +9,12 @@ from data.fixversion_matcher import (
     get_fixversions,
 )
 
-###############################################################################
-# Helpers
-###############################################################################
-
 
 def _nested_issue(fixversions: list[dict], key: str = "DEV-1") -> dict:
-    """Build a JIRA API-format issue (fields/fixVersions nested)."""
     return {"key": key, "fields": {"fixVersions": fixversions}}
 
 
 def _flat_issue(fixversions: list[dict], key: str = "OP-1") -> dict:
-    """Build a flat/DB-format issue (fixVersions at root level)."""
     return {"key": key, "fixVersions": fixversions}
 
 
@@ -34,10 +22,6 @@ _FV_A = {"id": "10001", "name": "Release 2025-01", "releaseDate": "2025-01-15"}
 _FV_B = {"id": "10002", "name": "Release-2025-02", "releaseDate": "2025-02-20"}
 _FV_C = {"id": "10003", "name": "Release Future", "releaseDate": "2099-12-31"}
 _FV_NO_DATE = {"id": "10004", "name": "No Date"}
-
-###############################################################################
-# get_fixversions
-###############################################################################
 
 
 class TestGetFixversions:
@@ -68,16 +52,9 @@ class TestGetFixversions:
         assert get_fixversions(issue) == []
 
     def test_graceful_on_none_fields(self) -> None:
-        # fields present but None — should not crash
         issue = {"key": "DEV-1", "fields": None}
-        # When fields is None, isinstance check fails → falls through to flat path
         result = get_fixversions(issue)
         assert isinstance(result, list)
-
-
-###############################################################################
-# extract_fixversion_ids
-###############################################################################
 
 
 class TestExtractFixversionIds:
@@ -103,11 +80,6 @@ class TestExtractFixversionIds:
         assert isinstance(result, set)
 
 
-###############################################################################
-# extract_fixversion_names
-###############################################################################
-
-
 class TestExtractFixversionNames:
     def test_normalizes_lowercase(self) -> None:
         fv = {"id": "1", "name": "Release UPPER"}
@@ -120,7 +92,7 @@ class TestExtractFixversionNames:
         assert extract_fixversion_names(issue) == {"my_release_2025"}
 
     def test_normalizes_hyphens_to_underscores(self) -> None:
-        issue = _nested_issue([_FV_B])  # "Release-2025-02"
+        issue = _nested_issue([_FV_B])
         assert extract_fixversion_names(issue) == {"release_2025_02"}
 
     def test_multiple_fixversions(self) -> None:
@@ -140,21 +112,16 @@ class TestExtractFixversionNames:
         assert extract_fixversion_names(_nested_issue([])) == set()
 
 
-###############################################################################
-# get_earliest_release_date
-###############################################################################
-
-
 class TestGetEarliestReleaseDate:
     _today = date(2025, 6, 1)
 
     def test_returns_earliest_past_date(self) -> None:
-        fixversions = [_FV_A, _FV_B]  # 2025-01-15 and 2025-02-20
+        fixversions = [_FV_A, _FV_B]
         result = get_earliest_release_date(fixversions, today=self._today)
         assert result == date(2025, 1, 15)
 
     def test_filters_out_future_dates(self) -> None:
-        fixversions = [_FV_C]  # 2099-12-31
+        fixversions = [_FV_C]
         result = get_earliest_release_date(fixversions, today=self._today)
         assert result is None
 
@@ -164,7 +131,7 @@ class TestGetEarliestReleaseDate:
         assert result == self._today
 
     def test_mixed_past_and_future(self) -> None:
-        fixversions = [_FV_A, _FV_C]  # 2025-01-15 (past) + 2099-12-31 (future)
+        fixversions = [_FV_A, _FV_C]
         result = get_earliest_release_date(fixversions, today=self._today)
         assert result == date(2025, 1, 15)
 
@@ -182,15 +149,9 @@ class TestGetEarliestReleaseDate:
         assert result == date(2025, 1, 15)
 
     def test_defaults_to_today_when_none_passed(self) -> None:
-        # Just check it does not crash and returns a date when there is a past date
         past_fv = {"id": "1", "releaseDate": "2020-01-01"}
         result = get_earliest_release_date([past_fv])
         assert result == date(2020, 1, 1)
-
-
-###############################################################################
-# get_fallback_release_date
-###############################################################################
 
 
 class TestGetFallbackReleaseDate:
@@ -223,11 +184,6 @@ class TestGetFallbackReleaseDate:
         assert get_fallback_release_date(issue) is None
 
 
-###############################################################################
-# find_matching_operational_tasks
-###############################################################################
-
-
 class TestFindMatchingOperationalTasks:
     def _make_dev(self, fvs: list[dict]) -> dict:
         return _nested_issue(fvs, key="DEV-1")
@@ -245,7 +201,6 @@ class TestFindMatchingOperationalTasks:
         assert method == "id"
 
     def test_name_match_fallback(self) -> None:
-        # Same name different ID
         fv_dev = {"id": "AAA", "name": "release 2025-01"}
         fv_op = {"id": "BBB", "name": "release 2025-01"}
         dev = self._make_dev([fv_dev])
@@ -266,7 +221,6 @@ class TestFindMatchingOperationalTasks:
         fv_op = {"id": "BBB", "name": "release 2025-01"}
         dev = self._make_dev([fv_dev])
         op = self._make_op([fv_op])
-        # match_by="id" must not fall back to name
         results = find_matching_operational_tasks(dev, [op], match_by="id")
         assert results == []
 
@@ -296,7 +250,6 @@ class TestFindMatchingOperationalTasks:
         assert task is op_match
 
     def test_id_match_takes_priority_over_name(self) -> None:
-        # Both share ID — should be an ID match, not name
         dev = self._make_dev([_FV_A])
         op = self._make_op([_FV_A])
         results = find_matching_operational_tasks(dev, [op], match_by="auto")

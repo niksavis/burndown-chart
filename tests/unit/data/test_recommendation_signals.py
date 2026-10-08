@@ -1,5 +1,3 @@
-"""Tests for shared recommendation signals."""
-
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -17,7 +15,6 @@ from data.recommendations.velocity_signals import (
 
 
 def test_velocity_trend_acceleration_signal():
-    """Velocity acceleration should emit a signal."""
     statistics_df = pd.DataFrame({"completed_items": [5, 5, 5, 10, 10, 10]})
 
     signals = build_velocity_trend_signals(statistics_df)
@@ -26,7 +23,6 @@ def test_velocity_trend_acceleration_signal():
 
 
 def test_throughput_increase_signal():
-    """Throughput increase should emit a signal."""
     statistics_df = pd.DataFrame({"completed_items": [4, 4, 4, 4, 8, 8, 8, 8]})
 
     signals = build_throughput_signals(statistics_df)
@@ -35,7 +31,6 @@ def test_throughput_increase_signal():
 
 
 def test_velocity_consistency_inconsistent_signal():
-    """High variance velocity should emit an inconsistency signal."""
     statistics_df = pd.DataFrame({"completed_items": [1, 12, 1, 12]})
 
     signals = build_velocity_consistency_signals(statistics_df)
@@ -44,7 +39,6 @@ def test_velocity_consistency_inconsistent_signal():
 
 
 def test_budget_health_critical_signal():
-    """Critical budget utilization should emit a critical signal."""
     budget_data = {
         "utilization_percentage": 95.0,
         "runway_weeks": 2.0,
@@ -58,7 +52,6 @@ def test_budget_health_critical_signal():
 
 
 def test_budget_health_no_consumption_signal():
-    """Infinite runway should emit no-consumption signal only."""
     budget_data = {
         "utilization_percentage": 0.0,
         "runway_weeks": float("inf"),
@@ -73,7 +66,6 @@ def test_budget_health_no_consumption_signal():
 
 
 def test_budget_forecast_shortfall_signal():
-    """Short runway vs forecast should emit exhaustion signal."""
     signals = build_budget_forecast_signals(5.0, 10.0, 13.0)
 
     assert any(
@@ -82,7 +74,6 @@ def test_budget_forecast_shortfall_signal():
 
 
 def test_required_pace_critically_behind_signal():
-    """Low velocity against a near deadline should emit critical pace signal."""
     deadline = (datetime.now().date() + timedelta(days=7)).isoformat()
     statistics_df = pd.DataFrame(
         {
@@ -97,7 +88,6 @@ def test_required_pace_critically_behind_signal():
 
 
 def test_required_pace_on_track_signal():
-    """Slightly ahead pace should emit on-track signal."""
     deadline = (datetime.now().date() + timedelta(days=14)).isoformat()
     statistics_df = pd.DataFrame(
         {

@@ -1,13 +1,8 @@
-"""Unit tests for tabbed settings profile-first gating callbacks."""
-
 from dash import no_update
 
 
 class TestTabbedSettingsProfileGating:
-    """Validate tab gating behavior when profiles are missing/present."""
-
     def test_tabs_disabled_without_profiles(self):
-        """Connect/Queries should be disabled with guidance when no profiles exist."""
         from callbacks.tabbed_settings import enforce_profile_first_tab_access
 
         result = enforce_profile_first_tab_access([], "connect-tab")
@@ -19,7 +14,6 @@ class TestTabbedSettingsProfileGating:
         assert result[4] == {}
 
     def test_tabs_enabled_with_profiles(self):
-        """Connect/Queries should be enabled when at least one profile exists."""
         from callbacks.tabbed_settings import enforce_profile_first_tab_access
 
         profile_options = [{"label": "Demo", "value": "demo"}]

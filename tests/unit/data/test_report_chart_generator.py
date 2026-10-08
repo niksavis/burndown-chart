@@ -1,11 +1,3 @@
-"""Tests for report chart generation modules.
-
-Tests the refactored chart generation modules that were split from chart_generator.py:
-- chart_burndown.py
-- chart_bugs.py
-- chart_flow.py
-"""
-
 from data.report.chart_bugs import generate_bug_trends_chart
 from data.report.chart_burndown import (
     generate_burndown_chart,
@@ -16,10 +8,7 @@ from data.report.chart_generator import generate_chart_scripts
 
 
 class TestChartGeneratorOrchestration:
-    """Test the main chart_generator orchestration."""
-
     def test_generate_chart_scripts_empty_sections(self):
-        """Test with no sections returns empty list."""
         metrics = {}
         sections = []
 
@@ -28,7 +17,6 @@ class TestChartGeneratorOrchestration:
         assert scripts == []
 
     def test_generate_chart_scripts_burndown_section(self):
-        """Test burndown section generates charts."""
         metrics = {
             "burndown": {
                 "has_data": True,
@@ -58,12 +46,11 @@ class TestChartGeneratorOrchestration:
 
         scripts = generate_chart_scripts(metrics, sections)
 
-        assert len(scripts) == 2  # Burndown chart + weekly breakdown
+        assert len(scripts) == 2
         assert all(isinstance(s, str) for s in scripts)
         assert all("Chart(" in s for s in scripts)
 
     def test_generate_chart_scripts_scope_section(self):
-        """Test that scope changes chart is generated for scope creep analysis."""
         metrics = {
             "scope": {
                 "has_data": True,
@@ -85,11 +72,9 @@ class TestChartGeneratorOrchestration:
 
         scripts = generate_chart_scripts(metrics, sections)
 
-        # Scope changes chart should be generated for scope creep tracking
         assert any("scopeChangesChart" in s for s in scripts)
 
     def test_generate_chart_scripts_bugs_section(self):
-        """Test bugs section generates bug trends chart."""
         metrics = {
             "bug_analysis": {
                 "has_data": True,
@@ -115,7 +100,6 @@ class TestChartGeneratorOrchestration:
         assert any("bugTrendsChart" in s for s in scripts)
 
     def test_generate_chart_scripts_flow_section(self):
-        """Test flow section generates work distribution chart."""
         metrics = {
             "flow": {
                 "has_data": True,
@@ -139,7 +123,6 @@ class TestChartGeneratorOrchestration:
         assert any("workDistributionChart" in s for s in scripts)
 
     def test_generate_chart_scripts_missing_data(self):
-        """Test sections without data don't generate charts."""
         metrics = {
             "burndown": {"has_data": False},
             "scope": {"has_data": False},
@@ -154,10 +137,7 @@ class TestChartGeneratorOrchestration:
 
 
 class TestBurndownCharts:
-    """Test burndown chart generation."""
-
     def test_generate_burndown_chart_basic(self):
-        """Test basic burndown chart generation."""
         burndown_metrics = {
             "historical_data": {
                 "dates": ["2026-01-01", "2026-01-15", "2026-01-31"],
@@ -170,13 +150,11 @@ class TestBurndownCharts:
 
         assert "new Chart(" in script
         assert "burndownChart" in script
-        # Dates should be in ISO week format (2026-W01, 2026-W03, 2026-W05)
         assert "2026-W" in script
         assert "30" in script or "[30" in script
         assert "line" in script.lower()
 
     def test_generate_burndown_chart_with_points(self):
-        """Test burndown chart with points enabled."""
         burndown_metrics = {
             "historical_data": {
                 "dates": ["2026-01-01"],
@@ -191,7 +169,6 @@ class TestBurndownCharts:
         assert "15" in script or "[15" in script
 
     def test_generate_burndown_chart_with_annotations(self):
-        """Test burndown chart with milestone, forecast, deadline."""
         burndown_metrics = {
             "historical_data": {
                 "dates": ["2026-01-01", "2026-01-31"],
@@ -208,16 +185,14 @@ class TestBurndownCharts:
         )
 
         assert "Milestone" in script
-        # Check for ISO week format and human-readable dates
-        assert "2026-W" in script  # ISO week format
-        assert "Jan 15, 2026" in script  # Humanreadable milestone date
+        assert "2026-W" in script
+        assert "Jan 15, 2026" in script
         assert "Forecast" in script
-        assert "Feb 10, 2026" in script  # Human-readable forecast date
+        assert "Feb 10, 2026" in script
         assert "Deadline" in script
-        assert "Feb 28, 2026" in script  # Human-readable deadline date
+        assert "Feb 28, 2026" in script
 
     def test_generate_weekly_breakdown_chart_basic(self):
-        """Test weekly breakdown chart generation with new forecast features."""
         weekly_data = [
             {
                 "date": "2026-W01",
@@ -249,7 +224,6 @@ class TestBurndownCharts:
             },
         ]
 
-        # Test without forecast (no statistics data)
         script = generate_weekly_breakdown_chart(weekly_data, False)
 
         assert "new Chart(" in script
@@ -260,7 +234,6 @@ class TestBurndownCharts:
         assert "Items Completed" in script
 
     def test_generate_weekly_breakdown_chart_with_forecast(self):
-        """Test weekly breakdown chart includes PERT and EWMA forecasts."""
         weekly_data = [
             {"date": "2026-W01", "completed_items": 5, "completed_points": 8},
             {"date": "2026-W02", "completed_items": 7, "completed_points": 12},
@@ -279,15 +252,13 @@ class TestBurndownCharts:
             weekly_data, False, statistics=statistics, pert_factor=3
         )
 
-        # Check that chart contains basics and forecasts but not removed features
         assert "Items Completed" in script
         assert "weeklyBreakdownChart" in script
-        assert "4-Week Weighted Avg" not in script  # Removed feature
-        assert "PERT Forecast" in script  # Should have PERT forecast
-        assert "EWMA Forecast" in script  # Should have EWMA forecast
+        assert "4-Week Weighted Avg" not in script
+        assert "PERT Forecast" in script
+        assert "EWMA Forecast" in script
 
     def test_generate_weekly_breakdown_chart_with_points(self):
-        """Test weekly breakdown with points display."""
         weekly_data = [
             {
                 "date": "2026-W01",
@@ -308,10 +279,9 @@ class TestBurndownCharts:
         script = generate_weekly_breakdown_chart(weekly_data, True)
 
         assert "Points Completed" in script
-        assert "y1" in script  # Dual y-axis
+        assert "y1" in script
 
     def test_generate_weekly_breakdown_chart_with_required_velocity(self):
-        """Test weekly breakdown with required velocity line."""
         weekly_data = [
             {"date": "2026-W01", "completed_items": 5, "completed_points": 8},
             {"date": "2026-W02", "completed_items": 7, "completed_points": 12},
@@ -328,14 +298,8 @@ class TestBurndownCharts:
         assert "items/week" in script
 
 
-# TestScopeChart removed: scope changes chart was merged into Weekly Breakdown.
-
-
 class TestBugsChart:
-    """Test bug trends chart generation."""
-
     def test_generate_bug_trends_chart_basic(self):
-        """Test basic bug trends chart."""
         weekly_stats = [
             {
                 "week": "2026-W01",
@@ -361,13 +325,12 @@ class TestBugsChart:
 
         assert "new Chart(" in script
         assert "bugTrendsChart" in script
-        assert "2026-W01" in script  # ISO week format
+        assert "2026-W01" in script
         assert "line" in script.lower()
         assert "Created" in script or "created" in script
         assert "Closed" in script or "closed" in script
 
     def test_generate_bug_trends_chart_warning_backgrounds(self):
-        """Test bug trends chart with consecutive negative weeks."""
         weekly_stats = [
             {
                 "week": "2026-W01",
@@ -397,11 +360,9 @@ class TestBugsChart:
 
         script = generate_bug_trends_chart(weekly_stats)
 
-        # Should have warning backgrounds for 3+ consecutive negative weeks
         assert "annotation" in script.lower() or "box" in script.lower()
 
     def test_generate_bug_trends_chart_empty_data(self):
-        """Test bug trends with empty data."""
         weekly_stats = []
 
         script = generate_bug_trends_chart(weekly_stats)
@@ -411,10 +372,7 @@ class TestBugsChart:
 
 
 class TestFlowChart:
-    """Test flow metrics chart generation."""
-
     def test_generate_work_distribution_chart_basic(self):
-        """Test basic work distribution chart."""
         flow_metrics = {
             "distribution_history": [
                 {
@@ -447,7 +405,6 @@ class TestFlowChart:
         assert "Defect" in script
 
     def test_generate_work_distribution_chart_percentages(self):
-        """Test work distribution shows percentages."""
         flow_metrics = {
             "distribution_history": [
                 {
@@ -463,11 +420,9 @@ class TestFlowChart:
 
         script = generate_work_distribution_chart(flow_metrics)
 
-        # Should calculate percentages (100% features in this case)
         assert "100" in script or "percent" in script.lower() or "%" in script
 
     def test_generate_work_distribution_chart_empty_data(self):
-        """Test work distribution with empty data."""
         flow_metrics = {"distribution_history": []}
 
         script = generate_work_distribution_chart(flow_metrics)
@@ -476,10 +431,7 @@ class TestFlowChart:
 
 
 class TestChartScriptFormat:
-    """Test that all generated scripts have correct format."""
-
     def test_all_scripts_are_iife(self):
-        """Test all scripts are wrapped in an IIFE."""
         metrics = {
             "burndown": {
                 "has_data": True,
@@ -534,12 +486,10 @@ class TestChartScriptFormat:
         scripts = generate_chart_scripts(metrics, sections)
 
         for script in [s for s in scripts if s]:
-            # Check for IIFE pattern
             assert "(function()" in script or "(() =>" in script
             assert script.strip().endswith("();") or script.strip().endswith("})();")
 
     def test_all_scripts_check_element_exists(self):
-        """Test all scripts check if DOM element exists before rendering."""
         metrics = {
             "burndown": {
                 "has_data": True,
@@ -556,6 +506,5 @@ class TestChartScriptFormat:
         scripts = generate_chart_scripts(metrics, sections)
 
         for script in scripts:
-            # Should have element existence check
             assert "getElementById" in script or "querySelector" in script
             assert "if (ctx)" in script or "if (canvas)" in script or "if (" in script

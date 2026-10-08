@@ -1,25 +1,9 @@
-"""
-Sample profile and query data fixtures for testing.
-
-Provides realistic test data that matches the profile/query data model.
-"""
-
 import pytest
 
 
 @pytest.fixture
 def sample_profile_data() -> dict:
-    """
-    Generate realistic profile configuration data.
 
-    Returns:
-        dict: Profile configuration matching profile.json structure
-
-    Example:
-        def test_profile_creation(sample_profile_data):
-            profile = Profile.from_dict(sample_profile_data)
-            assert profile.name == "Test Profile"
-    """
     return {
         "id": "profile-test-001",
         "name": "Test Profile",
@@ -59,17 +43,7 @@ def sample_profile_data() -> dict:
 
 @pytest.fixture
 def sample_query_data() -> dict:
-    """
-    Generate realistic query configuration data.
 
-    Returns:
-        dict: Query configuration matching query.json structure
-
-    Example:
-        def test_query_creation(sample_query_data):
-            query = Query.from_dict(sample_query_data)
-            assert query.jql_query == "project = TEST"
-    """
     return {
         "id": "query-test-001",
         "name": "Test Query",
@@ -82,17 +56,7 @@ def sample_query_data() -> dict:
 
 @pytest.fixture
 def sample_profiles_registry() -> dict:
-    """
-    Generate realistic profiles registry data.
 
-    Returns:
-        dict: Profiles registry matching profiles.json structure
-
-    Example:
-        def test_switch_profile(sample_profiles_registry):
-            registry = sample_profiles_registry
-            assert registry["active_profile_id"] == "profile-test-001"
-    """
     return {
         "version": "3.0",
         "active_profile_id": "profile-test-001",
@@ -116,17 +80,7 @@ def sample_profiles_registry() -> dict:
 
 @pytest.fixture
 def multiple_profile_configs() -> list[dict]:
-    """
-    Generate multiple profile configurations for testing multi-profile scenarios.
 
-    Returns:
-        list: List of profile configurations
-
-    Example:
-        def test_multiple_profiles(multiple_profile_configs):
-            assert len(multiple_profile_configs) == 3
-            assert multiple_profile_configs[0]["name"] == "Apache Kafka Analysis"
-    """
     return [
         {
             "id": "profile-kafka-001",
@@ -178,17 +132,7 @@ def multiple_profile_configs() -> list[dict]:
 
 @pytest.fixture
 def multiple_query_configs() -> list[dict]:
-    """
-    Generate multiple query configurations for testing multi-query scenarios.
 
-    Returns:
-        list: List of query configurations
-
-    Example:
-        def test_multiple_queries(multiple_query_configs):
-            assert len(multiple_query_configs) == 3
-            assert "12 Weeks" in multiple_query_configs[0]["name"]
-    """
     return [
         {
             "id": "query-12w-001",

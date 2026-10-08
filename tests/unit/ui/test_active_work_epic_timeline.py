@@ -1,10 +1,7 @@
-"""Tests for Active Work epic timeline card rendering."""
-
 from ui.active_work_epic_timeline import _render_filtered_timeline
 
 
 def test_render_filtered_timeline_shows_empty_epic_message() -> None:
-    """Standalone epic cards should show a clear empty-state message."""
     timeline = [
         {
             "epic_key": "EPIC-123",
@@ -22,7 +19,6 @@ def test_render_filtered_timeline_shows_empty_epic_message() -> None:
 
 
 def test_render_filtered_timeline_keeps_no_parent_empty_message() -> None:
-    """No Parent bucket should keep the generic empty-state message."""
     timeline = [
         {
             "epic_key": "No Parent",

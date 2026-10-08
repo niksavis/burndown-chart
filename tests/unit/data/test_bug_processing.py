@@ -1,8 +1,3 @@
-"""Unit tests for bug data processing functions.
-
-Tests bug filtering, statistics calculation, metrics aggregation, and forecasting.
-"""
-
 from datetime import datetime
 
 import pytest
@@ -16,51 +11,33 @@ from tests.utils.mock_bug_data import generate_mock_bug_data
 
 
 class TestISOWeekHelpers:
-    """Test suite for ISO week helper functions."""
-
     def test_get_max_iso_week_for_year_52_weeks(self):
-        """Test years with 52 weeks (most common case)."""
-        # 2024 and 2025 both have 52 weeks
         assert get_max_iso_week_for_year(2024) == 52
         assert get_max_iso_week_for_year(2025) == 52
         assert get_max_iso_week_for_year(2023) == 52
         assert get_max_iso_week_for_year(2022) == 52
 
     def test_get_max_iso_week_for_year_53_weeks(self):
-        """Test years with 53 weeks (less common).
 
-        A year has 53 weeks if:
-        - It starts on a Thursday (e.g., 2015, 2026)
-        - It's a leap year that starts on a Wednesday (e.g., 2020)
-        """
-        # Years known to have 53 weeks
-        assert get_max_iso_week_for_year(2015) == 53  # Started on Thursday
-        assert get_max_iso_week_for_year(2020) == 53  # Leap year, started on Wednesday
-        assert get_max_iso_week_for_year(2026) == 53  # Will start on Thursday
+        assert get_max_iso_week_for_year(2015) == 53
+        assert get_max_iso_week_for_year(2020) == 53
+        assert get_max_iso_week_for_year(2026) == 53
 
     def test_get_max_iso_week_consistency(self):
-        """Test that max week calculation is consistent across different years."""
-        # December 28th is always in the last week of the year (ISO 8601 rule)
         for year in range(2015, 2026):
             max_week = get_max_iso_week_for_year(year)
             assert max_week in [52, 53], (
                 f"Year {year} should have 52 or 53 weeks, got {max_week}"
             )
 
-            # Verify by checking December 28th
             dec_28 = datetime(year, 12, 28)
             assert dec_28.isocalendar()[1] == max_week
 
 
 class TestBugFiltering:
-    """Test suite for filter_bug_issues function."""
-
     def test_filter_bug_issues_basic(self):
-        """Test basic bug filtering with default mappings."""
-        # Generate mock data with bugs and other issue types
         bugs = generate_mock_bug_data(num_weeks=2, seed=42)
 
-        # Add some non-bug issues
         non_bugs = [
             {
                 "key": "STORY-1",
@@ -86,11 +63,9 @@ class TestBugFiltering:
 
         all_issues = bugs + non_bugs
 
-        # Filter for bugs only
         bug_type_mappings = {"Bug": "bug", "Defect": "bug", "Incident": "bug"}
         filtered_bugs = filter_bug_issues(all_issues, bug_type_mappings)
 
-        # Verify only bugs returned
         assert len(filtered_bugs) == len(bugs)
         assert all(
             issue["fields"]["issuetype"]["name"] in bug_type_mappings
@@ -102,7 +77,6 @@ class TestBugFiltering:
         )
 
     def test_filter_bug_issues_mixed_types(self):
-        """Test filtering bugs from mixed issue types (T014)."""
         issues = [
             {
                 "key": "BUG-1",
@@ -149,12 +123,11 @@ class TestBugFiltering:
         bug_type_mappings = {"Bug": "bug", "Defect": "bug"}
         filtered = filter_bug_issues(issues, bug_type_mappings)
 
-        assert len(filtered) == 2  # BUG-1 and DEFECT-1
+        assert len(filtered) == 2
         assert filtered[0]["key"] == "BUG-1"
         assert filtered[1]["key"] == "DEFECT-1"
 
     def test_filter_bug_issues_no_bugs(self):
-        """Test empty result when no bugs exist (T015)."""
         issues = [
             {
                 "key": "STORY-1",
@@ -185,7 +158,6 @@ class TestBugFiltering:
         assert filtered == []
 
     def test_filter_bug_issues_custom_mappings(self):
-        """Test custom type mappings (Defect, Incident) (T016)."""
         issues = [
             {
                 "key": "INCIDENT-1",
@@ -219,7 +191,6 @@ class TestBugFiltering:
             },
         ]
 
-        # Custom mappings for organization that uses different names
         bug_type_mappings = {
             "Incident": "bug",
             "Defect": "bug",
@@ -234,13 +205,12 @@ class TestBugFiltering:
         )
 
     def test_filter_bug_issues_with_date_range(self):
-        """Test filtering bugs within date range."""
         issues = [
             {
                 "key": "BUG-1",
                 "fields": {
                     "issuetype": {"name": "Bug"},
-                    "created": "2024-12-01T10:00:00.000+0000",  # Outside range
+                    "created": "2024-12-01T10:00:00.000+0000",
                     "resolutiondate": None,
                     "status": {"name": "Open"},
                     "customfield_10016": 5,
@@ -250,7 +220,7 @@ class TestBugFiltering:
                 "key": "BUG-2",
                 "fields": {
                     "issuetype": {"name": "Bug"},
-                    "created": "2025-01-15T10:00:00.000+0000",  # Inside range
+                    "created": "2025-01-15T10:00:00.000+0000",
                     "resolutiondate": None,
                     "status": {"name": "Open"},
                     "customfield_10016": 3,
@@ -260,7 +230,7 @@ class TestBugFiltering:
                 "key": "BUG-3",
                 "fields": {
                     "issuetype": {"name": "Bug"},
-                    "created": "2025-02-01T10:00:00.000+0000",  # Outside range
+                    "created": "2025-02-01T10:00:00.000+0000",
                     "resolutiondate": None,
                     "status": {"name": "Open"},
                     "customfield_10016": 2,
@@ -279,10 +249,7 @@ class TestBugFiltering:
 
 
 class TestBugMetricsSummary:
-    """Test suite for calculate_bug_metrics_summary function."""
-
     def test_calculate_bug_metrics_summary(self):
-        """Test total/open/closed bug calculation (T017)."""
         bug_issues = [
             {
                 "key": "BUG-1",
@@ -326,18 +293,16 @@ class TestBugMetricsSummary:
             },
         ]
 
-        weekly_stats = []  # Not needed for basic summary
+        weekly_stats = []
 
-        # For tests, pass the same bugs for both parameters (all_bugs and timeline_bugs)
         summary = calculate_bug_metrics_summary(bug_issues, bug_issues, weekly_stats)
 
         assert summary["total_bugs"] == 4
-        assert summary["open_bugs"] == 2  # BUG-2 and BUG-4
-        assert summary["closed_bugs"] == 2  # BUG-1 and BUG-3
+        assert summary["open_bugs"] == 2
+        assert summary["closed_bugs"] == 2
         assert summary["total_bugs"] == summary["open_bugs"] + summary["closed_bugs"]
 
     def test_bug_metrics_resolution_rate(self):
-        """Test resolution rate percentage calculation (T018)."""
         bug_issues = [
             {
                 "key": f"BUG-{i}",
@@ -351,7 +316,7 @@ class TestBugMetricsSummary:
                     "customfield_10016": 5,
                 },
             }
-            for i in range(1, 11)  # 10 bugs total
+            for i in range(1, 11)
         ]
 
         weekly_stats = []
@@ -361,11 +326,10 @@ class TestBugMetricsSummary:
         assert summary["total_bugs"] == 10
         assert summary["closed_bugs"] == 7
         assert summary["open_bugs"] == 3
-        assert summary["resolution_rate"] == 0.7  # 70% resolved
+        assert summary["resolution_rate"] == 0.7
         assert 0.0 <= summary["resolution_rate"] <= 1.0
 
     def test_bug_metrics_with_story_points(self):
-        """Test metrics calculation includes story points."""
         bug_issues = [
             {
                 "key": "BUG-1",
@@ -394,7 +358,7 @@ class TestBugMetricsSummary:
                     "created": "2025-01-03T10:00:00.000+0000",
                     "resolutiondate": None,
                     "status": {"name": "Open"},
-                    "customfield_10016": None,  # No points
+                    "customfield_10016": None,
                 },
             },
         ]
@@ -403,11 +367,10 @@ class TestBugMetricsSummary:
 
         summary = calculate_bug_metrics_summary(bug_issues, bug_issues, weekly_stats)
 
-        assert summary["total_bug_points"] == 13  # 5 + 8 + 0
-        assert summary["open_bug_points"] == 8  # Only BUG-2 has points and is open
+        assert summary["total_bug_points"] == 13
+        assert summary["open_bug_points"] == 8
 
     def test_bug_metrics_zero_bugs(self):
-        """Test metrics with no bugs."""
         bug_issues = []
         weekly_stats = []
 

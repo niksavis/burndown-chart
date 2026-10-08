@@ -1,5 +1,3 @@
-"""Unit tests for changelog fetcher targeted refresh."""
-
 from typing import Any
 
 

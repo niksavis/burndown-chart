@@ -1,8 +1,3 @@
-"""Unit tests for redesigned Active Work Timeline.
-
-Tests Active Work timeline with health indicators.
-"""
-
 from datetime import UTC, datetime, timedelta
 
 from data.active_work_manager import (
@@ -12,10 +7,7 @@ from data.active_work_manager import (
 
 
 class TestGetActiveWorkData:
-    """Test suite for get_active_work_data function."""
-
     def test_returns_correct_structure(self):
-        """Test that function returns timeline and issue lists."""
         now = datetime.now(UTC)
 
         issues = [
@@ -32,10 +24,8 @@ class TestGetActiveWorkData:
 
         result = get_active_work_data(issues, parent_field="parent")
 
-        # Check structure
         assert "timeline" in result
 
-        # Check issues have health indicators
         child_issues = result["timeline"][0]["child_issues"]
         for issue in child_issues:
             assert "health_indicators" in issue
@@ -45,10 +35,7 @@ class TestGetActiveWorkData:
 
 
 class TestCalculateEpicProgress:
-    """Test suite for calculate_epic_progress function."""
-
     def test_basic_progress(self):
-        """Test basic progress calculation."""
         child_issues = [
             {"issue_key": "PROJ-1", "status": "Done", "points": 5.0},
             {"issue_key": "PROJ-2", "status": "In Progress", "points": 3.0},

@@ -1,14 +1,3 @@
-"""
-Unit tests for accordion settings panel callbacks.
-
-Tests verify that:
-1. Configuration status tracking works correctly
-2. Section states update based on dependencies
-3. Section titles show correct status icons
-4. Query save enforcement blocks data operations
-5. Profile settings save correctly
-"""
-
 from datetime import UTC
 from unittest.mock import patch
 
@@ -17,16 +6,11 @@ from dash import html, no_update
 
 
 class TestConfigurationStatusTracking:
-    """Test configuration status tracking callback."""
-
     def test_status_all_locked_initially(self):
-        """Verify all sections locked when no profile selected."""
         from callbacks.accordion_settings import update_configuration_status
 
-        # No profile selected, no JIRA status, no query saves
         status = update_configuration_status(None, None, 0, None)
 
-        # Profile is always enabled (can select profile at any time)
         assert status["profile"]["enabled"] is True
         assert status["profile"]["complete"] is False
         assert status["profile"]["icon"] == "[Pending]"
@@ -48,83 +32,65 @@ class TestConfigurationStatusTracking:
         assert status["data_operations"]["icon"] == "[Locked]"
 
     def test_status_profile_enabled_when_selected(self):
-        """Verify profile section enabled when profile selected."""
         from callbacks.accordion_settings import update_configuration_status
 
         status = update_configuration_status("default", None, 0, None)
 
-        # Profile section should be enabled
         assert status["profile"]["enabled"] is True
         assert status["profile"]["complete"] is True
         assert status["profile"]["icon"] == "[OK]"
 
-        # JIRA section should be enabled (unlocked) but not complete
         assert status["jira"]["enabled"] is True
         assert status["jira"]["complete"] is False
         assert status["jira"]["icon"] == "[Pending]"
 
-        # Other sections still locked
         assert status["fields"]["enabled"] is False
         assert status["queries"]["enabled"] is False
         assert status["data_operations"]["enabled"] is False
 
     def test_status_jira_complete_unlocks_fields_and_queries(self):
-        """Verify JIRA completion unlocks field mappings and queries."""
         from callbacks.accordion_settings import update_configuration_status
 
-        # JIRA status must contain 'success' or '[OK]' in its string representation
         jira_status = "[OK] JIRA Connected"
         status = update_configuration_status("default", jira_status, 0, None)
 
-        # Profile complete
         assert status["profile"]["complete"] is True
 
-        # JIRA complete
         assert status["jira"]["enabled"] is True
         assert status["jira"]["complete"] is True
         assert status["jira"]["icon"] == "[OK]"
 
-        # Fields unlocked (enabled but not complete)
         assert status["fields"]["enabled"] is True
         assert status["fields"]["complete"] is False
         assert status["fields"]["icon"] == "[Pending]"
 
-        # Queries unlocked (enabled but not complete)
         assert status["queries"]["enabled"] is True
         assert status["queries"]["complete"] is False
         assert status["queries"]["icon"] == "[Pending]"
 
-        # Data ops still locked (no query saved yet)
         assert status["data_operations"]["enabled"] is False
         assert status["data_operations"]["icon"] == "[Locked]"
 
     def test_status_query_saved_unlocks_data_ops(self):
-        """Verify saving query unlocks data operations."""
         from callbacks.accordion_settings import update_configuration_status
 
         jira_status = "[OK] JIRA Connected"
         status = update_configuration_status("default", jira_status, 1, None)
 
-        # All previous sections complete
         assert status["profile"]["complete"] is True
         assert status["jira"]["complete"] is True
 
-        # Queries complete (saved at least once)
         assert status["queries"]["enabled"] is True
         assert status["queries"]["complete"] is True
         assert status["queries"]["icon"] == "[OK]"
 
-        # Data ops unlocked
         assert status["data_operations"]["enabled"] is True
         assert status["data_operations"]["complete"] is False
         assert status["data_operations"]["icon"] == "[Pending]"
 
 
 class TestSectionStateManagement:
-    """Test section state update callback."""
-
     def test_section_states_all_disabled_when_locked(self):
-        """Verify all sections disabled when dependencies not met."""
         from callbacks.accordion_settings import update_section_states
 
         config_status = {
@@ -145,10 +111,8 @@ class TestSectionStateManagement:
         assert "accordion-item-disabled" in data_ops_class
 
     def test_section_states_progressive_unlock(self):
-        """Verify sections unlock progressively as dependencies met."""
         from callbacks.accordion_settings import update_section_states
 
-        # Profile selected, JIRA configured
         config_status = {
             "profile": {"enabled": True, "complete": True},
             "jira": {"enabled": True, "complete": True},
@@ -161,20 +125,15 @@ class TestSectionStateManagement:
             config_status
         )
 
-        # JIRA, fields, queries should be enabled
         assert "accordion-item-disabled" not in jira_class
         assert "accordion-item-disabled" not in fields_class
         assert "accordion-item-disabled" not in queries_class
 
-        # Data ops still disabled (query not saved)
         assert "accordion-item-disabled" in data_ops_class
 
 
 class TestSectionTitleUpdates:
-    """Test section title status icon callback."""
-
     def test_section_titles_show_locked_icons_initially(self):
-        """Verify locked icons shown when sections disabled."""
         from callbacks.accordion_settings import update_section_titles
 
         config_status = {
@@ -200,7 +159,6 @@ class TestSectionTitleUpdates:
         assert "[Locked]" in data_ops_title
 
     def test_section_titles_show_in_progress_icons(self):
-        """Verify in-progress icons shown when sections enabled but incomplete."""
         from callbacks.accordion_settings import update_section_titles
 
         config_status = {
@@ -226,7 +184,6 @@ class TestSectionTitleUpdates:
         assert "[Locked]" in data_ops_title
 
     def test_section_titles_show_complete_icons(self):
-        """Verify checkmark icons shown when sections complete."""
         from callbacks.accordion_settings import update_section_titles
 
         config_status = {
@@ -253,10 +210,7 @@ class TestSectionTitleUpdates:
 
 
 class TestQuerySaveEnforcement:
-    """Test query save before data operations enforcement."""
-
     def test_data_ops_disabled_when_no_query_saved(self):
-        """Verify update data button disabled when no query saved."""
         from callbacks.accordion_settings import enforce_query_save_before_data_ops
 
         config_status = {
@@ -270,14 +224,12 @@ class TestQuerySaveEnforcement:
 
         assert button_disabled is True
         assert alert_open is True
-        # Convert Alert component to string for comparison
         assert (
             "save" in str(alert_content).lower()
             and "query" in str(alert_content).lower()
         )
 
     def test_data_ops_enabled_when_query_saved(self):
-        """Verify update data button enabled after query saved."""
         from callbacks.accordion_settings import enforce_query_save_before_data_ops
 
         config_status = {
@@ -293,7 +245,6 @@ class TestQuerySaveEnforcement:
         assert alert_open is False
 
     def test_data_ops_alert_warning_style(self):
-        """Verify alert uses warning style when query not saved."""
         from callbacks.accordion_settings import enforce_query_save_before_data_ops
 
         config_status = {
@@ -303,21 +254,16 @@ class TestQuerySaveEnforcement:
 
         _, alert_content, _ = enforce_query_save_before_data_ops(config_status)
 
-        # Alert should be a Dash Bootstrap Alert component
         assert isinstance(alert_content, (str, html.Div, dbc.Alert))
 
 
 class TestProfileSettingsSave:
-    """Test profile settings save callback."""
-
     @patch("callbacks.accordion_settings.save_app_settings")
     def test_save_profile_settings_success(self, mock_save_settings):
-        """Verify profile settings save successfully."""
         from callbacks.accordion_settings import save_profile_settings
 
         mock_save_settings.return_value = None
 
-        # Sample form inputs
         pert_factor = 1.5
         deadline = "2025-12-31"
         data_points = 10
@@ -325,7 +271,7 @@ class TestProfileSettingsSave:
         milestone_date = "2025-06-15"
 
         result = save_profile_settings(
-            1,  # n_clicks
+            1,
             pert_factor,
             deadline,
             data_points,
@@ -333,9 +279,7 @@ class TestProfileSettingsSave:
             milestone_date,
         )
 
-        # Verify save_app_settings called with correct parameters
         mock_save_settings.assert_called_once()
-        # Check keyword arguments
         call_kwargs = mock_save_settings.call_args[1]
         assert call_kwargs["pert_factor"] == 1.5
         assert call_kwargs["deadline"] == "2025-12-31"
@@ -343,12 +287,10 @@ class TestProfileSettingsSave:
         assert call_kwargs["show_milestone"] is True
         assert call_kwargs["milestone"] == "2025-06-15"
 
-        # Verify success alert returned
         assert isinstance(result, (dbc.Alert, html.Div))
 
     @patch("callbacks.accordion_settings.save_app_settings")
     def test_save_profile_settings_error_handling(self, mock_save_settings):
-        """Verify error handling when save fails."""
         from callbacks.accordion_settings import save_profile_settings
 
         mock_save_settings.side_effect = Exception("Save failed")
@@ -362,19 +304,15 @@ class TestProfileSettingsSave:
             None,
         )
 
-        # Verify error alert returned
         assert isinstance(result, (dbc.Alert, html.Div))
-        # Error message should mention failure
         result_str = str(result)
         assert "error" in result_str.lower() or "failed" in result_str.lower()
 
     def test_save_profile_settings_no_click(self):
-        """Verify no action when save button not clicked."""
         from callbacks.accordion_settings import save_profile_settings
 
-        # n_clicks = None (button not clicked)
         result = save_profile_settings(
-            None,  # n_clicks
+            None,
             1.5,
             "2025-12-31",
             10,
@@ -382,42 +320,33 @@ class TestProfileSettingsSave:
             None,
         )
 
-        # Should return no_update when button not clicked
         assert result == no_update
 
 
 class TestCallbackIntegration:
-    """Integration tests for callback interactions."""
-
     def test_status_to_section_state_flow(self):
-        """Verify status changes flow correctly to section state updates."""
         from callbacks.accordion_settings import (
             update_configuration_status,
             update_section_states,
         )
 
-        # Simulate profile selection
         status = update_configuration_status("default", None, 0, None)
         jira_class, fields_class, queries_class, data_ops_class = update_section_states(
             status
         )
 
-        # JIRA should be enabled (not disabled)
         assert "accordion-item-disabled" not in jira_class
 
-        # Fields/queries/data_ops should be disabled
         assert "accordion-item-disabled" in fields_class
         assert "accordion-item-disabled" in queries_class
         assert "accordion-item-disabled" in data_ops_class
 
     def test_status_to_title_flow(self):
-        """Verify status changes flow correctly to title updates."""
         from callbacks.accordion_settings import (
             update_configuration_status,
             update_section_titles,
         )
 
-        # Simulate JIRA configuration
         jira_status = "[OK] JIRA Connected"
         status = update_configuration_status("default", jira_status, 0, None)
 
@@ -429,64 +358,47 @@ class TestCallbackIntegration:
             data_ops_title,
         ) = update_section_titles(status)
 
-        # Profile should show checkmark, JIRA should show in-progress
         assert "[OK]" in profile_title
-        # JIRA shows in-progress since we haven't verified field mappings
         assert "[Pending]" in jira_title or "[OK]" in jira_title
 
-        # Fields and queries should show in-progress
         assert "[Pending]" in fields_title
         assert "[Pending]" in queries_title
 
-        # Data ops should show locked
         assert "[Locked]" in data_ops_title
 
     def test_full_workflow_profile_to_data_ops(self):
-        """Test complete workflow from profile selection to data operations."""
         from callbacks.accordion_settings import (
             enforce_query_save_before_data_ops,
             update_configuration_status,
         )
 
-        # Step 1: No profile selected
         status = update_configuration_status(None, None, 0, None)
         button_disabled, _, _ = enforce_query_save_before_data_ops(status)
         assert button_disabled is True
 
-        # Step 2: Profile selected
         status = update_configuration_status("default", None, 0, None)
         button_disabled, _, _ = enforce_query_save_before_data_ops(status)
-        assert button_disabled is True  # Still locked (no JIRA)
+        assert button_disabled is True
 
-        # Step 3: JIRA configured
         jira_status = "[OK] JIRA Connected"
         status = update_configuration_status("default", jira_status, 0, None)
         button_disabled, _, _ = enforce_query_save_before_data_ops(status)
-        assert button_disabled is True  # Still locked (no query saved)
+        assert button_disabled is True
 
-        # Step 4: Query saved
         status = update_configuration_status("default", jira_status, 1, None)
         button_disabled, _, _ = enforce_query_save_before_data_ops(status)
-        assert button_disabled is False  # Finally unlocked!
+        assert button_disabled is False
 
 
 class TestLoadQueryJQL:
-    """Test load_query_jql callback."""
-
     def test_loads_query_jql(self, temp_database):
-        """
-        Verify loads JQL when query selected.
-        Uses SQLite database backend via temp_database fixture.
-        """
         from datetime import datetime
 
         from callbacks.accordion_settings import load_query_jql
         from data.persistence.factory import get_backend
 
-        # Arrange - Create profile and query in database
         backend = get_backend()
 
-        # Create test profile
         profile_data = {
             "id": "kafka",
             "name": "Kafka Profile",
@@ -497,7 +409,6 @@ class TestLoadQueryJQL:
         }
         backend.save_profile(profile_data)
 
-        # Create test query with JQL
         query_data = {
             "id": "main",
             "profile_id": "kafka",
@@ -509,31 +420,22 @@ class TestLoadQueryJQL:
         }
         backend.save_query("kafka", query_data)
 
-        # Set as active query
         backend.set_app_state("active_profile_id", "kafka")
         backend.set_app_state("active_query_id", "main")
 
-        # Mock get_active_profile_id in the module where it's defined
         from unittest.mock import patch
 
         with patch("data.query_manager.get_active_profile_id", return_value="kafka"):
-            # Act
             result = load_query_jql("main")
 
-        # Assert
         assert result == "project = KAFKA AND priority > Medium"
 
     def test_returns_empty_string_if_query_not_found(self, temp_database):
-        """
-        Verify returns empty string if query file doesn't exist.
-        Uses SQLite database backend via temp_database fixture.
-        """
         from datetime import datetime
 
         from callbacks.accordion_settings import load_query_jql
         from data.persistence.factory import get_backend
 
-        # Arrange - Create profile but NOT the query
         backend = get_backend()
         profile_data = {
             "id": "default",
@@ -547,27 +449,18 @@ class TestLoadQueryJQL:
         backend.set_app_state("active_profile_id", "default")
         backend.set_app_state("active_query_id", "main")
 
-        # Act - Try to load non-existent query
         result = load_query_jql("nonexistent")
 
-        # Assert
         assert result == ""
 
 
 class TestSaveQueryChanges:
-    """Test save_query_changes callback."""
-
     def test_saves_query_jql(self, temp_database):
-        """
-        Verify saves updated JQL to query file.
-        Uses SQLite database backend via temp_database fixture.
-        """
         from datetime import datetime
 
         from callbacks.accordion_settings import save_query_changes
         from data.persistence.factory import get_backend
 
-        # Arrange - Create profile and query in database
         backend = get_backend()
 
         profile_data = {
@@ -594,56 +487,41 @@ class TestSaveQueryChanges:
         backend.set_app_state("active_profile_id", "kafka")
         backend.set_app_state("active_query_id", "main")
 
-        # Mock get_active_profile_id in the module where it's defined
         from unittest.mock import patch
 
         with patch("data.query_manager.get_active_profile_id", return_value="kafka"):
-            # Act - Save updated JQL
             result = save_query_changes(
                 1, "main", "project = KAFKA AND priority = High"
             )
 
-        # Assert - result should be a success Alert
         assert "saved successfully" in str(result).lower()
 
-        # Verify database updated
         updated_query = backend.get_query("kafka", "main")
         assert updated_query is not None
         assert updated_query["jql"] == "project = KAFKA AND priority = High"
 
     def test_returns_warning_if_no_query_selected(self):
-        """Verify returns warning if query_id is None."""
         from callbacks.accordion_settings import save_query_changes
 
         result = save_query_changes(1, None, "project = TEST")
 
-        # Should be a warning Alert
         assert "No query selected" in str(result)
 
     def test_returns_warning_if_jql_empty(self):
-        """Verify returns warning if JQL is empty."""
         from callbacks.accordion_settings import save_query_changes
 
         result = save_query_changes(1, "main", "")
 
-        # Should be a warning Alert
         assert "cannot be empty" in str(result).lower()
 
 
 class TestCancelQueryEdit:
-    """Test cancel_query_edit callback."""
-
     def test_reloads_original_jql(self, temp_database):
-        """
-        Verify reloads original JQL on cancel.
-        Uses SQLite database backend via temp_database fixture.
-        """
         from datetime import datetime
 
         from callbacks.accordion_settings import cancel_query_edit
         from data.persistence.factory import get_backend
 
-        # Arrange - Create profile and query in database
         backend = get_backend()
 
         profile_data = {
@@ -671,12 +549,9 @@ class TestCancelQueryEdit:
         backend.set_app_state("active_profile_id", "kafka")
         backend.set_app_state("active_query_id", "main")
 
-        # Mock get_active_profile_id in the module where it's defined
         from unittest.mock import patch
 
         with patch("data.query_manager.get_active_profile_id", return_value="kafka"):
-            # Act
             result = cancel_query_edit(1, "main")
 
-        # Assert
         assert result == original_jql

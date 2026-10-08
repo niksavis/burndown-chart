@@ -1,5 +1,3 @@
-# Quick Test Script: Simulate Update with Flag
-# This script simulates what the updater does - sets the post_update_relaunch flag
 
 param(
     [switch]$Set,      # Set the flag (simulate updater)
@@ -10,7 +8,6 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# Colors
 function Write-Info {
     param([string]$Message)
     Write-Host "[INFO] $Message" -ForegroundColor Cyan
@@ -26,18 +23,15 @@ function Write-Warning {
     Write-Host "[WARN] $Message" -ForegroundColor Yellow
 }
 
-# Check if database exists
 if (-not (Test-Path $DbPath)) {
     Write-Warning "Database not found at: $DbPath"
     Write-Info "Make sure you're in the app directory and have run the app at least once"
     exit 1
 }
 
-# Execute SQLite commands using Python (more portable than sqlite3 CLI)
 function Invoke-SqliteCommand {
     param([string]$Query)
     
-    # Convert Windows path to forward slashes for Python
     $DbPathForPython = $DbPath -replace '\\', '/'
     
     $pythonScript = @"
@@ -65,7 +59,6 @@ finally:
     return $result
 }
 
-# Main logic
 try {
     if ($Set) {
         Write-Info "Setting post_update_relaunch flag (simulating updater)..."
@@ -96,7 +89,6 @@ try {
         }
     }
     else {
-        # No flags - show help
         Write-Host ""
         Write-Host "Update Flag Testing Script" -ForegroundColor Yellow
         Write-Host "=========================" -ForegroundColor Yellow

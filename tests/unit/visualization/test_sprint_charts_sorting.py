@@ -1,5 +1,3 @@
-"""Unit tests for sprint charts sorting logic."""
-
 from datetime import UTC, datetime, timedelta
 
 from visualization.sprint_charts import (
@@ -9,10 +7,7 @@ from visualization.sprint_charts import (
 
 
 class TestCalculateIssueHealthPriority:
-    """Test suite for _calculate_issue_health_priority function."""
-
     def test_completed_issue_returns_bucket_1_priority_5(self):
-        """Completed issues should be in bucket 1 with priority 5."""
         issue_state = {"status": "Done"}
         flow_end_statuses = ["Done", "Closed"]
         flow_wip_statuses = ["In Progress"]
@@ -23,12 +18,9 @@ class TestCalculateIssueHealthPriority:
 
         assert bucket == 1
         assert priority == 5
-        assert (
-            days_in_completed == 999999.0
-        )  # Sentinel value for unknown completion date
+        assert days_in_completed == 999999.0
 
     def test_blocked_issue_returns_bucket_0_priority_1(self):
-        """Blocked issues (5+ days) should be in bucket 0 with priority 1."""
         now = datetime.now(UTC)
         seven_days_ago = now - timedelta(days=7)
 
@@ -48,10 +40,9 @@ class TestCalculateIssueHealthPriority:
 
         assert bucket == 0
         assert priority == 1
-        assert days_in_completed == 0.0  # Not completed
+        assert days_in_completed == 0.0
 
     def test_aging_issue_returns_bucket_0_priority_2(self):
-        """Aging issues (3-4 days) should be in bucket 0 with priority 2."""
         now = datetime.now(UTC)
         four_days_ago = now - timedelta(days=4)
 
@@ -71,10 +62,9 @@ class TestCalculateIssueHealthPriority:
 
         assert bucket == 0
         assert priority == 2
-        assert days_in_completed == 0.0  # Not completed
+        assert days_in_completed == 0.0
 
     def test_active_wip_returns_bucket_0_priority_3(self):
-        """Active WIP (changed recently) should be in bucket 0 with priority 3."""
         now = datetime.now(UTC)
         yesterday = now - timedelta(days=1)
 
@@ -94,10 +84,9 @@ class TestCalculateIssueHealthPriority:
 
         assert bucket == 0
         assert priority == 3
-        assert days_in_completed == 0.0  # Not completed
+        assert days_in_completed == 0.0
 
     def test_todo_issue_returns_bucket_0_priority_4(self):
-        """To Do issues should be in bucket 0 with priority 4."""
         issue_state = {"status": "To Do"}
         flow_end_statuses = ["Done"]
         flow_wip_statuses = ["In Progress"]
@@ -108,10 +97,9 @@ class TestCalculateIssueHealthPriority:
 
         assert bucket == 0
         assert priority == 4
-        assert days_in_completed == 0.0  # Not completed
+        assert days_in_completed == 0.0
 
     def test_no_changelog_uses_created_date(self):
-        """When no changelog exists, should fall back to created date."""
         now = datetime.now(UTC)
         six_days_ago = now - timedelta(days=6)
 
@@ -126,18 +114,15 @@ class TestCalculateIssueHealthPriority:
             "PROJ-1", issue_state, [], flow_end_statuses, flow_wip_statuses
         )
 
-        # Should be blocked since created 6 days ago
         assert bucket == 0
         assert priority == 1
-        assert days_in_completed == 0.0  # Not completed
+        assert days_in_completed == 0.0
 
     def test_handles_z_suffix_in_timestamps(self):
-        """Should handle timestamps with Z suffix."""
         now = datetime.now(UTC)
         five_days_ago = now - timedelta(days=5)
 
         issue_state = {"status": "In Progress"}
-        # Format timestamp with Z suffix (strip timezone info first)
         timestamp_str = five_days_ago.replace(tzinfo=None).isoformat() + "Z"
         changelog = [
             {
@@ -153,11 +138,10 @@ class TestCalculateIssueHealthPriority:
         )
 
         assert bucket == 0
-        assert priority == 1  # Blocked at 5 days
-        assert days_in_completed == 0.0  # Not completed
+        assert priority == 1
+        assert days_in_completed == 0.0
 
     def test_wip_status_without_changelog_treated_as_active(self):
-        """WIP status without changelog should be treated as active WIP."""
         issue_state = {"status": "In Progress"}
         flow_end_statuses = ["Done"]
         flow_wip_statuses = ["In Progress"]
@@ -167,15 +151,12 @@ class TestCalculateIssueHealthPriority:
         )
 
         assert bucket == 0
-        assert priority == 3  # Active WIP (default for WIP without dates)
-        assert days_in_completed == 0.0  # Not completed
+        assert priority == 3
+        assert days_in_completed == 0.0
 
 
 class TestSortIssuesByHealthPriority:
-    """Test suite for _sort_issues_by_health_priority function."""
-
     def test_blocked_sorts_before_aging(self):
-        """Blocked issues should appear before aging issues."""
         now = datetime.now(UTC)
 
         issue_states = {
@@ -204,7 +185,6 @@ class TestSortIssuesByHealthPriority:
         assert sorted_keys == ["PROJ-1", "PROJ-2"]
 
     def test_aging_sorts_before_active_wip(self):
-        """Aging issues should appear before active WIP."""
         now = datetime.now(UTC)
 
         issue_states = {
@@ -233,7 +213,6 @@ class TestSortIssuesByHealthPriority:
         assert sorted_keys == ["PROJ-2", "PROJ-1"]
 
     def test_completed_issues_sort_to_bottom(self):
-        """Completed issues should appear at the bottom."""
         now = datetime.now(UTC)
 
         issue_states = {
@@ -256,13 +235,11 @@ class TestSortIssuesByHealthPriority:
             issue_states, changelog, flow_end_statuses, flow_wip_statuses
         )
 
-        # PROJ-2 (active WIP) and PROJ-3 (To Do) should come before PROJ-1 (Done)
         assert sorted_keys[-1] == "PROJ-1"
         assert "PROJ-2" in sorted_keys[:2]
         assert "PROJ-3" in sorted_keys[:2]
 
     def test_tie_breaker_by_issue_key_descending(self):
-        """When same priority, higher issue numbers should come first."""
         issue_states = {
             "PROJ-100": {"status": "To Do"},
             "PROJ-200": {"status": "To Do"},
@@ -276,11 +253,9 @@ class TestSortIssuesByHealthPriority:
             issue_states, [], flow_end_statuses, flow_wip_statuses
         )
 
-        # All same priority (To Do), so should sort by key descending
         assert sorted_keys == ["PROJ-200", "PROJ-150", "PROJ-100"]
 
     def test_complete_sorting_scenario(self):
-        """Test complete sorting with all priority levels."""
         now = datetime.now(UTC)
 
         issue_states = {
@@ -314,13 +289,6 @@ class TestSortIssuesByHealthPriority:
             issue_states, changelog, flow_end_statuses, flow_wip_statuses
         )
 
-        # Expected order:
-        # 1. PROJ-102 (blocked - 6 days)
-        # 2. PROJ-103 (aging - 4 days)
-        # 3. PROJ-104 (active WIP - 12 hours)
-        # 4. PROJ-105 (To Do)
-        # 5. PROJ-106 (Done - higher key)
-        # 6. PROJ-101 (Done - lower key)
         assert sorted_keys == [
             "PROJ-102",
             "PROJ-103",
@@ -331,13 +299,11 @@ class TestSortIssuesByHealthPriority:
         ]
 
     def test_empty_issue_states(self):
-        """Should handle empty issue states gracefully."""
         sorted_keys = _sort_issues_by_health_priority({}, [], ["Done"], ["In Progress"])
 
         assert sorted_keys == []
 
     def test_none_flow_statuses_use_defaults(self):
-        """Should use defaults when flow statuses are None."""
         issue_states = {
             "PROJ-1": {"status": "Done"},
             "PROJ-2": {"status": "To Do"},
@@ -345,7 +311,6 @@ class TestSortIssuesByHealthPriority:
 
         sorted_keys = _sort_issues_by_health_priority(issue_states, [], None, None)
 
-        # Should still sort with defaults
         assert "PROJ-2" in sorted_keys
         assert "PROJ-1" in sorted_keys
         assert sorted_keys.index("PROJ-2") < sorted_keys.index("PROJ-1")

@@ -1,9 +1,3 @@
-"""Unit tests for sprint_manager module.
-
-Tests sprint snapshot building, change detection, progress calculation,
-and issue filtering for Sprint Tracker feature.
-"""
-
 from data.sprint_manager import (
     _parse_sprint_name,
     calculate_sprint_progress,
@@ -50,37 +44,27 @@ SPRINT_25_FUTURE_SERIALIZED = (
 
 
 class TestParseSprintName:
-    """Test suite for _parse_sprint_name helper function."""
-
     def test_parse_jira_sprint_object_format(self):
-        """Test parsing JIRA sprint object serialization format."""
         sprint_value = SPRINT_23_ACTIVE_SERIALIZED
         assert _parse_sprint_name(sprint_value) == "Sprint 23"
 
     def test_parse_sprint_name_with_closing_bracket(self):
-        """Test parsing when comma not found (use closing bracket)."""
         sprint_value = SPRINT_42_SERIALIZED
         assert _parse_sprint_name(sprint_value) == "Sprint 42"
 
     def test_parse_simple_string(self):
-        """Test parsing simple sprint name string."""
         assert _parse_sprint_name("Sprint 15") == "Sprint 15"
 
     def test_parse_null_value(self):
-        """Test parsing null/None value."""
         assert _parse_sprint_name(None) is None
         assert _parse_sprint_name("") is None
 
     def test_parse_invalid_format(self):
-        """Test parsing invalid format returns as-is."""
         assert _parse_sprint_name("Invalid Format") == "Invalid Format"
 
 
 class TestGetSprintSnapshots:
-    """Test suite for get_sprint_snapshots function."""
-
     def test_get_sprint_snapshots_single_sprint(self):
-        """Test building snapshot for single sprint."""
         issues = [
             {
                 "issue_key": "PROJ-1",
@@ -117,31 +101,25 @@ class TestGetSprintSnapshots:
 
         snapshots = get_sprint_snapshots(issues, changelog_entries)
 
-        # Verify snapshot structure
         assert "Sprint 23" in snapshots
         snapshot = snapshots["Sprint 23"]
 
-        # Verify current issues
         assert len(snapshot["current_issues"]) == 2
         assert "PROJ-1" in snapshot["current_issues"]
         assert "PROJ-2" in snapshot["current_issues"]
 
-        # Verify added issues
         assert len(snapshot["added_issues"]) == 2
         assert snapshot["added_issues"][0]["issue_key"] == "PROJ-1"
         assert snapshot["added_issues"][1]["issue_key"] == "PROJ-2"
 
-        # Verify removed issues (none)
         assert len(snapshot["removed_issues"]) == 0
 
-        # Verify issue states enrichment
         assert "PROJ-1" in snapshot["issue_states"]
         assert snapshot["issue_states"]["PROJ-1"]["status"] == "Done"
         assert snapshot["issue_states"]["PROJ-1"]["story_points"] == 5
         assert snapshot["issue_states"]["PROJ-1"]["issue_type"] == "Story"
 
     def test_get_sprint_snapshots_issue_removed(self):
-        """Test detecting issue removed from sprint."""
         issues = [
             {
                 "issue_key": "PROJ-1",
@@ -172,15 +150,12 @@ class TestGetSprintSnapshots:
 
         snapshot = snapshots["Sprint 23"]
 
-        # Verify issue was removed
         assert len(snapshot["removed_issues"]) == 1
         assert snapshot["removed_issues"][0]["issue_key"] == "PROJ-1"
 
-        # Verify issue not in current issues
         assert "PROJ-1" not in snapshot["current_issues"]
 
     def test_get_sprint_snapshots_issue_moved_between_sprints(self):
-        """Test detecting issue moved from one sprint to another."""
         issues = [
             {
                 "issue_key": "PROJ-1",
@@ -209,18 +184,15 @@ class TestGetSprintSnapshots:
 
         snapshots = get_sprint_snapshots(issues, changelog_entries)
 
-        # Verify Sprint 22 shows issue removed
         assert "Sprint 22" in snapshots
         assert len(snapshots["Sprint 22"]["removed_issues"]) == 1
         assert "PROJ-1" not in snapshots["Sprint 22"]["current_issues"]
 
-        # Verify Sprint 23 shows issue added
         assert "Sprint 23" in snapshots
         assert len(snapshots["Sprint 23"]["added_issues"]) == 1
         assert "PROJ-1" in snapshots["Sprint 23"]["current_issues"]
 
     def test_get_sprint_snapshots_removed_issue_not_readded_from_field_history(self):
-        """Removed issue must not be re-added from historical sprint field values."""
         issues = [
             {
                 "issue_key": "PROJ-1",
@@ -261,7 +233,6 @@ class TestGetSprintSnapshots:
         assert "PROJ-1" in snapshots["Sprint 42"]["current_issues"]
 
     def test_get_sprint_snapshots_moved_issue_not_readded_to_old_sprint(self):
-        """Moved issue must stay out of old sprint current list."""
         issues = [
             {
                 "issue_key": "PROJ-1",
@@ -302,7 +273,6 @@ class TestGetSprintSnapshots:
         assert "PROJ-1" in snapshots["Sprint 23"]["current_issues"]
 
     def test_get_sprint_snapshots_empty_changelog(self):
-        """Test with empty changelog entries."""
         issues = [
             {
                 "issue_key": "PROJ-1",
@@ -315,11 +285,9 @@ class TestGetSprintSnapshots:
 
         snapshots = get_sprint_snapshots(issues, changelog_entries)
 
-        # Should return empty dict
         assert len(snapshots) == 0
 
     def test_get_sprint_snapshots_no_changelog_uses_latest_sprint_only(self):
-        """No-changelog fallback should infer only current/latest sprint."""
         issues = [
             {
                 "issue_key": "PROJ-1",
@@ -345,10 +313,7 @@ class TestGetSprintSnapshots:
 
 
 class TestDetectSprintChanges:
-    """Test suite for detect_sprint_changes function."""
-
     def test_detect_sprint_changes_added(self):
-        """Test detecting issues added to sprint."""
         changelog_entries = [
             {
                 "issue_key": "PROJ-1",
@@ -374,7 +339,6 @@ class TestDetectSprintChanges:
         assert changes["Sprint 23"]["added"][0]["from"] is None
 
     def test_detect_sprint_changes_removed(self):
-        """Test detecting issues removed from sprint."""
         changelog_entries = [
             {
                 "issue_key": "PROJ-1",
@@ -393,7 +357,6 @@ class TestDetectSprintChanges:
         assert changes["Sprint 23"]["removed"][0]["to"] is None
 
     def test_detect_sprint_changes_moved(self):
-        """Test detecting issues moved between sprints."""
         changelog_entries = [
             {
                 "issue_key": "PROJ-1",
@@ -406,22 +369,17 @@ class TestDetectSprintChanges:
 
         changes = detect_sprint_changes(changelog_entries)
 
-        # Verify moved_out from Sprint 22
         assert "Sprint 22" in changes
         assert len(changes["Sprint 22"]["moved_out"]) == 1
         assert changes["Sprint 22"]["moved_out"][0]["to"] == "Sprint 23"
 
-        # Verify moved_in to Sprint 23
         assert "Sprint 23" in changes
         assert len(changes["Sprint 23"]["moved_in"]) == 1
         assert changes["Sprint 23"]["moved_in"][0]["from"] == "Sprint 22"
 
 
 class TestCalculateSprintProgress:
-    """Test suite for calculate_sprint_progress function."""
-
     def test_calculate_sprint_progress_basic(self):
-        """Test basic progress calculation."""
         sprint_snapshot = {
             "name": "Sprint 23",
             "current_issues": ["PROJ-1", "PROJ-2", "PROJ-3"],
@@ -450,33 +408,28 @@ class TestCalculateSprintProgress:
             flow_wip_statuses=["In Progress", "In Review"],
         )
 
-        # Verify totals
         assert progress["total_issues"] == 3
         assert progress["completed_issues"] == 1
         assert progress["wip_issues"] == 1
         assert progress["completion_percentage"] == 33.3
         assert progress["completion_pct"] == 33.3
 
-        # Verify points
         assert progress["total_points"] == 10.0
         assert progress["completed_points"] == 5.0
         assert progress["wip_points"] == 3.0
         assert progress["points_completion_percentage"] == 50.0
         assert progress["points_completion_pct"] == 50.0
 
-        # Verify by_status breakdown
         assert progress["by_status"]["Done"]["count"] == 1
         assert progress["by_status"]["Done"]["points"] == 5.0
         assert progress["by_status"]["In Progress"]["count"] == 1
         assert progress["by_status"]["In Progress"]["points"] == 3.0
 
-        # Verify by_issue_type breakdown
         assert progress["by_issue_type"]["Story"]["count"] == 1
         assert progress["by_issue_type"]["Bug"]["count"] == 1
         assert progress["by_issue_type"]["Task"]["count"] == 1
 
     def test_calculate_sprint_progress_all_completed(self):
-        """Test 100% completion."""
         sprint_snapshot = {
             "issue_states": {
                 "PROJ-1": {"status": "Done", "story_points": 5, "issue_type": "Story"},
@@ -495,7 +448,6 @@ class TestCalculateSprintProgress:
         assert progress["points_completion_pct"] == 100.0
 
     def test_calculate_sprint_progress_empty_sprint(self):
-        """Test with empty sprint."""
         sprint_snapshot = {"issue_states": {}}
 
         progress = calculate_sprint_progress(sprint_snapshot)
@@ -509,10 +461,7 @@ class TestCalculateSprintProgress:
 
 
 class TestGetSprintScopeChangeIssues:
-    """Test suite for get_sprint_scope_change_issues function."""
-
     def test_get_sprint_scope_change_issues_with_window(self):
-        """Only include changes after start and before end."""
         sprint_snapshot = {
             "added_issues": [
                 {"issue_key": "PROJ-1", "timestamp": "2025-01-10T09:00:00Z"},
@@ -534,7 +483,6 @@ class TestGetSprintScopeChangeIssues:
         assert result["removed"] == ["PROJ-3"]
 
     def test_get_sprint_scope_change_issues_without_window(self):
-        """Include all unique issue keys when no date window is provided."""
         sprint_snapshot = {
             "added_issues": [
                 {"issue_key": "PROJ-1", "timestamp": "2025-01-10T09:00:00Z"},
@@ -552,10 +500,7 @@ class TestGetSprintScopeChangeIssues:
 
 
 class TestCalculateSprintScopeChangePoints:
-    """Test suite for calculate_sprint_scope_change_points function."""
-
     def test_calculate_scope_change_points_with_window(self):
-        """Points should be summed only for events within sprint window."""
         sprint_snapshot = {
             "added_issues": [
                 {"issue_key": "PROJ-1", "timestamp": "2025-01-10T09:00:00Z"},
@@ -585,7 +530,6 @@ class TestCalculateSprintScopeChangePoints:
         assert result["net_points"] == -3.0
 
     def test_calculate_scope_change_points_handles_missing_points(self):
-        """Missing points should default to zero without errors."""
         sprint_snapshot = {
             "added_issues": [
                 {"issue_key": "PROJ-1", "timestamp": "2025-01-12T10:00:00Z"}
@@ -607,10 +551,7 @@ class TestCalculateSprintScopeChangePoints:
 
 
 class TestReconcileActiveSprintMembership:
-    """Test suite for reconcile_active_sprint_membership helper."""
-
     def test_reconcile_removes_stale_issues_not_currently_in_sprint(self):
-        """Active sprint should exclude issues with no current sprint membership."""
         sprint_snapshot = {
             "current_issues": ["PROJ-1", "PROJ-2"],
             "issue_states": {
@@ -650,7 +591,6 @@ class TestReconcileActiveSprintMembership:
         assert set(result["issue_states"].keys()) == {"PROJ-1"}
 
     def test_reconcile_adds_current_member_missing_in_snapshot(self):
-        """Reconciliation should add current sprint members absent from snapshot."""
         sprint_snapshot = {
             "current_issues": ["PROJ-1"],
             "issue_states": {
@@ -685,7 +625,6 @@ class TestReconcileActiveSprintMembership:
         assert set(result["issue_states"].keys()) == {"PROJ-1", "PROJ-2"}
 
     def test_reconcile_adds_missing_current_members_for_active_sprint(self):
-        """Reconciliation should add current sprint members missing in snapshot."""
         sprint_snapshot = {
             "current_issues": ["PROJ-1"],
             "issue_states": {
@@ -732,10 +671,7 @@ class TestReconcileActiveSprintMembership:
 
 
 class TestSprintSelectionHelpers:
-    """Test suite for sprint sorting and preferred sprint selection."""
-
     def test_get_active_sprint_prefers_nearest_future_when_no_active(self):
-        """When no ACTIVE exists, nearest FUTURE sprint should be selected."""
         issues = [
             {
                 "issue_key": "PROJ-1",
@@ -760,7 +696,6 @@ class TestSprintSelectionHelpers:
         assert selected["name"] == "Sprint 24"
 
     def test_sort_sprint_ids_by_recency_uses_dates_not_lexical(self):
-        """Date-aware sorting should place Sprint 10 above Sprint 9."""
         snapshots = {"Sprint 9": {}, "Sprint 10": {}}
         metadata = {
             "Sprint 9": {"end_date": "2026-02-20T00:00:00Z"},
@@ -772,7 +707,6 @@ class TestSprintSelectionHelpers:
         assert sprint_ids[0] == "Sprint 10"
 
     def test_select_preferred_sprint_prioritizes_active(self):
-        """Preferred selector should pick ACTIVE sprint over FUTURE/CLOSED."""
         snapshots = {
             "Sprint 23": {},
             "Sprint 24": {},
@@ -803,10 +737,7 @@ class TestSprintSelectionHelpers:
 
 
 class TestFilterSprintIssues:
-    """Test suite for filter_sprint_issues function."""
-
     def test_filter_sprint_issues_default_types(self):
-        """Test filtering with default issue types (Story, Task, Bug)."""
         issues = [
             {
                 "key": "PROJ-1",
@@ -832,7 +763,6 @@ class TestFilterSprintIssues:
 
         filtered = filter_sprint_issues(issues)
 
-        # Should include Story, Bug, Task - exclude Sub-task, Epic
         assert len(filtered) == 3
         assert any(issue["key"] == "PROJ-1" for issue in filtered)
         assert any(issue["key"] == "PROJ-2" for issue in filtered)
@@ -841,7 +771,6 @@ class TestFilterSprintIssues:
         assert not any(issue["key"] == "PROJ-5" for issue in filtered)
 
     def test_filter_sprint_issues_custom_types(self):
-        """Test filtering with custom issue types."""
         issues = [
             {"key": "PROJ-1", "fields": {"issuetype": {"name": "Story"}}},
             {"key": "PROJ-2", "fields": {"issuetype": {"name": "Bug"}}},
@@ -850,14 +779,12 @@ class TestFilterSprintIssues:
 
         filtered = filter_sprint_issues(issues, tracked_issue_types=["Story", "Epic"])
 
-        # Should include only Story and Epic
         assert len(filtered) == 2
         assert any(issue["key"] == "PROJ-1" for issue in filtered)
         assert any(issue["key"] == "PROJ-3" for issue in filtered)
         assert not any(issue["key"] == "PROJ-2" for issue in filtered)
 
     def test_filter_sprint_issues_flat_structure(self):
-        """Test filtering with flat database structure (not nested fields)."""
         issues = [
             {"key": "PROJ-1", "issue_type": "Story"},
             {"key": "PROJ-2", "issue_type": "Sub-task"},
@@ -866,17 +793,13 @@ class TestFilterSprintIssues:
 
         filtered = filter_sprint_issues(issues)
 
-        # Should work with flat structure
         assert len(filtered) == 2
         assert any(issue["key"] == "PROJ-1" for issue in filtered)
         assert any(issue["key"] == "PROJ-3" for issue in filtered)
 
 
 class TestGetSprintFieldFromConfig:
-    """Test suite for get_sprint_field_from_config function."""
-
     def test_get_sprint_field_configured(self):
-        """Test extracting configured sprint field."""
         config = {
             "field_mappings": {"sprint_tracker": {"sprint_field": "customfield_10020"}}
         }
@@ -885,14 +808,12 @@ class TestGetSprintFieldFromConfig:
         assert field_id == "customfield_10020"
 
     def test_get_sprint_field_not_configured(self):
-        """Test with no sprint field configured."""
         config = {"field_mappings": {}}
 
         field_id = get_sprint_field_from_config(config)
         assert field_id is None
 
     def test_get_sprint_field_empty_config(self):
-        """Test with empty configuration."""
         config = {}
 
         field_id = get_sprint_field_from_config(config)

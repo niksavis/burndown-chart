@@ -1,18 +1,10 @@
-"""Unit tests for completed items UI components.
-
-Tests the create_completed_items_section and create_week_container functions.
-"""
-
 from collections import OrderedDict
 
 from dash import html
 
 
 class TestCreateCompletedItemsSection:
-    """Test create_completed_items_section function."""
-
     def test_creates_section_with_multiple_weeks(self):
-        """Test section creation with multiple weeks."""
         from ui.active_work_completed_components import create_completed_items_section
 
         completed_by_week = OrderedDict(
@@ -55,26 +47,21 @@ class TestCreateCompletedItemsSection:
 
         result = create_completed_items_section(completed_by_week, show_points=True)  # type: ignore[arg-type]
 
-        # Should be an html.Div
         assert isinstance(result, html.Div)
         assert result.className == "completed-items-section mb-3"  # type: ignore[attr-defined]
         assert result.id == "completed-items-section"  # type: ignore[attr-defined]
 
-        # Should have 2 week containers as children
         assert len(result.children) == 2  # type: ignore[arg-type]
 
     def test_empty_dict_returns_empty_div(self):
-        """Test that empty dict returns empty div."""
         from ui.active_work_completed_components import create_completed_items_section
 
         result = create_completed_items_section({}, show_points=True)
 
         assert isinstance(result, html.Div)
-        # Empty div has no children or has empty list
         assert not result.children or result.children == []  # type: ignore[attr-defined]
 
     def test_passes_show_points_to_week_containers(self):
-        """Test that show_points is passed to week containers."""
         from ui.active_work_completed_components import create_completed_items_section
 
         completed_by_week = OrderedDict(
@@ -102,7 +89,6 @@ class TestCreateCompletedItemsSection:
             ]
         )
 
-        # This should not raise an error (implicitly tests show_points handling)
         result = create_completed_items_section(completed_by_week, show_points=True)  # type: ignore[arg-type]
 
         assert isinstance(result, html.Div)
@@ -110,10 +96,7 @@ class TestCreateCompletedItemsSection:
 
 
 class TestCreateWeekContainer:
-    """Test create_week_container function."""
-
     def test_creates_details_element(self):
-        """Test that container is an html.Details element."""
         from ui.active_work_completed_components import create_week_container
 
         result = create_week_container(
@@ -133,7 +116,6 @@ class TestCreateWeekContainer:
         assert result.open is False  # type: ignore[attr-defined]  # Collapsed by default
 
     def test_container_has_correct_classes(self):
-        """Test that container has correct CSS classes."""
         from ui.active_work_completed_components import create_week_container
 
         result = create_week_container(
@@ -149,14 +131,12 @@ class TestCreateWeekContainer:
             show_points=True,
         )
 
-        # Check for expected classes
         assert "card" in result.className  # type: ignore[attr-defined]
         assert "active-work-epic-card" in result.className  # type: ignore[attr-defined]
         assert "week-container" in result.className  # type: ignore[attr-defined]
         assert "week-current" in result.className  # type: ignore[attr-defined]
 
     def test_last_week_has_correct_class(self):
-        """Test that last week has week-last class."""
         from ui.active_work_completed_components import create_week_container
 
         result = create_week_container(
@@ -175,7 +155,6 @@ class TestCreateWeekContainer:
         assert "week-last" in result.className  # type: ignore[attr-defined]
 
     def test_displays_correct_label(self):
-        """Test that display label is shown."""
         from ui.active_work_completed_components import create_week_container
 
         display_label = "Current Week (Feb 3-9)"
@@ -193,12 +172,9 @@ class TestCreateWeekContainer:
             show_points=True,
         )
 
-        # Check that the children structure exists.
-        # We cannot easily assert nested content here.
         assert len(result.children) == 2  # type: ignore[attr-defined]  # Summary and content
 
     def test_empty_issues_shows_placeholder(self):
-        """Test that empty issues shows placeholder message."""
         from ui.active_work_completed_components import create_week_container
 
         result = create_week_container(
@@ -214,12 +190,10 @@ class TestCreateWeekContainer:
             show_points=True,
         )
 
-        # Structurally valid container should exist
         assert isinstance(result, html.Details)
         assert len(result.children) == 2  # type: ignore[attr-defined]
 
     def test_with_issues_creates_issue_rows(self):
-        """Test that issues are rendered as compact rows."""
         from ui.active_work_completed_components import create_week_container
 
         issues = [
@@ -252,13 +226,10 @@ class TestCreateWeekContainer:
             show_points=True,
         )
 
-        # Should have structure with issues
         assert isinstance(result, html.Details)
-        # Check structure exists (summary + body)
         assert len(result.children) == 2  # type: ignore[attr-defined]
 
     def test_id_attribute_set(self):
-        """Test that ID attribute is set correctly."""
         from ui.active_work_completed_components import create_week_container
 
         result = create_week_container(
@@ -277,7 +248,6 @@ class TestCreateWeekContainer:
         assert result.id == "week-2026-W06"  # type: ignore[attr-defined]
 
     def test_shows_completed_icon(self):
-        """Test that completed icon (checkmark) is shown."""
         from ui.active_work_completed_components import create_week_container
 
         result = create_week_container(
@@ -293,15 +263,12 @@ class TestCreateWeekContainer:
             show_points=True,
         )
 
-        # Container should be properly structured
         assert isinstance(result, html.Details)
         assert len(result.children) == 2  # type: ignore[attr-defined]
 
     def test_respects_show_points_flag(self):
-        """Test that show_points flag is respected."""
         from ui.active_work_completed_components import create_week_container
 
-        # Test with show_points=False (should not raise error)
         result = create_week_container(
             week_label="2026-W06",
             display_label="Current Week (Feb 3-9)",

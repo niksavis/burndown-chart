@@ -1,20 +1,9 @@
-"""
-Unit tests for decimal precision in velocity metrics.
-
-These tests ensure that velocity metrics maintain the correct decimal precision
-throughout the data processing pipeline and in the UI components.
-"""
-
 import re
 
 import pandas as pd
 import pytest
 
 from data.processing import calculate_weekly_averages
-
-# TODO: Update this import once the correct module for
-# _prepare_metrics_data and _get_weekly_metrics is identified.
-# from callbacks.dashboard_callbacks import _prepare_metrics_data, _get_weekly_metrics
 from tests.utils.ui_test_helpers import (
     extract_formatted_value_from_component,
     validate_component_structure,
@@ -24,7 +13,6 @@ from ui.dashboard_cards import create_metric_card
 
 @pytest.fixture
 def sample_velocity_data():
-    """Create sample velocity data with decimal values."""
     return [
         {"date": "2023-01-01", "completed_items": 8.7, "completed_points": 30.6},
         {"date": "2023-01-08", "completed_items": 7.5, "completed_points": 25.0},
@@ -41,29 +29,22 @@ def sample_velocity_data():
 
 @pytest.fixture
 def sample_dataframe(sample_velocity_data):
-    """Convert sample data to DataFrame."""
     df = pd.DataFrame(sample_velocity_data)
     df["date"] = pd.to_datetime(df["date"])
     return df
 
 
 class TestDecimalPrecision:
-    """Test cases for decimal precision in velocity metrics."""
-
     def test_calculate_weekly_averages_precision(self, sample_velocity_data):
-        """Test that calculate_weekly_averages preserves decimal precision."""
         avg_items, avg_points, med_items, med_points = calculate_weekly_averages(
             sample_velocity_data
         )
 
-        # Check that values have decimal precision
         assert isinstance(avg_items, float)
         assert isinstance(avg_points, float)
         assert isinstance(med_items, float)
         assert isinstance(med_points, float)
 
-        # Verify the expected values to 2 decimal places
-        # Note: Using round() to handle potential floating point precision issues
         assert round(avg_items, 2) == 8.72
         assert round(avg_points, 2) == 30.48
         assert round(med_items, 2) == 8.80
@@ -71,22 +52,19 @@ class TestDecimalPrecision:
 
 
 class TestUIComponentsFormatting:
-    """Test cases for UI component formatting of decimal values."""
-
     @pytest.mark.parametrize(
         "value,expected",
         [
-            (8.7, "8.70"),  # Value with one decimal place
-            (7.0, "7.00"),  # Integer-like value with zero decimals
-            (8.75, "8.75"),  # Value with two decimals
-            (9.99, "9.99"),  # Value close to integer
-            (10, "10.00"),  # Integer value
-            (0.1, "0.10"),  # Small decimal value
-            (123.456, "123.46"),  # Larger value with multiple decimals
+            (8.7, "8.70"),
+            (7.0, "7.00"),
+            (8.75, "8.75"),
+            (9.99, "9.99"),
+            (10, "10.00"),
+            (0.1, "0.10"),
+            (123.456, "123.46"),
         ],
     )
     def test_velocity_card_decimal_formatting(self, value, expected):
-        """Test that velocity metric card formats values with two decimal places."""
         metric_data = {
             "title": "Average",
             "value": value,
@@ -98,13 +76,10 @@ class TestUIComponentsFormatting:
         }
         card = create_metric_card(metric_data)
 
-        # Validate card structure
         assert validate_component_structure(card, ["children"], min_children=2), (
             "Card should have a valid structure with at least 2 children"
         )
 
-        # Try to extract formatted value directly using children structure
-        # This matches the original test's expectation
         formatted_value = None
         children = getattr(card, "children", None)
         if children is not None and len(children) > 1:
@@ -116,24 +91,20 @@ class TestUIComponentsFormatting:
                 if hasattr(value_container.children, "children"):
                     formatted_value = value_container.children.children
 
-        # If direct access failed, use our helper
         if not formatted_value:
             formatted_value = extract_formatted_value_from_component(
                 children[1] if children is not None and len(children) > 1 else card,
                 property_path=["children", "children"],
             )
 
-        # If we still don't have a value, try regex
         if not formatted_value:
             value_str = str(card)
             matches = re.findall(r"\d+\.\d+|\d+", value_str)
             if matches:
                 formatted_value = matches[0]
-                # Add .0 if it's just a digit
                 if "." not in formatted_value:
                     formatted_value += ".0"
 
-        # Verification
         assert formatted_value is not None, (
             "Could not extract formatted value from card"
         )
@@ -141,7 +112,6 @@ class TestUIComponentsFormatting:
             f"Value {value} should format as {expected}, got {formatted_value}"
         )
 
-        # Check decimal formatting
         assert formatted_value.count(".") <= 1, "Should have at most one decimal point"
         if "." in formatted_value:
             integer_part, decimal_part = formatted_value.split(".")

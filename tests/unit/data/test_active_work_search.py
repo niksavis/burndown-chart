@@ -1,5 +1,3 @@
-"""Unit tests for Active Work search grammar."""
-
 from data.active_work_search import filter_timeline_by_query, is_strict_query_valid
 
 

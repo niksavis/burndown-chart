@@ -1,10 +1,3 @@
-"""
-Pytest configuration for integration tests.
-
-Makes fixtures from tests/fixtures/ available to all integration tests.
-"""
-
-# Import all fixtures from tests/fixtures/
 from tests.fixtures.sample_jira_cache import (  # noqa: F401
     large_jira_cache_50mb,
     sample_jira_cache_data,

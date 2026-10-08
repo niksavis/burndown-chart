@@ -1,13 +1,3 @@
-"""
-Unit tests for metrics snapshot storage with forecast calculation (Feature 009).
-
-Tests cover:
-- save_metric_snapshot_with_forecast(): Enhanced metric saving with automatic forecast
-- get_last_n_weeks_values(): Historical data retrieval for forecast calculation
-
-Test organization follows TDD approach with isolated temporary file fixtures.
-"""
-
 import json
 import os
 import tempfile
@@ -18,25 +8,19 @@ import pytest
 
 
 class TestSaveMetricSnapshotWithForecast:
-    """Tests for save_metric_snapshot_with_forecast() function."""
-
     @pytest.fixture
     def temp_snapshots_file(self):
-        """Create isolated temporary file for testing - proper cleanup guaranteed."""
         with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
             temp_file = f.name
-            # Initialize with empty snapshots
             json.dump({}, f)
 
         yield temp_file
 
-        # Cleanup - executes even if test fails
         if os.path.exists(temp_file):
             os.unlink(temp_file)
 
     @pytest.fixture
     def mock_snapshots_with_history(self, temp_snapshots_file):
-        """Create snapshots with 4 weeks of historical Flow Velocity data."""
         historical_data = {
             "2025-W40": {
                 "flow_velocity": {
@@ -74,23 +58,19 @@ class TestSaveMetricSnapshotWithForecast:
         return temp_snapshots_file
 
     def test_save_flow_velocity_with_forecast(self, mock_snapshots_with_history):
-        """Test saving Flow Velocity metric with automatic forecast calculation."""
         import json
 
         from data.metrics_snapshots import save_metric_snapshot_with_forecast
 
-        # Mock database save while preserving file writes
         def mock_save_to_file(snapshots_dict):
             with open(mock_snapshots_with_history, "w") as f:
                 json.dump(snapshots_dict, f, indent=2)
             return True
 
-        # Mock load to read from file instead of database
         def mock_load_from_file():
             with open(mock_snapshots_with_history) as f:
                 return json.load(f)
 
-        # Mock database operations to prevent FOREIGN KEY errors
         with (
             patch(
                 "data.metrics_snapshots.save_snapshots", side_effect=mock_save_to_file
@@ -103,7 +83,6 @@ class TestSaveMetricSnapshotWithForecast:
                 return_value=Path(mock_snapshots_with_history),
             ),
         ):
-            # Save new week's data
             success = save_metric_snapshot_with_forecast(
                 week_label="2025-W44",
                 metric_name="flow_velocity",
@@ -116,7 +95,6 @@ class TestSaveMetricSnapshotWithForecast:
 
             assert success is True
 
-            # Verify snapshot was saved with forecast
             with open(mock_snapshots_with_history) as f:
                 snapshots = json.load(f)
 
@@ -125,30 +103,25 @@ class TestSaveMetricSnapshotWithForecast:
 
             metric_snapshot = snapshots["2025-W44"]["flow_velocity"]
 
-            # Verify base data
             assert metric_snapshot["completed_count"] == 15
 
-            # Verify forecast was calculated
             assert "forecast" in metric_snapshot
             forecast = metric_snapshot["forecast"]
             assert "forecast_value" in forecast
             assert forecast["confidence"] in ["established", "building"]
             assert forecast["weeks_available"] == 4
 
-            # Verify trend was calculated
             assert "trend_vs_forecast" in metric_snapshot
             trend = metric_snapshot["trend_vs_forecast"]
-            assert "direction" in trend  # ↗, →, or ↘
+            assert "direction" in trend
             assert "deviation_percent" in trend
             assert "status_text" in trend
 
     def test_save_flow_load_with_range(self, mock_snapshots_with_history):
-        """Test Flow Load metric includes forecast range calculation."""
         import json
 
         from data.metrics_snapshots import save_metric_snapshot_with_forecast
 
-        # Add Flow Load historical data
         with open(mock_snapshots_with_history) as f:
             snapshots = json.load(f)
 
@@ -161,13 +134,11 @@ class TestSaveMetricSnapshotWithForecast:
         with open(mock_snapshots_with_history, "w") as f:
             json.dump(snapshots, f)
 
-        # Mock database save while preserving file writes
         def mock_save_to_file(snapshots_dict):
             with open(mock_snapshots_with_history, "w") as f:
                 json.dump(snapshots_dict, f, indent=2)
             return True
 
-        # Mock load to read from file instead of database
         def mock_load_from_file():
             with open(mock_snapshots_with_history) as f:
                 return json.load(f)
@@ -195,7 +166,6 @@ class TestSaveMetricSnapshotWithForecast:
 
             assert success is True
 
-            # Verify range was calculated
             with open(mock_snapshots_with_history) as f:
                 snapshots = json.load(f)
 
@@ -206,27 +176,20 @@ class TestSaveMetricSnapshotWithForecast:
             forecast_range = metric_snapshot["forecast"]["forecast_range"]
             assert "lower" in forecast_range
             assert "upper" in forecast_range
-            # Check for optional optimal_range text (not part of range data)
-            # assert "optimal_range" in forecast_range
 
     def test_insufficient_history_no_forecast(self, temp_snapshots_file):
-        """Test that no forecast is calculated with insufficient history."""
         import json
 
         from data.metrics_snapshots import save_metric_snapshot_with_forecast
 
-        # Create snapshot with NO existing weeks (only current week = 1 week total)
-        # This is below min_weeks=2 threshold, so no forecast should be generated
         with open(temp_snapshots_file, "w") as f:
-            json.dump({}, f)  # Empty history
+            json.dump({}, f)
 
-        # Mock database save while preserving file writes
         def mock_save_to_file(snapshots_dict):
             with open(temp_snapshots_file, "w") as f:
                 json.dump(snapshots_dict, f, indent=2)
             return True
 
-        # Mock database load to return empty history
         def mock_load_from_file():
             with open(temp_snapshots_file) as f:
                 return json.load(f)
@@ -255,7 +218,6 @@ class TestSaveMetricSnapshotWithForecast:
 
             assert success is True
 
-            # Verify snapshot saved but no forecast (only 1 week, below min_weeks=2)
             with open(temp_snapshots_file) as f:
                 snapshots = json.load(f)
 
@@ -266,12 +228,10 @@ class TestSaveMetricSnapshotWithForecast:
             )
 
     def test_auto_detect_metric_type(self, mock_snapshots_with_history):
-        """Test automatic detection of higher_better vs lower_better metrics."""
         import json
 
         from data.metrics_snapshots import save_metric_snapshot_with_forecast
 
-        # Add historical data for DORA Lead Time (lower_better)
         with open(mock_snapshots_with_history) as f:
             snapshots = json.load(f)
 
@@ -284,13 +244,11 @@ class TestSaveMetricSnapshotWithForecast:
         with open(mock_snapshots_with_history, "w") as f:
             json.dump(snapshots, f)
 
-        # Mock database save while preserving file writes
         def mock_save_to_file(snapshots_dict):
             with open(mock_snapshots_with_history, "w") as f:
                 json.dump(snapshots_dict, f, indent=2)
             return True
 
-        # Mock load to read from file instead of database
         def mock_load_from_file():
             with open(mock_snapshots_with_history) as f:
                 return json.load(f)
@@ -307,7 +265,6 @@ class TestSaveMetricSnapshotWithForecast:
                 return_value=Path(mock_snapshots_with_history),
             ),
         ):
-            # Don't provide metric_type - should auto-detect
             success = save_metric_snapshot_with_forecast(
                 week_label="2025-W44",
                 metric_name="dora_lead_time",
@@ -316,24 +273,19 @@ class TestSaveMetricSnapshotWithForecast:
 
             assert success is True
 
-            # Verify trend was calculated with correct interpretation
             with open(mock_snapshots_with_history) as f:
                 snapshots = json.load(f)
 
             metric_snapshot = snapshots["2025-W44"]["dora_lead_time"]
             assert "trend_vs_forecast" in metric_snapshot
 
-            # Lower value (20 vs 24 forecast) should be "good" for lower_better metric
             trend = metric_snapshot["trend_vs_forecast"]
-            assert trend["is_good"] is True  # Lower is better for lead time
+            assert trend["is_good"] is True
 
 
 class TestGetLastNWeeksValues:
-    """Tests for get_last_n_weeks_values() helper function."""
-
     @pytest.fixture
     def temp_snapshots_file(self):
-        """Create isolated temporary file for testing."""
         with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
             temp_file = f.name
             json.dump({}, f)
@@ -344,19 +296,13 @@ class TestGetLastNWeeksValues:
             os.unlink(temp_file)
 
     def test_get_chronological_values(self, temp_snapshots_file):
-        """Test retrieval of values in chronological order (oldest to newest)."""
         from data.metrics_snapshots import get_last_n_weeks_values
 
-        # Create 6 weeks of data
         historical_data = {}
         for i, week in enumerate(
             ["2025-W40", "2025-W41", "2025-W42", "2025-W43", "2025-W44", "2025-W45"]
         ):
-            historical_data[week] = {
-                "flow_velocity": {
-                    "completed_count": (i + 1) * 10  # 10, 20, 30, 40, 50, 60
-                }
-            }
+            historical_data[week] = {"flow_velocity": {"completed_count": (i + 1) * 10}}
 
         with open(temp_snapshots_file, "w") as f:
             json.dump(historical_data, f)
@@ -370,15 +316,13 @@ class TestGetLastNWeeksValues:
                 return_value=Path(temp_snapshots_file),
             ),
         ):
-            # Get last 4 weeks (should be weeks 42, 43, 44, 45 → values 30, 40, 50, 60)
             values = get_last_n_weeks_values(
                 metric_key="flow_velocity", value_key="completed_count", n_weeks=4
             )
 
-            assert values == [30, 40, 50, 60]  # Chronological order
+            assert values == [30, 40, 50, 60]
 
     def test_exclude_current_week(self, temp_snapshots_file):
-        """Test exclusion of current week from historical values."""
         from data.metrics_snapshots import get_last_n_weeks_values
 
         historical_data = {}
@@ -397,7 +341,6 @@ class TestGetLastNWeeksValues:
                 return_value=Path(temp_snapshots_file),
             ),
         ):
-            # Get last 4 weeks but exclude current week (2025-W44)
             values = get_last_n_weeks_values(
                 metric_key="flow_velocity",
                 value_key="completed_count",
@@ -405,6 +348,5 @@ class TestGetLastNWeeksValues:
                 current_week="2025-W44",
             )
 
-            # Should get weeks 41, 42, 43 (not 44)
             assert values == [10, 20, 30]
             assert len(values) == 3

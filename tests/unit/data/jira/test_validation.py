@@ -1,15 +1,4 @@
-"""
-Unit tests for data/jira/validation.py
-
-Only covers validate_jql_for_scriptrunner — a pure string-matching function.
-test_jql_query is excluded (requires live network).
-"""
-
 from data.jira.validation import validate_jql_for_scriptrunner
-
-###############################################################################
-# validate_jql_for_scriptrunner
-###############################################################################
 
 
 class TestValidateJqlForScriptrunner:
@@ -83,7 +72,6 @@ class TestValidateJqlForScriptrunner:
             "issueFunction in subtasksOf('project = X') AND epicsOf('project = Y')"
         )
         assert ok is False
-        # Warning should mention all found functions
         assert "issueFunction" in msg or "subtasksOf" in msg or "epicsOf" in msg
 
     def test_warning_message_is_descriptive(self) -> None:

@@ -1,12 +1,9 @@
-"""Tests for forecast analytics schedule status helpers."""
-
 from datetime import datetime
 
 from ui.dashboard.forecast_analytics_controls import calculate_schedule_status
 
 
 def test_calculate_schedule_status_treats_deadline_day_as_on_schedule() -> None:
-    """Forecast equal to deadline should be on schedule, not behind."""
     current_date = datetime(2026, 5, 1)
 
     status = calculate_schedule_status(
@@ -21,7 +18,6 @@ def test_calculate_schedule_status_treats_deadline_day_as_on_schedule() -> None:
 
 
 def test_calculate_schedule_status_clamps_negative_percentage_to_zero() -> None:
-    """Past forecast dates should not produce negative progress percentages."""
     current_date = datetime(2026, 5, 1)
 
     status = calculate_schedule_status(

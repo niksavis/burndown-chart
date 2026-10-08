@@ -1,9 +1,3 @@
-"""
-Unit tests for data/time_period_calculator.py
-
-Pure date-math functions — no I/O, no database, no network.
-"""
-
 from datetime import date, datetime
 
 from data.time_period_calculator import (
@@ -20,25 +14,19 @@ from data.time_period_calculator import (
     parse_year_week_label,
 )
 
-###############################################################################
-# get_iso_week
-###############################################################################
-
 
 class TestGetIsoWeek:
     def test_known_date(self) -> None:
-        dt = datetime(2025, 10, 27)  # Monday, ISO week 44 of 2025
+        dt = datetime(2025, 10, 27)
         assert get_iso_week(dt) == (2025, 44)
 
     def test_year_boundary_early_january(self) -> None:
-        # 2025-01-01 is Wednesday in ISO week 1 of 2025
         dt = datetime(2025, 1, 1)
         year, week = get_iso_week(dt)
         assert year == 2025
         assert week == 1
 
     def test_year_boundary_last_days_december(self) -> None:
-        # 2020-12-31 is Thursday in ISO week 53 of 2020
         dt = datetime(2020, 12, 31)
         year, week = get_iso_week(dt)
         assert year == 2020
@@ -55,11 +43,6 @@ class TestGetIsoWeek:
         assert isinstance(result, tuple)
 
 
-###############################################################################
-# format_year_week
-###############################################################################
-
-
 class TestFormatYearWeek:
     def test_double_digit_week(self) -> None:
         assert format_year_week(2025, 44) == "2025-W44"
@@ -71,25 +54,15 @@ class TestFormatYearWeek:
         assert format_year_week(2020, 53) == "2020-W53"
 
 
-###############################################################################
-# get_year_week_label
-###############################################################################
-
-
 class TestGetYearWeekLabel:
     def test_combines_iso_week_and_format(self) -> None:
         dt = datetime(2025, 10, 27)
         assert get_year_week_label(dt) == "2025-W44"
 
     def test_single_digit_week_zero_padded(self) -> None:
-        dt = datetime(2025, 1, 1)  # week 1
+        dt = datetime(2025, 1, 1)
         label = get_year_week_label(dt)
         assert label == "2025-W01"
-
-
-###############################################################################
-# parse_year_week_label
-###############################################################################
 
 
 class TestParseYearWeekLabel:
@@ -115,39 +88,26 @@ class TestParseYearWeekLabel:
         assert parse_year_week_label("AAAA-Wxx") == (0, 0)
 
 
-###############################################################################
-# get_week_start_date
-###############################################################################
-
-
 class TestGetWeekStartDate:
     def test_known_week(self) -> None:
-        # ISO week 44 of 2025 starts Monday 2025-10-27
         result = get_week_start_date(2025, 44)
         assert result == date(2025, 10, 27)
-        assert result.weekday() == 0  # Monday
+        assert result.weekday() == 0
 
     def test_week_1(self) -> None:
-        # ISO week 1 of 2025 starts Monday 2024-12-30
         result = get_week_start_date(2025, 1)
-        assert result.weekday() == 0  # Must be a Monday
+        assert result.weekday() == 0
 
     def test_zero_values_return_today(self) -> None:
         result = get_week_start_date(0, 0)
         assert result == date.today()
 
 
-###############################################################################
-# get_week_end_date
-###############################################################################
-
-
 class TestGetWeekEndDate:
     def test_known_week_ends_sunday(self) -> None:
-        # ISO week 44 of 2025: Mon 2025-10-27 → Sun 2025-11-02
         result = get_week_end_date(2025, 44)
         assert result == date(2025, 11, 2)
-        assert result.weekday() == 6  # Sunday
+        assert result.weekday() == 6
 
     def test_end_date_is_6_days_after_start(self) -> None:
         start = get_week_start_date(2025, 20)
@@ -157,11 +117,6 @@ class TestGetWeekEndDate:
     def test_zero_values_return_today(self) -> None:
         result = get_week_end_date(0, 0)
         assert result == date.today()
-
-
-###############################################################################
-# is_current_week
-###############################################################################
 
 
 class TestIsCurrentWeek:
@@ -183,23 +138,17 @@ class TestIsCurrentWeek:
         assert is_current_week(2025, 0) is False
 
 
-###############################################################################
-# generate_week_range
-###############################################################################
-
-
 class TestGenerateWeekRange:
     def test_single_week_range(self) -> None:
-        start = date(2025, 10, 27)  # Monday W44
+        start = date(2025, 10, 27)
         end = date(2025, 10, 27)
         result = generate_week_range(start, end, include_partial_current=True)
         assert len(result) >= 1
         assert "2025-W44" in result
 
     def test_multi_week_range(self) -> None:
-        # The generator walks by 7-day steps from start; W43 is hit on 2025-10-22
-        start = date(2025, 10, 1)  # W40
-        end = date(2025, 10, 22)  # lands on W43 in the 7-day step sequence
+        start = date(2025, 10, 1)
+        end = date(2025, 10, 22)
         result = generate_week_range(start, end, include_partial_current=True)
         assert "2025-W40" in result
         assert "2025-W43" in result
@@ -226,11 +175,6 @@ class TestGenerateWeekRange:
             assert "W" in label
 
 
-###############################################################################
-# get_recent_weeks
-###############################################################################
-
-
 class TestGetRecentWeeks:
     def test_returns_list_of_strings(self) -> None:
         result = get_recent_weeks(4)
@@ -254,16 +198,11 @@ class TestGetRecentWeeks:
             assert "W" in label
 
 
-###############################################################################
-# filter_by_week_range
-###############################################################################
-
-
 class TestFilterByWeekRange:
     _items = [
-        {"key": "A-1", "date": "2025-10-27T10:00:00"},  # W44
-        {"key": "A-2", "date": "2025-11-03T15:00:00"},  # W45
-        {"key": "A-3", "date": "2025-10-28T08:00:00"},  # W44
+        {"key": "A-1", "date": "2025-10-27T10:00:00"},
+        {"key": "A-2", "date": "2025-11-03T15:00:00"},
+        {"key": "A-3", "date": "2025-10-28T08:00:00"},
     ]
 
     def test_filters_to_single_week(self) -> None:
@@ -302,17 +241,12 @@ class TestFilterByWeekRange:
         assert len(result) == 1
 
 
-###############################################################################
-# group_by_week
-###############################################################################
-
-
 class TestGroupByWeek:
     def test_groups_items_by_week(self) -> None:
         items = [
-            {"key": "A-1", "date": "2025-10-27T10:00:00"},  # W44
-            {"key": "A-2", "date": "2025-10-28T15:00:00"},  # W44
-            {"key": "A-3", "date": "2025-11-03T08:00:00"},  # W45
+            {"key": "A-1", "date": "2025-10-27T10:00:00"},
+            {"key": "A-2", "date": "2025-10-28T15:00:00"},
+            {"key": "A-3", "date": "2025-11-03T08:00:00"},
         ]
         result = group_by_week(items, "date")
         assert "2025-W44" in result
@@ -326,7 +260,6 @@ class TestGroupByWeek:
     def test_items_missing_date_field_excluded(self) -> None:
         items = [{"key": "A-1"}, {"key": "A-2", "date": "2025-10-27T10:00:00"}]
         result = group_by_week(items, "date")
-        # Only A-2 should appear
         all_items = [item for group in result.values() for item in group]
         assert len(all_items) == 1
         assert all_items[0]["key"] == "A-2"

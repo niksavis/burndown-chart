@@ -1,5 +1,3 @@
-"""Unit tests for Active Work Timeline UI components."""
-
 import dash_bootstrap_components as dbc
 from dash import html
 
@@ -31,7 +29,6 @@ def _find_first_component(component, component_type):
 
 
 def test_create_active_work_timeline_tab_placeholder():
-    """Test placeholder container for active work timeline tab."""
     component = create_active_work_timeline_tab()
 
     assert isinstance(component, html.Div)
@@ -39,7 +36,6 @@ def test_create_active_work_timeline_tab_placeholder():
 
 
 def test_create_no_issues_state_unconfigured_parent_field():
-    """Test empty state messaging when parent field is missing."""
     component = create_no_active_work_state(parent_field_configured=False)
 
     content = str(component.to_plotly_json())
@@ -47,7 +43,6 @@ def test_create_no_issues_state_unconfigured_parent_field():
 
 
 def test_create_no_issues_state_configured_parent_field():
-    """Test empty state messaging when no issues found."""
     component = create_no_active_work_state(parent_field_configured=True)
 
     content = str(component.to_plotly_json())
@@ -55,7 +50,6 @@ def test_create_no_issues_state_configured_parent_field():
 
 
 def test_create_timeline_visualization_progress_and_points():
-    """Test progress color and points text in timeline visualization."""
     timeline = [
         {
             "epic_key": "EPIC-1",
@@ -79,7 +73,6 @@ def test_create_timeline_visualization_progress_and_points():
 
 
 def test_create_issue_card_parent_and_orphan_behavior():
-    """Test parent indicator and orphan styling in issue cards."""
     parent_issue = {
         "issue_key": "PROJ-1",
         "summary": "Task",
