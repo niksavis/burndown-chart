@@ -1,5 +1,3 @@
-"""Weekly progress help layout components."""
-
 from __future__ import annotations
 
 import dash_bootstrap_components as dbc
@@ -63,7 +61,6 @@ def _create_list(items: list[str]) -> html.Ul:
 
 
 def create_weekly_progress_help_layout() -> list[Component]:
-    """Create structured layout for weekly progress help content."""
     summary = html.P(
         "Weekly Progress Data tracks delivery and scope changes week by week.",
         className="text-muted",

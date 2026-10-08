@@ -1,45 +1,25 @@
-"""Dash application configuration constants.
-
-Centralizes external stylesheets, scripts, meta tags, and the PWA HTML
-template string used during Dash app initialization.
-"""
-
 EXTERNAL_STYLESHEETS = [
-    # Bootswatch Flatly theme (local copy for offline use)
     "/assets/vendor/bootswatch/flatly/bootstrap.min.css",
-    # SECURITY: Font Awesome served locally
-    # (no tracking, no checkout popup injection)
-    # Using free version CSS-only (no kit system) to prevent checkout code injection
     "/assets/vendor/fontawesome/css/fontawesome.min.css",
-    # Font Awesome core (CSS only)
-    "/assets/vendor/fontawesome/css/solid.min.css",  # Solid icons
-    "/assets/vendor/fontawesome/css/brands.min.css",  # Brand icons (GitHub, etc.)
-    "/assets/vendor/codemirror/codemirror.min.css",  # CodeMirror base styles
+    "/assets/vendor/fontawesome/css/solid.min.css",
+    "/assets/vendor/fontawesome/css/brands.min.css",
+    "/assets/vendor/codemirror/codemirror.min.css",
     "/assets/custom.css",
-    # Our custom CSS for standardized styling (includes CodeMirror theme overrides)
-    "/assets/help_system.css",  # Help system CSS for progressive disclosure
+    "/assets/help_system.css",
 ]
 
 EXTERNAL_SCRIPTS = [
-    # Bootstrap JS Bundle (required for CSS interactive states and transitions)
     "/assets/vendor/bootstrap/js/bootstrap.bundle.min.js",
-    # CodeMirror 5 (legacy) - Better script tag support than CM6
-    # CM6 requires ES modules which don't work well with Dash script loading
-    # CM5 provides adequate syntax highlighting for our use case
     "/assets/vendor/codemirror/codemirror.min.js",
-    "/assets/vendor/codemirror/mode/sql/sql.min.js",  # Base for query language
-    "/assets/jql_language_mode.js",  # JQL tokenizer for syntax highlighting
+    "/assets/vendor/codemirror/mode/sql/sql.min.js",
+    "/assets/jql_language_mode.js",
     "/assets/jql_editor_native.js",
-    # Native CodeMirror editors (no textarea transformation)
     "/assets/mobile_navigation.js",
-    # Mobile navigation JavaScript for swipe gestures
     "/assets/conflict_resolution_clientside.js",
-    # Conflict resolution clientside callbacks (import/export)
-    "/assets/active_work_toggle.js",  # Active Work expand/collapse all button
+    "/assets/active_work_toggle.js",
 ]
 
 META_TAGS = [
-    # PWA Meta Tags for Mobile-First Design
     {
         "name": "viewport",
         "content": (
@@ -52,7 +32,6 @@ META_TAGS = [
     {"name": "apple-mobile-web-app-status-bar-style", "content": "default"},
     {"name": "apple-mobile-web-app-title", "content": "Burndown"},
     {"name": "mobile-web-app-capable", "content": "yes"},
-    # Performance and SEO
     {
         "name": "description",
         "content": (
@@ -71,8 +50,6 @@ META_TAGS = [
             "Modern mobile-first agile project forecasting with JIRA integration"
         ),
     },
-    # SECURITY: Content Security Policy to prevent unauthorized script injection
-    # Prevents Font Awesome and other CDNs from injecting tracking/checkout scripts
     {
         "http-equiv": "Content-Security-Policy",
         "content": (

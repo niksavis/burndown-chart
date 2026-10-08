@@ -1,46 +1,19 @@
-"""
-Update Notification Component
-
-Displays a notification banner when a new version is available,
-with an "Update Now" button to download and install the update.
-"""
-
-#######################################################################
-# IMPORTS
-#######################################################################
-# Third-party library imports
-
 import dash_bootstrap_components as dbc
 from dash import html
 
-# Application imports
 from data.update_manager import UpdateProgress, UpdateState
-
-#######################################################################
-# COMPONENT FUNCTIONS
-#######################################################################
 
 
 def create_update_notification(
     update_progress: UpdateProgress | None,
 ) -> dbc.Alert | None:
-    """Create update notification alert when update is available.
 
-    Args:
-        update_progress: UpdateProgress object from app.VERSION_CHECK_RESULT
-
-    Returns:
-        dbc.Alert component if update available, None otherwise
-    """
-    # Only show alert if update is available
     if not update_progress or update_progress.state != UpdateState.AVAILABLE:
         return None
 
-    # Extract version information
     current_version = update_progress.current_version or "unknown"
     available_version = update_progress.available_version or "unknown"
 
-    # Create alert content
     alert_content = [
         html.Div(
             [
@@ -56,9 +29,7 @@ def create_update_notification(
         ),
     ]
 
-    # Add release notes if available
     if update_progress.release_notes:
-        # Truncate release notes if too long (show first 200 chars)
         notes = update_progress.release_notes
         if len(notes) > 200:
             notes = notes[:200] + "..."
@@ -75,7 +46,6 @@ def create_update_notification(
             )
         )
 
-    # Add Update Now button
     alert_content.append(
         html.Div(
             [
@@ -101,7 +71,6 @@ def create_update_notification(
         )
     )
 
-    # Create the alert
     return dbc.Alert(
         alert_content,
         id="update-notification-alert",
@@ -115,14 +84,7 @@ def create_update_notification(
 def create_update_downloading_alert(
     progress_percent: int = 0,
 ) -> dbc.Alert:
-    """Create alert showing download progress.
 
-    Args:
-        progress_percent: Download progress (0-100)
-
-    Returns:
-        dbc.Alert component with progress bar
-    """
     return dbc.Alert(
         [
             html.Div(
@@ -152,11 +114,7 @@ def create_update_downloading_alert(
 
 
 def create_update_ready_alert() -> dbc.Alert:
-    """Create alert when update is ready to install.
 
-    Returns:
-        dbc.Alert component with install button
-    """
     return dbc.Alert(
         [
             html.Div(
@@ -191,14 +149,7 @@ def create_update_ready_alert() -> dbc.Alert:
 
 
 def create_update_error_alert(error_message: str) -> dbc.Alert:
-    """Create alert when update check or download fails.
 
-    Args:
-        error_message: Human-readable error description
-
-    Returns:
-        dbc.Alert component with error message
-    """
     return dbc.Alert(
         [
             html.Div(

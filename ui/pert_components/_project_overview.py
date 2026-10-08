@@ -1,8 +1,3 @@
-"""PERT Project Overview Components
-
-Components for the project overview and deadline sections.
-"""
-
 from dash import html
 
 from configuration import COLOR_PALETTE
@@ -22,30 +17,11 @@ def _create_project_overview_section(
     similar_percentages=False,
     show_points=True,
 ):
-    """
-    Create the project overview section with progress bars.
 
-    Args:
-        items_percentage: Percentage of items completed
-        points_percentage: Percentage of points completed
-        completed_items: Number of completed items
-        completed_points: Number of completed points
-        actual_total_items: Total items (completed + remaining)
-        actual_total_points: Total points (completed + remaining)
-        total_items: Number of remaining items
-        remaining_points: Number of remaining points
-        similar_percentages: Whether items and points percentages are similar
-        show_points: Whether points tracking is enabled
-
-    Returns:
-        dash.html.Div: Project overview section
-    """
     return html.Div(
         [
-            # Project progress section
             html.Div(
                 [
-                    # Combined progress for similar percentages
                     html.Div(
                         [
                             html.Div(
@@ -149,10 +125,8 @@ def _create_project_overview_section(
                         style={"display": "block" if similar_percentages else "none"},
                         className="mb-3",
                     ),
-                    # Separate progress bars for different percentages
                     html.Div(
                         [
-                            # Items progress
                             html.Div(
                                 [
                                     html.Div(
@@ -229,7 +203,6 @@ def _create_project_overview_section(
                         ]
                         + (
                             [
-                                # Points progress shown when tracking is enabled.
                                 html.Div(
                                     [
                                         html.Div(
@@ -323,16 +296,7 @@ def _create_project_overview_section(
 
 
 def _create_deadline_section(deadline_date_str, days_to_deadline):
-    """
-    Create the project deadline visualization section.
 
-    Args:
-        deadline_date_str: Formatted deadline date
-        days_to_deadline: Days remaining until deadline
-
-    Returns:
-        dash.html.Div: Deadline visualization section
-    """
     deadline_pressure_percent = max(
         5,
         min(100, (100 - (days_to_deadline / (days_to_deadline + 30) * 100))),
@@ -361,7 +325,6 @@ def _create_deadline_section(deadline_date_str, days_to_deadline):
                     ),
                 ],
             ),
-            # Days remaining visualization
             html.Div(
                 [
                     html.Div(

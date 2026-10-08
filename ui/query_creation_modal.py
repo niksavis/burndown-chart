@@ -1,34 +1,14 @@
-"""
-Query Creation Modal Component
-
-Modal dialog for creating new queries within a profile.
-Part of Feature 011 - Profile & Workspace Switching (Phase 4 - Query Switching).
-"""
-
-#######################################################################
-# IMPORTS
-#######################################################################
 import dash_bootstrap_components as dbc
 from dash import html
 
-#######################################################################
-# MODAL COMPONENT
-#######################################################################
-
 
 def create_query_creation_modal():
-    """
-    Create query creation modal dialog.
 
-    Returns:
-        dbc.Modal: Complete modal component with form fields for query creation
-    """
     return dbc.Modal(
         [
             dbc.ModalHeader(dbc.ModalTitle("Create New Query"), close_button=True),
             dbc.ModalBody(
                 [
-                    # Query Name
                     dbc.Row(
                         [
                             dbc.Col(
@@ -60,7 +40,6 @@ def create_query_creation_modal():
                         ],
                         className="mb-3",
                     ),
-                    # JQL Query
                     dbc.Row(
                         [
                             dbc.Col(
@@ -93,7 +72,6 @@ def create_query_creation_modal():
                         ],
                         className="mb-3",
                     ),
-                    # Feedback area
                     html.Div(
                         id="workspace-query-creation-feedback",
                         className="mt-2",
@@ -123,6 +101,6 @@ def create_query_creation_modal():
         id="workspace-create-query-modal",
         size="lg",
         is_open=False,
-        backdrop="static",  # Prevent closing by clicking outside
+        backdrop="static",
         centered=True,
     )

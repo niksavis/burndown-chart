@@ -1,5 +1,3 @@
-"""Insights Engine - Deadline and Budget Forecast Scoring."""
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -15,7 +13,6 @@ def _build_deadline_budget_forecast_insights(
     deadline: str | None,
     budget_data: dict[str, Any] | None,
 ) -> list[dict[str, Any]]:
-    """Build deadline risk and budget-vs-forecast alignment insights."""
     insights: list[dict[str, Any]] = []
 
     if pert_data and deadline:

@@ -1,15 +1,3 @@
-"""
-Loading Utilities Module
-
-Re-export shim: preserves the original public API while delegating
-implementation to the focused sub-modules:
-  - ui.loading_utils_core     (spinners, overlays, skeleton loaders)
-  - ui.loading_utils_patterns (placeholders, loading-state factory, async containers)
-"""
-
-#######################################################################
-# RE-EXPORTS
-#######################################################################
 from ui.loading_utils_core import (  # noqa: F401
     LOADING_STYLES,
     SKELETON_ANIMATION,

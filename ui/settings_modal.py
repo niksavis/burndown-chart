@@ -1,16 +1,3 @@
-"""
-Settings Modal Component
-
-This module provides a comprehensive settings modal for data source configuration,
-import/export, and JQL query management. Consolidates all configuration options
-that were previously in the Data Import Configuration card.
-
-Feature: Configuration UI consolidation for better UX
-"""
-
-#######################################################################
-# IMPORTS
-#######################################################################
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
@@ -24,13 +11,8 @@ from ui.jql_components import (
 )
 from ui.jql_editor import create_jql_editor
 
-#######################################################################
-# HELPER FUNCTIONS
-#######################################################################
-
 
 def _get_default_data_source():
-    """Get default data source from settings."""
     try:
         app_settings = load_app_settings()
         data_source = app_settings.get("last_used_data_source", "JIRA")
@@ -40,7 +22,6 @@ def _get_default_data_source():
 
 
 def _get_default_jql_query():
-    """Get default JQL query from settings."""
     try:
         app_settings = load_app_settings()
         return app_settings.get("jql_query", "project = JRASERVER")
@@ -49,7 +30,6 @@ def _get_default_jql_query():
 
 
 def _get_default_jql_profile_id():
-    """Get active JQL profile ID from settings."""
     try:
         app_settings = load_app_settings()
         return app_settings.get("active_jql_profile_id", "")
@@ -58,7 +38,6 @@ def _get_default_jql_profile_id():
 
 
 def _get_query_profile_options():
-    """Get query profile dropdown options."""
     try:
         profiles = load_query_profiles()
         options = []
@@ -74,13 +53,7 @@ def _get_query_profile_options():
         return []
 
 
-#######################################################################
-# MODAL TABS CONTENT
-#######################################################################
-
-
 def create_data_source_tab():
-    """Create Data Source tab content."""
     return html.Div(
         [
             html.P(
@@ -103,10 +76,8 @@ def create_data_source_tab():
 
 
 def create_import_export_tab():
-    """Create Import/Export tab content."""
     return html.Div(
         [
-            # Import Section
             html.H6("Import Data", className="mb-3"),
             html.P(
                 "Upload project data from JSON or CSV file.",
@@ -140,7 +111,6 @@ def create_import_export_tab():
                 multiple=False,
             ),
             html.Hr(className="my-4"),
-            # Export Section
             html.H6("Export Data", className="mb-3"),
             html.P(
                 "Export complete project data as JSON for backup or sharing.",
@@ -160,11 +130,9 @@ def create_import_export_tab():
 
 
 def create_jira_integration_tab():
-    """Create JIRA Integration tab content (formerly JQL Queries)."""
 
     return html.Div(
         [
-            # JIRA Configuration Section
             html.H6("JIRA Configuration", className="mb-3"),
             html.P(
                 "Configure your JIRA connection settings (URL, token, custom fields).",
@@ -177,7 +145,6 @@ def create_jira_integration_tab():
                 children=[],
             ),
             html.Hr(className="my-4"),
-            # JQL Editor
             html.H6("JQL Query Editor", className="mb-3"),
             html.P(
                 "Write your JQL query to fetch issues from JIRA.",
@@ -199,7 +166,6 @@ def create_jira_integration_tab():
                 ],
                 className="mb-3",
             ),
-            # Query Management Actions
             html.H6("Saved Queries", className="mb-3 mt-4"),
             html.P(
                 "Save your current query, or select a saved query "
@@ -263,7 +229,6 @@ def create_jira_integration_tab():
                 className="text-center mt-2",
                 children=[],
             ),
-            # Hidden components for mobile compatibility (callbacks may reference these)
             html.Div(
                 [
                     dcc.Dropdown(
@@ -279,7 +244,6 @@ def create_jira_integration_tab():
                 style={"display": "none"},
             ),
             html.Hr(className="my-4"),
-            # Update Data Action
             html.H6("Fetch JIRA Data", className="mb-3"),
             html.P(
                 "Fetches JIRA data using the query above "
@@ -304,20 +268,8 @@ def create_jira_integration_tab():
     )
 
 
-#######################################################################
-# MODAL COMPONENT
-#######################################################################
-
-
 def create_settings_modal():
-    """
-    Create comprehensive settings modal with tabs for configuration.
 
-    Returns:
-        dbc.Modal: Complete modal component with tabbed interface for:
-        - Import/Export (CSV upload, JSON export)
-        - JIRA Integration (JIRA config, JQL editor, saved queries, fetch data)
-    """
     return dbc.Modal(
         [
             dbc.ModalHeader(
@@ -372,12 +324,7 @@ def create_settings_modal():
 
 
 def create_settings_button():
-    """
-    Create button to open settings modal.
 
-    Returns:
-        dbc.Button: Settings button for top navigation
-    """
     return dbc.Button(
         [
             html.I(className="fas fa-cog me-2"),
@@ -390,17 +337,3 @@ def create_settings_button():
         className="ms-2",
         title="Configure data sources, import/export, and JQL queries",
     )
-
-
-#######################################################################
-# QUERY MANAGEMENT MODALS
-#######################################################################
-
-
-# REMOVED: create_save_query_modal() - replaced by ui/save_query_modal.py
-
-
-# REMOVED: create_delete_query_modal() - replaced by ui/delete_query_modal.py
-
-
-# REMOVED: create_edit_query_modal() - replaced by integrated query management callbacks

@@ -1,14 +1,3 @@
-"""Sprint Tracker UI Components
-
-This module provides UI components for the Sprint Tracker tab including:
-- Sprint selection dropdown
-- Sprint summary cards
-- Progress bar visualizations
-- Empty state when no sprints detected
-
-Follows Bug Analysis pattern for conditional tab display.
-"""
-
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
@@ -16,14 +5,7 @@ from ui.jira_link_helper import create_jira_issue_link
 
 
 def create_sprint_tracker_tab() -> html.Div:
-    """Create Sprint Tracker tab container.
 
-    This is an empty placeholder - content is rendered dynamically
-    by visualization callback following Bug Analysis pattern.
-
-    Returns:
-        Empty div that will be populated by callback
-    """
     return html.Div(id="sprint-tracker-tab-content", children=html.Div())
 
 
@@ -34,18 +16,7 @@ def create_sprint_summary_cards(
     scope_change_summary: dict | None = None,
     sprint_state: str | None = None,
 ) -> html.Div:
-    """Create sprint summary metric cards.
 
-    Args:
-        sprint_name: Name of the sprint
-        summary_data: Summary metrics from sprint_manager.create_sprint_summary_card()
-        show_points: Whether to show story points metrics
-        scope_change_summary: Optional scope summary with added/removed counts
-        sprint_state: Sprint state (ACTIVE/CLOSED/FUTURE)
-
-    Returns:
-        Row of metric cards showing sprint progress
-    """
     total_issues = summary_data.get("total_issues", 0)
     completed = summary_data.get("completed", 0)
     in_progress = summary_data.get("in_progress", 0)
@@ -217,17 +188,7 @@ def create_sprint_scope_changes_view(
     sprint_state: str | None = None,
     issue_states: dict[str, dict] | None = None,
 ) -> html.Div | dbc.Card:
-    """Create a sprint scope changes section with rich issue rows.
 
-    Args:
-        scope_change_issues: Dict with issue key lists for added and removed
-        sprint_state: Sprint state (ACTIVE/CLOSED/FUTURE)
-        issue_states: Optional mapping of issue_key to state dict
-            (issue_type, summary, status, story_points)
-
-    Returns:
-        Scope changes section, or empty div when not applicable
-    """
     if sprint_state not in {"ACTIVE", "CLOSED", "FUTURE"}:
         return html.Div()
 
@@ -388,28 +349,16 @@ def create_sprint_selector(
     selected_sprint: str | None = None,
     sprint_metadata: dict[str, dict] | None = None,
 ) -> html.Div:
-    """Create sprint selection dropdown with status indicators.
 
-    Args:
-        available_sprints: List of sprint names/IDs
-        selected_sprint: Currently selected sprint (to set as dropdown value)
-        sprint_metadata: Dict mapping sprint name to
-            {"state": "ACTIVE/CLOSED/FUTURE", ...}
-
-    Returns:
-        Dropdown component for sprint selection with status badges
-    """
     if not available_sprints:
         return html.Div()
 
-    # Use selected sprint if provided, otherwise default to first
     dropdown_value = (
         selected_sprint
         if selected_sprint in available_sprints
         else (available_sprints[0] if available_sprints else None)
     )
 
-    # Create dropdown options with status suffixes
     options = []
     for sprint in available_sprints:
         label = sprint
@@ -437,11 +386,7 @@ def create_sprint_selector(
 
 
 def create_sprint_filters() -> html.Div:
-    """Create filter controls for sprint view (issue type only).
 
-    Returns:
-        Filter controls (issue type dropdown)
-    """
     return html.Div(
         [
             dbc.Label("Select Issue Type:", html_for="sprint-issue-type-filter"),
@@ -465,28 +410,16 @@ def create_combined_sprint_controls(
     selected_sprint: str | None = None,
     sprint_metadata: dict[str, dict] | None = None,
 ) -> html.Div:
-    """Create combined sprint selector and issue type filter in one styled container.
 
-    Args:
-        available_sprints: List of sprint names/IDs
-        selected_sprint: Currently selected sprint
-        sprint_metadata: Dict mapping sprint name to
-            {"state": "ACTIVE/CLOSED/FUTURE", ...}
-
-    Returns:
-        Styled container with both dropdowns in one row
-    """
     if not available_sprints:
         return html.Div()
 
-    # Use selected sprint if provided, otherwise default to first
     dropdown_value = (
         selected_sprint
         if selected_sprint in available_sprints
         else (available_sprints[0] if available_sprints else None)
     )
 
-    # Create sprint dropdown options with status suffixes
     sprint_options = []
     for sprint in available_sprints:
         label = sprint
@@ -572,19 +505,9 @@ def create_combined_sprint_controls(
 def create_sprint_change_indicators(
     added_count: int, removed_count: int, net_change: int
 ) -> html.Div:
-    """Create badge indicators for sprint scope changes with tooltips.
 
-    Args:
-        added_count: Number of issues added after sprint start
-        removed_count: Number of issues removed after sprint start
-        net_change: Net scope change (added - removed)
-
-    Returns:
-        Row of badge indicators with tooltips
-    """
     badges = []
 
-    # Added badge
     if added_count > 0:
         badges.append(
             dbc.Tooltip(
@@ -604,7 +527,6 @@ def create_sprint_change_indicators(
             )
         )
 
-    # Removed badge
     if removed_count > 0:
         badges.append(
             dbc.Tooltip(
@@ -624,7 +546,6 @@ def create_sprint_change_indicators(
             )
         )
 
-    # Net change badge
     if net_change != 0:
         net_icon = "fa-arrow-up" if net_change > 0 else "fa-arrow-down"
         net_color = "info" if net_change > 0 else "warning"
@@ -664,19 +585,13 @@ def create_sprint_change_indicators(
 
 
 def create_sprint_charts_section() -> html.Div:
-    """Create collapsible charts section for sprint burnup chart.
 
-    Returns:
-        Collapsible container with burnup chart (full width)
-    """
     return html.Div(
         [
-            # Collapsible charts container (button moved to combined controls)
             dbc.Collapse(
                 dbc.Card(
                     dbc.CardBody(
                         [
-                            # Burnup chart with loading spinner
                             dcc.Loading(
                                 id="loading-sprint-chart",
                                 type="circle",

@@ -1,19 +1,3 @@
-"""
-Accordion-based Settings Panel with Progressive Disclosure.
-
-New settings panel implementation for Feature 011:
-Profile-First Dependency Architecture.
-Uses 5-section accordion with dependency indicators showing
-which sections are enabled.
-
-Sections:
-1. Profile Settings (ALWAYS ENABLED)
-2. JIRA Configuration (ENABLED WHEN PROFILE EXISTS)
-3. Field Mappings (ENABLED WHEN JIRA CONNECTED)
-4. Query Management (ENABLED WHEN JIRA CONFIGURED)
-5. Data Operations (ENABLED WHEN QUERY SAVED)
-"""
-
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
@@ -24,17 +8,7 @@ from ui.query_selector import create_query_selector_panel
 
 
 def create_jira_config_card() -> html.Div:
-    """
-    Create JIRA configuration card.
 
-    Contains:
-    - JIRA status indicator
-    - Configure JIRA button (opens modal)
-    - Test connection status
-
-    Returns:
-        html.Div: JIRA configuration content
-    """
     return html.Div(
         [
             html.Div(
@@ -44,7 +18,6 @@ def create_jira_config_card() -> html.Div:
                 ],
                 className="d-flex align-items-center mb-3",
             ),
-            # Status indicator
             html.Div(
                 id="jira-config-status-indicator",
                 className="mb-3",
@@ -58,29 +31,18 @@ def create_jira_config_card() -> html.Div:
                     )
                 ],
             ),
-            # Configure button
             create_jira_config_button(compact=False),
             html.Div(
                 id="jira-connection-test-status",
                 style={"minHeight": "0px", "marginTop": "4px"},
             ),
-            # Hidden div for legacy callback compatibility
             html.Div(id="jira-cache-status", style={"display": "none"}),
         ]
     )
 
 
 def create_field_mapping_card() -> html.Div:
-    """
-    Create field mappings configuration card.
 
-    Contains:
-    - Field mapping status
-    - Configure mappings button (opens modal)
-
-    Returns:
-        html.Div: Field mapping configuration content
-    """
     return html.Div(
         [
             html.Div(
@@ -110,24 +72,11 @@ def create_field_mapping_card() -> html.Div:
 
 
 def create_query_management_card() -> html.Div:
-    """
-    Create query management card with integrated JQL editor.
 
-    Contains:
-    - Query selector (create, switch, delete queries)
-    - Integrated JQL editor
-    - Save query button
-    - Query metadata display
-
-    Returns:
-        html.Div: Query management content
-    """
     return html.Div(
         [
-            # Query selector
             create_query_selector_panel(),
             html.Hr(),
-            # Integrated JQL editor
             html.Div(
                 [
                     html.Label("JQL Query", className="form-label fw-bold"),
@@ -144,7 +93,6 @@ def create_query_management_card() -> html.Div:
                         placeholder="project = EXAMPLE AND created >= -12w",
                         rows=4,
                     ),
-                    # Performance tip about DevOps projects
                     html.Div(
                         [
                             html.I(className="fas fa-info-circle text-info me-2"),
@@ -162,7 +110,6 @@ def create_query_management_card() -> html.Div:
                 ],
                 className="mb-3",
             ),
-            # Action buttons
             dbc.ButtonGroup(
                 [
                     dbc.Button(
@@ -188,17 +135,7 @@ def create_query_management_card() -> html.Div:
 
 
 def create_data_operations_card() -> html.Div:
-    """
-    Create data operations card.
 
-    Contains:
-    - Update JIRA data button (requires saved query)
-    - Import/Export panel
-    - Data status indicators
-
-    Returns:
-        html.Div: Data operations content
-    """
     return html.Div(
         [
             html.Div(
@@ -208,10 +145,8 @@ def create_data_operations_card() -> html.Div:
                 ],
                 className="d-flex align-items-center mb-3",
             ),
-            # Update data button
             html.Div(
                 [
-                    # Alert for query save requirement (managed by callback)
                     dbc.Alert(
                         id="data-operations-alert",
                         is_open=False,
@@ -229,13 +164,10 @@ def create_data_operations_card() -> html.Div:
                         id="update-data-unified",
                         color="primary",
                         size="lg",
-                        disabled=True,  # Enabled by callback when query saved
+                        disabled=True,
                         className="mb-3 long-press-button",
                     ),
-                    # Hidden store for force refresh functionality (long-press)
                     dcc.Store(id="force-refresh-store", data=False),
-                    # Progress bar (hidden when not in use,
-                    # fixed height to prevent layout shift)
                     html.Div(
                         id="update-data-progress-container",
                         className="mb-2",
@@ -256,18 +188,14 @@ def create_data_operations_card() -> html.Div:
                             ),
                         ],
                     ),
-                    # Interval for polling progress
                     dcc.Interval(
                         id="progress-poll-interval",
-                        interval=250,  # Poll every 250ms for smooth progress updates
-                        disabled=True,  # Disabled by default
+                        interval=250,
+                        disabled=True,
                     ),
-                    # Status message (hidden - progress bar shows status now)
                     html.Div(
                         html.Div(id="update-data-status"),
-                        style={
-                            "display": "none"
-                        },  # Hidden - progress bar handles all status
+                        style={"display": "none"},
                     ),
                     html.Div(
                         [
@@ -295,30 +223,18 @@ def create_data_operations_card() -> html.Div:
 
 
 def create_accordion_settings_panel() -> html.Div:
-    """
-    Create accordion-based settings panel with progressive disclosure.
 
-    This is the new implementation for Feature 011. Uses 5-section accordion
-    where sections progressively unlock as dependencies are satisfied.
-
-    Returns:
-        html.Div: Complete accordion settings panel
-    """
     return html.Div(
         [
-            # Configuration status store (updated by callback to track dependencies)
             dcc.Store(id="configuration-status-store", data={}),
-            # 5-section accordion
             dbc.Accordion(
                 [
-                    # Section 1: Profile Settings (ALWAYS ENABLED)
                     dbc.AccordionItem(
                         [create_profile_settings_card()],
                         title="1. Profile Settings",
                         id="profile-section-accordion",
                         item_id="profile-section",
                     ),
-                    # Section 2: JIRA Configuration (ENABLED WHEN PROFILE EXISTS)
                     dbc.AccordionItem(
                         [
                             html.Div(
@@ -330,7 +246,6 @@ def create_accordion_settings_panel() -> html.Div:
                         id="jira-section-accordion",
                         item_id="jira-section",
                     ),
-                    # Section 3: Field Mappings (ENABLED WHEN JIRA CONNECTED)
                     dbc.AccordionItem(
                         [
                             html.Div(
@@ -342,7 +257,6 @@ def create_accordion_settings_panel() -> html.Div:
                         id="field-mapping-section-accordion",
                         item_id="field-mapping-section",
                     ),
-                    # Section 4: Query Management (ENABLED WHEN JIRA CONFIGURED)
                     dbc.AccordionItem(
                         [
                             html.Div(
@@ -354,7 +268,6 @@ def create_accordion_settings_panel() -> html.Div:
                         id="query-section-accordion",
                         item_id="query-section",
                     ),
-                    # Section 5: Data Operations (ENABLED WHEN QUERY SAVED)
                     dbc.AccordionItem(
                         [
                             html.Div(
@@ -368,16 +281,11 @@ def create_accordion_settings_panel() -> html.Div:
                     ),
                 ],
                 id="settings-accordion",
-                always_open=False,  # Only one section open at a time
-                start_collapsed=False,  # Start with first section open
-                active_item="profile-section",  # Profile section open by default
+                always_open=False,
+                start_collapsed=False,
+                active_item="profile-section",
             ),
-            # Status indicators (updated by callback)
             html.Div(id="dependency-status-display", className="mt-3"),
-            # Hidden components for backward compatibility with legacy callbacks
-            # NOTE: import-export-collapse now lives in
-            # import_export_panel.py (real flyout).
-            # Hidden textarea for legacy jira-jql-query references in settings.py
             dcc.Textarea(id="jira-jql-query", value="", style={"display": "none"}),
         ],
         className="accordion-settings-panel",

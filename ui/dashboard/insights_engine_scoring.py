@@ -1,9 +1,3 @@
-"""Insights Engine - Scoring Orchestration.
-
-Combines signal-group scoring helpers, sorts by severity, limits output,
-and provides a fallback insight when no signals are produced.
-"""
-
 from __future__ import annotations
 
 from typing import Any
@@ -30,7 +24,6 @@ def _build_insights_list(
     flow_metrics: dict[str, Any] | None = None,
     dora_metrics: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
-    """Build, prioritize, and cap insights from all scoring groups."""
     _ = settings
     insights: list[dict[str, Any]] = []
 

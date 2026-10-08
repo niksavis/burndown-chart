@@ -1,5 +1,3 @@
-"""Insights Engine - Pace and Cross-Domain Correlation Scoring."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -19,7 +17,6 @@ def _build_pace_correlation_insights(
     flow_metrics: dict[str, Any] | None,
     dora_metrics: dict[str, Any] | None,
 ) -> list[dict[str, Any]]:
-    """Build cross-domain correlation and required pace insights."""
     insights: list[dict[str, Any]] = []
 
     for signal in build_correlation_signals(

@@ -1,14 +1,3 @@
-"""
-Input Card Components
-
-This module provides card components for data import and configuration.
-These cards handle user input for data sources, JIRA configuration,
-and query management.
-
-Input Cards:
-- create_input_parameters_card: Data import configuration form
-"""
-
 from typing import Any
 
 import dash_bootstrap_components as dbc
@@ -37,32 +26,14 @@ def create_input_parameters_card(
     avg_points_per_item: float,
     estimated_total_points: float,
 ) -> dbc.Card:
-    """
-    Create the data import configuration card.
 
-    Note: Project Timeline and Remaining Work Scope parameters have been moved to the
-    Parameter Panel (collapsible top section) for better UX.
-
-    Args:
-        current_settings: Dictionary with current application settings
-        avg_points_per_item: Current average points per item
-            (unused but kept for compatibility)
-        estimated_total_points: Estimated total points
-            (unused but kept for compatibility)
-
-    Returns:
-        Dash Card component for data import configuration
-    """
-    # Create the card header
     header_content = create_metric_card_header(
         title="Data Import Configuration",
         tooltip_text="Configure data sources and import settings for your project.",
         tooltip_id="data-import-config",
     )
 
-    # Create the card body content - only Data Import Configuration
     body_content = [
-        # Data Source Selection
         html.Div(
             [
                 html.H5(
@@ -105,7 +76,6 @@ def create_input_parameters_card(
                         ),
                     ],
                 ),
-                # Data Export Action
                 html.Hr(className="my-3"),
                 dbc.Row(
                     [
@@ -141,7 +111,6 @@ def create_input_parameters_card(
             ],
             className="mb-4 p-3 bg-light rounded-3",
         ),
-        # Data Import Configuration
         html.Div(
             [
                 html.H5(
@@ -154,7 +123,6 @@ def create_input_parameters_card(
                     ],
                     className="mb-3 border-bottom pb-2 d-flex align-items-center",
                 ),
-                # CSV Upload Container
                 html.Div(
                     id="csv-upload-container",
                     style={
@@ -212,7 +180,6 @@ def create_input_parameters_card(
                         ),
                     ],
                 ),
-                # JIRA Configuration Container
                 html.Div(
                     id="jira-config-container",
                     style={
@@ -221,15 +188,12 @@ def create_input_parameters_card(
                         else "none"
                     },
                     children=[
-                        # Configure JIRA Button
                         create_jira_config_button(),
-                        # JIRA Configuration Status Indicator
                         html.Div(
                             id="jira-config-status-indicator",
                             className="mt-2 mb-3",
                             children=[],
                         ),
-                        # JQL Query Management Section
                         html.Div(
                             [
                                 html.H6(
@@ -239,7 +203,6 @@ def create_input_parameters_card(
                                     ],
                                     className="mb-3 text-primary border-bottom pb-2",
                                 ),
-                                # JQL Query Input
                                 dbc.Row(
                                     [
                                         dbc.Col(
@@ -282,7 +245,6 @@ def create_input_parameters_card(
                                         ),
                                     ],
                                 ),
-                                # Query Actions
                                 dbc.Row(
                                     [
                                         dbc.Col(
@@ -344,7 +306,6 @@ def create_input_parameters_card(
                                         ),
                                     ],
                                 ),
-                                # Feedback section
                                 html.Div(
                                     id="jira-jql-query-save-status",
                                     className="text-center mt-2",
@@ -353,7 +314,6 @@ def create_input_parameters_card(
                             ],
                             className="p-3 bg-light rounded mb-3",
                         ),
-                        # Action Buttons
                         dbc.Row(
                             [
                                 dbc.Col(
@@ -380,7 +340,6 @@ def create_input_parameters_card(
                                 ),
                             ],
                         ),
-                        # Status indicator
                         html.Div(
                             id="jira-cache-status",
                             className="text-center text-muted small",
@@ -393,7 +352,6 @@ def create_input_parameters_card(
         ),
     ]
 
-    # Return the standardized card
     return create_standardized_card(
         header_content=header_content,
         body_content=body_content,

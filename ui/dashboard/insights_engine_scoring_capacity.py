@@ -1,5 +1,3 @@
-"""Insights Engine - Capacity, Scope, and Baseline Deviation Scoring."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -11,7 +9,6 @@ def _build_capacity_scope_insights(
     statistics_df: pd.DataFrame,
     budget_data: dict[str, Any] | None,
 ) -> list[dict[str, Any]]:
-    """Build velocity plateau, scope management, and baseline deviation insights."""
     insights: list[dict[str, Any]] = []
 
     try:

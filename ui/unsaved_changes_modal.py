@@ -1,27 +1,9 @@
-"""
-Unsaved Changes Modal
-
-Prompts user when attempting to switch queries with unsaved JQL changes.
-Provides options to save, discard, or cancel the switch.
-"""
-
 import dash_bootstrap_components as dbc
 from dash import html
 
 
 def create_unsaved_changes_modal() -> dbc.Modal:
-    """
-    Create modal for handling unsaved query changes.
 
-    Triggered when user attempts to switch queries while current query
-    has unsaved JQL modifications. Provides three options:
-    - Save Changes: Opens save query modal
-    - Discard: Abandons changes and switches to selected query
-    - Cancel: Stays on current query with unsaved changes
-
-    Returns:
-        dbc.Modal component
-    """
     return dbc.Modal(
         [
             dbc.ModalHeader(
@@ -45,7 +27,6 @@ def create_unsaved_changes_modal() -> dbc.Modal:
                         ],
                         className="mb-3",
                     ),
-                    # Show changes preview
                     html.H6("Current Changes:", className="mb-2"),
                     html.Div(
                         id="unsaved-changes-jql-preview",

@@ -1,13 +1,3 @@
-"""Bug chart UI components.
-
-Provides UI wrappers for bug visualization charts with proper error handling
-and mobile optimization.
-"""
-
-#######################################################################
-# IMPORTS
-#######################################################################
-
 from dash import dcc, html
 
 from configuration.chart_config import get_bug_analysis_chart_config
@@ -25,32 +15,15 @@ def BugTrendChart(
     viewport_size: str = "mobile",
     show_error_boundaries: bool = True,
 ) -> html.Div:
-    """
-    Create bug trend chart component wrapper.
 
-    Implements T038 - BugTrendChart component wrapper.
-    Wraps visualization.bug_charts.create_bug_trend_chart() with error handling.
-
-    Args:
-        weekly_stats: List of weekly bug statistics from calculate_bug_statistics()
-        viewport_size: "mobile", "tablet", or "desktop"
-        show_error_boundaries: Whether to show error boundaries
-
-    Returns:
-        Dash Bootstrap Components Card with bug trend chart
-    """
     try:
-        # Create the chart figure
         fig = create_bug_trend_chart(weekly_stats, viewport_size)
 
-        # Get unified chart config for consistency across the app
         chart_config = get_bug_analysis_chart_config()
 
         chart_layout = get_mobile_chart_layout(viewport_size)
         chart_height = chart_layout.get("height", 500)
 
-        # Return chart directly without Card wrapper (like Items per Week tab)
-        # This prevents Bootstrap dismissal issues
         return html.Div(
             [
                 html.H5(
@@ -83,7 +56,6 @@ def BugTrendChart(
         )
 
     except Exception as e:
-        # Error boundary - return error message without Card
         if show_error_boundaries:
             return html.Div(
                 [
@@ -101,7 +73,6 @@ def BugTrendChart(
                 className="mb-3",
             )
         else:
-            # Re-raise exception if error boundaries are disabled
             raise
 
 
@@ -110,31 +81,15 @@ def BugInvestmentChart(
     viewport_size: str = "mobile",
     show_error_boundaries: bool = True,
 ) -> html.Div:
-    """
-    Create bug investment chart component wrapper.
 
-    Implements T053 - BugInvestmentChart component wrapper.
-    Wraps visualization.bug_charts.create_bug_investment_chart() with error handling.
-
-    Args:
-        weekly_stats: List of weekly bug statistics from calculate_bug_statistics()
-        viewport_size: "mobile", "tablet", or "desktop"
-        show_error_boundaries: Whether to show error boundaries
-
-    Returns:
-        Dash Bootstrap Components Div with bug investment chart
-    """
     try:
-        # Create the chart figure
         fig = create_bug_investment_chart(weekly_stats, viewport_size)
 
-        # Get unified chart config for consistency across the app
         chart_config = get_bug_analysis_chart_config()
 
         chart_layout = get_mobile_chart_layout(viewport_size)
         chart_height = chart_layout.get("height", 500)
 
-        # Return chart directly without Card wrapper (consistent with BugTrendChart)
         return html.Div(
             [
                 html.H5(
@@ -169,7 +124,6 @@ def BugInvestmentChart(
         )
 
     except Exception as e:
-        # Error boundary - return error message without Card
         if show_error_boundaries:
             return html.Div(
                 [
@@ -187,36 +141,18 @@ def BugInvestmentChart(
                 className="mb-3",
             )
         else:
-            # Re-raise exception if error boundaries are disabled
             raise
 
 
 def BugForecastChart(
     forecast: dict, viewport_size: str = "mobile", show_error_boundaries: bool = True
 ) -> html.Div:
-    """
-    Create bug forecast chart component wrapper.
 
-    Implements T099 - BugForecastChart component wrapper.
-    Wraps visualization.bug_charts.create_bug_forecast_chart() with error handling.
-
-    Args:
-        forecast: Bug forecast dictionary from forecast_bug_resolution()
-        viewport_size: "mobile", "tablet", or "desktop"
-        show_error_boundaries: Whether to show error boundaries
-
-    Returns:
-        Dash Bootstrap Components Div with bug forecast chart
-    """
     try:
-        # Create the chart figure
         fig = create_bug_forecast_chart(forecast, viewport_size)
-
-        # Get mobile-optimized config
 
         chart_config = get_mobile_chart_config(viewport_size)
 
-        # Return chart directly without Card wrapper (consistent with other bug charts)
         return html.Div(
             [
                 html.Div(
@@ -255,5 +191,4 @@ def BugForecastChart(
                 className="mb-3",
             )
         else:
-            # Re-raise exception if error boundaries are disabled
             raise

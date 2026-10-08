@@ -1,21 +1,3 @@
-"""Reusable toast notification components.
-
-Provides a consistent toast notification system for the application.
-Use toasts for non-blocking feedback messages that auto-dismiss.
-
-Usage:
-    from ui.toast_notifications import create_toast
-
-    # Success toast
-    toast = create_toast("Settings saved!", "success")
-
-    # Warning with custom header
-    toast = create_toast("Cache cleared", "warning", header="Cache Status")
-
-    # Error with longer duration
-    toast = create_toast("Failed to connect", "danger", duration=5000)
-"""
-
 import dash_bootstrap_components as dbc
 from dash import html
 
@@ -28,25 +10,12 @@ def create_toast(
     dismissable: bool = True,
     icon: str | None = None,
 ) -> dbc.Toast:
-    """Create a standardized toast notification.
 
-    Args:
-        message: Toast message (string or list of Dash components)
-        toast_type: Type of toast - "success", "warning", "danger", "info"
-        header: Optional header text (auto-generated if None)
-        duration: Auto-dismiss duration in milliseconds (0 for no auto-dismiss)
-        dismissable: Whether user can manually dismiss the toast
-        icon: Optional FontAwesome icon name override
-
-    Returns:
-        dbc.Toast component ready to render
-    """
     import logging  # noqa: PLC0415
     import traceback  # noqa: PLC0415
 
     logger = logging.getLogger(__name__)
 
-    # Log every toast creation with caller info for debugging
     caller_info = traceback.extract_stack()[-2]
     caller_file = caller_info.filename.split("\\")[-1]
     caller_function = caller_info.name
@@ -71,7 +40,6 @@ def create_toast(
         },
     )
 
-    # Default headers based on type
     default_headers = {
         "success": "Success",
         "warning": "Warning",
@@ -79,7 +47,6 @@ def create_toast(
         "info": "Info",
     }
 
-    # Default icons based on type
     default_icons = {
         "success": "check-circle",
         "warning": "exclamation-triangle",
@@ -87,7 +54,6 @@ def create_toast(
         "info": "info-circle",
     }
 
-    # Icon color classes
     icon_colors = {
         "success": "text-success",
         "warning": "text-warning",
@@ -95,11 +61,9 @@ def create_toast(
         "info": "text-info",
     }
 
-    # Build toast content
     icon_name = icon or default_icons.get(toast_type, "info-circle")
     icon_color = icon_colors.get(toast_type, "text-info")
 
-    # Build custom header with icon
     header_text = header or default_headers.get(toast_type, "Notification")
     custom_header = html.Div(
         [
@@ -109,7 +73,6 @@ def create_toast(
         className="d-flex align-items-center",
     )
 
-    # Build message content (without icon, since it's now in header)
     if isinstance(message, str):
         content = message
     elif isinstance(message, list):
@@ -133,17 +96,7 @@ def create_success_toast(
     duration: int = 3000,
     icon: str | None = None,
 ) -> dbc.Toast:
-    """Create a success toast notification.
 
-    Args:
-        message: Success message to display
-        header: Optional header (defaults to "Success")
-        duration: Auto-dismiss duration in ms
-        icon: Optional FontAwesome icon name override
-
-    Returns:
-        dbc.Toast with success styling
-    """
     return create_toast(message, "success", header, duration, icon=icon)
 
 
@@ -153,17 +106,7 @@ def create_error_toast(
     duration: int = 5000,
     icon: str | None = None,
 ) -> dbc.Toast:
-    """Create an error toast notification.
 
-    Args:
-        message: Error message to display
-        header: Optional header (defaults to "Error")
-        duration: Auto-dismiss duration in ms (longer for errors)
-        icon: Optional FontAwesome icon name override
-
-    Returns:
-        dbc.Toast with danger styling
-    """
     return create_toast(message, "danger", header, duration, icon=icon)
 
 
@@ -173,17 +116,7 @@ def create_warning_toast(
     duration: int = 4000,
     icon: str | None = None,
 ) -> dbc.Toast:
-    """Create a warning toast notification.
 
-    Args:
-        message: Warning message to display
-        header: Optional header (defaults to "Warning")
-        duration: Auto-dismiss duration in ms
-        icon: Optional FontAwesome icon name override
-
-    Returns:
-        dbc.Toast with warning styling
-    """
     return create_toast(message, "warning", header, duration, icon=icon)
 
 
@@ -193,15 +126,5 @@ def create_info_toast(
     duration: int = 3000,
     icon: str | None = None,
 ) -> dbc.Toast:
-    """Create an info toast notification.
 
-    Args:
-        message: Info message to display
-        header: Optional header (defaults to "Info")
-        duration: Auto-dismiss duration in ms
-        icon: Optional FontAwesome icon name override
-
-    Returns:
-        dbc.Toast with info styling
-    """
     return create_toast(message, "info", header, duration, icon=icon)

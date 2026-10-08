@@ -1,10 +1,3 @@
-"""
-Configuration Status Panel Component
-
-Shows dependency-first setup progress with progressive unlock indicators.
-Displays current status for Profile → JIRA → Fields → Queries chain.
-"""
-
 from typing import Any
 
 import dash_bootstrap_components as dbc
@@ -12,14 +5,7 @@ from dash import dcc, html
 
 
 def get_action_button_config(action: str) -> dict[str, str] | None:
-    """Get configuration for action buttons.
 
-    Args:
-        action: Action identifier
-
-    Returns:
-        Dict with button configuration (text, icon, color, id)
-    """
     config_map = {
         "configure_jira": {
             "text": "Configure JIRA",
@@ -44,18 +30,10 @@ def get_action_button_config(action: str) -> dict[str, str] | None:
 
 
 def create_setup_progress_display(config_status: dict[str, dict]) -> html.Div:
-    """Create progress display showing current configuration status.
 
-    Args:
-        config_status: Configuration status from get_configuration_status()
-
-    Returns:
-        Progress display component
-    """
     if not config_status:
         return html.Div("Configuration status unavailable", className="text-muted")
 
-    # Calculate progress
     completed_steps = sum(
         1 for step in config_status.values() if step.get("complete", False)
     )
@@ -64,7 +42,6 @@ def create_setup_progress_display(config_status: dict[str, dict]) -> html.Div:
 
     return html.Div(
         [
-            # Progress header
             html.Div(
                 [
                     html.H6("Setup Progress", className="mb-2 fw-semibold text-dark"),
@@ -83,14 +60,12 @@ def create_setup_progress_display(config_status: dict[str, dict]) -> html.Div:
                 ],
                 className="d-flex justify-content-between align-items-center mb-3",
             ),
-            # Progress bar
             dbc.Progress(
                 value=progress_percent,
                 color="success" if progress_percent == 100 else "primary",
                 className="mb-4",
                 style={"height": "8px"},
             ),
-            # Step indicators
             html.Div(
                 [
                     create_step_indicator(
@@ -116,23 +91,13 @@ def create_setup_progress_display(config_status: dict[str, dict]) -> html.Div:
 def create_step_indicator(
     step_id: str, step_name: str, step_status: dict[str, Any]
 ) -> html.Div:
-    """Create individual step indicator.
 
-    Args:
-        step_id: Step identifier
-        step_name: Human-readable step name
-        step_status: Step status info (enabled, complete, message, next_step, action)
-
-    Returns:
-        Step indicator component
-    """
     enabled = step_status.get("enabled", False)
     complete = step_status.get("complete", False)
     message = step_status.get("message", "Status unknown")
     next_step = step_status.get("next_step", "")
     action = step_status.get("action", None)
 
-    # Determine icon and color
     if complete:
         icon = "fas fa-check-circle text-success"
         badge_color = "success"
@@ -146,11 +111,9 @@ def create_step_indicator(
         badge_color = "secondary"
         badge_text = "Locked"
 
-    # Determine if step should be clickable
     clickable = enabled and not complete and action
     cursor_style = "pointer" if clickable else "default"
 
-    # Create action button if available
     action_button = None
     if clickable and action:
         button_config = get_action_button_config(action)
@@ -171,7 +134,6 @@ def create_step_indicator(
         [
             html.Div(
                 [
-                    # Icon and title
                     html.Div(
                         [
                             html.I(className=icon + " me-2"),
@@ -179,14 +141,11 @@ def create_step_indicator(
                         ],
                         className="d-flex align-items-center",
                     ),
-                    # Status badge
                     dbc.Badge(badge_text, color=badge_color, className="ms-auto"),
                 ],
                 className="d-flex justify-content-between align-items-center mb-1",
             ),
-            # Status message
             html.Div(message, className="small text-muted mb-1"),
-            # Next step hint (only for incomplete enabled steps)
             html.Div(
                 f"Next: {next_step}"
                 if (enabled and not complete and next_step)
@@ -198,15 +157,14 @@ def create_step_indicator(
                     else "none"
                 },
             ),
-            # Action button (only for clickable steps)
             action_button if action_button else html.Div(),
         ],
         id=f"config-step-{step_id}",
         className=f"config-step {'clickable' if clickable else 'disabled'}",
         style={
             "cursor": cursor_style,
-            "padding": "12px 16px",  # Increased padding for buttons
-            "borderRadius": "8px",  # Rounded corners
+            "padding": "12px 16px",
+            "borderRadius": "8px",
             "border": "1px solid #dee2e6",
             "backgroundColor": "#ffffff" if enabled else "#f8f9fa",
             "boxShadow": "0 1px 3px rgba(0,0,0,0.1)" if clickable else "none",
@@ -215,25 +173,18 @@ def create_step_indicator(
 
 
 def create_configuration_status_store() -> dcc.Store:
-    """Create dcc.Store component for configuration status."""
     return dcc.Store(
         id="configuration-status-store",
-        data={},  # Will be populated by callback
-        storage_type="session",  # Keep during browser session
+        data={},
+        storage_type="session",
     )
 
 
 def create_config_status_panel() -> html.Div:
-    """Create complete configuration status panel.
 
-    Returns:
-        Complete panel with status display and data store
-    """
     return html.Div(
         [
-            # Data store for configuration status
             create_configuration_status_store(),
-            # Status display (will be populated by callback)
             html.Div(
                 id="setup-progress-display",
                 children=[
@@ -254,14 +205,7 @@ def create_config_status_panel() -> html.Div:
 
 
 def get_section_classes(config_status: dict[str, dict]) -> dict[str, str]:
-    """Get CSS classes for each configuration section based on status.
 
-    Args:
-        config_status: Configuration status from get_configuration_status()
-
-    Returns:
-        Dict mapping section names to CSS class strings
-    """
     if not config_status:
         return {
             "jira-config-section": "config-section disabled",
@@ -269,7 +213,6 @@ def get_section_classes(config_status: dict[str, dict]) -> dict[str, str]:
             "query-management-section": "config-section disabled",
         }
 
-    # Progressive unlock based on dependencies
     jira_enabled = config_status.get("profile", {}).get("complete", False)
     fields_enabled = config_status.get("jira", {}).get("complete", False)
     queries_enabled = config_status.get("fields", {}).get("complete", False)

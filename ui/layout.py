@@ -1,23 +1,10 @@
-"""
-UI Layout Module
-
-This module provides the main application layout structure and serves
-a fresh layout with the latest data from disk on each page load.
-"""
-
-#######################################################################
-# IMPORTS
-#######################################################################
-# Standard library imports
 import logging
 from datetime import datetime
 from typing import Any
 
-# Third-party library imports
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
-# Application imports
 from configuration import __version__
 from data import calculate_total_points
 from data.persistence.adapters import (
@@ -36,35 +23,19 @@ from ui.jira_config_modal import create_jira_config_modal
 from ui.mobile_navigation import create_mobile_navigation_system
 from ui.parameter_panel import create_parameter_panel
 from ui.query_creation_modal import create_query_creation_modal
-
-# Integrated query management modals
-# (Feature 011 - replaces legacy settings_modal query functions)
 from ui.save_query_modal import create_save_query_modal
 from ui.tabs import create_desktop_tabs_only
 from ui.unsaved_changes_modal import create_unsaved_changes_modal
 
-# Initialize logger
 logger = logging.getLogger(__name__)
 
-# Feature flag for new accordion-based settings panel (Feature 011)
-USE_ACCORDION_SETTINGS = False  # Set to True to use accordion UI, False for tabbed UI
-
-#######################################################################
-# LAYOUT FUNCTION
-#######################################################################
+USE_ACCORDION_SETTINGS = False
 
 
 def serve_layout():
-    """
-    Create the application layout.
 
-    Returns:
-        Dash application layout with all components
-    """
-    # Load initial data using new separated functions
     app_settings = load_app_settings()
 
-    # DEBUG: Log the show_points value being loaded
     loaded_show_points = app_settings.get("show_points", "NOT_FOUND")
     logger.info(
         f"[LAYOUT DEBUG] show_points loaded from settings: {loaded_show_points}"
@@ -72,10 +43,8 @@ def serve_layout():
 
     statistics, is_sample_data = load_statistics()
 
-    # Get project scope and use actual remaining values (no window calculations)
     project_scope = get_project_scope()
 
-    # Use actual remaining values from project scope (no window calculations)
     settings = {**app_settings}
     if project_scope:
         settings.update(
@@ -92,21 +61,7 @@ def serve_layout():
 
 
 def create_app_layout(settings, statistics, is_sample_data):
-    """
-    Serve a fresh layout with the latest data from disk.
-    This is crucial for proper browser refresh behavior.
 
-    Args:
-        settings: Dictionary with application settings
-        statistics: List of dictionaries with statistics data
-        is_sample_data: Boolean indicating if the data is sample data
-
-    Returns:
-        Dash Container component with complete application layout
-    """
-    # Calculate total points based on estimated values (for initial display)
-    # Use .get() with defaults since these values
-    # will be set by the initialization callback
     estimated_total_points, avg_points_per_item = calculate_total_points(
         settings.get("total_items", 0),
         settings.get("estimated_items", 0),
@@ -114,12 +69,8 @@ def create_app_layout(settings, statistics, is_sample_data):
         statistics,
     )
 
-    # Import help system components
-    # Import app module for version check (late import to avoid circular dependency)
     import app  # noqa: PLC0415
 
-    # Store version check result for callback access (not rendered in initial layout)
-    # Toast will be shown via callback to avoid being cleared by page load callbacks
     version_update_available = (
         hasattr(app, "VERSION_CHECK_RESULT")
         and isinstance(app.VERSION_CHECK_RESULT, dict)
@@ -189,11 +140,8 @@ def create_app_layout(settings, statistics, is_sample_data):
     else:
         footer_update_children = None
 
-    # Modern app container with updated styling matching DORA/Flow design
     return dbc.Container(
         [
-            # Toast notification container for all app notifications
-            # (profile switching, version updates, migration, etc.)
             html.Div(
                 id="app-notifications",
                 style={
@@ -204,51 +152,28 @@ def create_app_layout(settings, statistics, is_sample_data):
                     "width": "520px",
                 },
             ),
-            # Store version info for callback to display toast after page loads
             dcc.Store(id="version-check-info", data=version_info),
-            # Track if update toast has been shown this session
-            # (prevents showing on every page refresh)
             dcc.Store(id="update-toast-shown", storage_type="session", data=False),
-            # Update status store for tracking download/install progress
             dcc.Store(id="update-status-store", data=None),
-            # Migration status tracking (prevents re-running migration)
             dcc.Store(id="migration-status", storage_type="session", data=None),
-            # JIRA Configuration Modal (Feature 003-jira-config-separation)
             create_jira_config_modal(),
-            # Field Mapping Modal (Feature 007-dora-flow-metrics Phase 4)
             create_field_mapping_modal(),
-            # Integrated Query Management Modals (Feature 011)
             create_save_query_modal(),
             create_unsaved_changes_modal(),
             create_delete_query_modal(),
-            # Query Creation Modal (Feature 011-profile-workspace-switching Phase 4)
             create_query_creation_modal(),
-            # About Dialog (Feature 016 - Standalone Packaging)
             create_about_dialog(),
-            # Help System (Phase 9.2 Progressive Disclosure)
             create_help_system_layout(),
-            # URL location for triggering page load callbacks
             dcc.Location(id="url", refresh=False),
-            # Page initialization complete flag (hidden)
             dcc.Store(id="app-init-complete", data=False),
-            # Persistent storage for the current data
             dcc.Store(id="current-settings", data=settings),
             dcc.Store(id="current-statistics", data=statistics),
-            # Store for sample data flag
             dcc.Store(id="is-sample-data", data=is_sample_data),
-            # Store for raw JIRA issues data (for DORA/Flow metrics calculations)
             dcc.Store(id="jira-issues-store", data=None),
-            # App-level JIRA metadata store
-            # (fetched once on startup, refreshed on config change)
-            # This store is used by field mapping modal and namespace autocomplete
             dcc.Store(id="jira-metadata-store", data=None),
-            # Track JIRA config version to detect changes and trigger metadata refresh
             dcc.Store(id="jira-config-hash", data=None),
-            # Trigger for metadata refresh when JIRA config is saved
             dcc.Store(id="jira-config-save-trigger", data=0),
-            # Trigger metrics calculation after data fetch completes
             dcc.Store(id="trigger-auto-metrics-calc", data=None),
-            # Store for calculation results
             dcc.Store(
                 id="calculation-results",
                 data={
@@ -256,31 +181,23 @@ def create_app_layout(settings, statistics, is_sample_data):
                     "avg_points_per_item": avg_points_per_item,
                 },
             ),
-            # Store for date range selection
             dcc.Store(id="date-range-weeks", data=None),
-            # Store for client-side chart caching (performance optimization)
             dcc.Store(id="chart-cache", data={}),
-            # Store for UI state (loading states, active tabs, etc.)
             dcc.Store(id="ui-state", data={"loading": False, "last_tab": None}),
-            # Store for viewport size detection (mobile, tablet, desktop)
             dcc.Store(id="viewport-size", data="desktop"),
-            # Store for triggering metrics refresh (DORA/Flow)
             dcc.Store(id="metrics-refresh-trigger", data=None),
-            # Interval for download progress polling
             dcc.Interval(
                 id="download-progress-poll",
-                interval=1000,  # Poll every second
+                interval=1000,
                 n_intervals=0,
-                disabled=True,  # Initially disabled, enabled when download starts
+                disabled=True,
             ),
-            # Interval component for dynamic viewport detection
             dcc.Interval(
                 id="viewport-detector",
-                interval=1000,  # Check every second
+                interval=1000,
                 n_intervals=0,
-                max_intervals=-1,  # Run indefinitely
+                max_intervals=-1,
             ),
-            # Store for mobile navigation state
             dcc.Store(
                 id="mobile-nav-state",
                 data={
@@ -288,42 +205,29 @@ def create_app_layout(settings, statistics, is_sample_data):
                     "active_tab": "tab-burndown",
                     "swipe_enabled": True,
                 },
-                storage_type="memory",  # Explicitly set storage type
+                storage_type="memory",
             ),
-            # Store for parameter panel state (User Story 1)
             dcc.Store(
                 id="parameter-panel-state",
                 data={"is_open": False, "user_preference": False},
-                storage_type="local",  # Persist across sessions
+                storage_type="local",
             ),
-            # Parameter & Settings Panels - Sticky at top for app-like feel
-            # MUST be first visible element for sticky positioning to work
             html.Div(
                 [
                     create_parameter_panel(
                         settings, is_open=False, statistics=statistics
                     ),
-                    # Settings panel - always use improved panel,
-                    # which now contains accordion
                     create_improved_settings_panel(),
-                    # Import/Export flyout panel - separate from Settings
-                    # (pure data operations)
                     create_import_export_flyout(),
-                    # Desktop tabs - integrated as part of sticky panel
                     create_desktop_tabs_only(),
                 ],
                 className="param-panel-sticky",
             ),
-            # Backdrop overlay to dim content when panels are expanded
             html.Div(id="panel-backdrop", className="panel-backdrop"),
-            # Add an empty div to hold the forecast-graph
-            # (will be populated by callback)
             html.Div(
                 dcc.Graph(id="forecast-graph", style={"display": "none"}),
                 id="forecast-graph-container",
             ),
-            # Sample data notification banner (shown only when using sample data)
-            # Positioned below the parameter panel
             html.Div(
                 [
                     dbc.Alert(
@@ -355,16 +259,12 @@ def create_app_layout(settings, statistics, is_sample_data):
                 ],
                 id="sample-data-banner",
             ),
-            # Mobile navigation system
-            # must be outside card for proper fixed positioning
             create_mobile_navigation_system(),
-            # Tab content container - wrapped in card for styling
             create_full_width_layout(
                 dbc.Card(
                     [
                         dbc.CardBody(
                             [
-                                # Content div that will be filled based on active tab
                                 html.Div(id="tab-content"),
                             ]
                         ),
@@ -373,12 +273,10 @@ def create_app_layout(settings, statistics, is_sample_data):
                 ),
                 row_class="mb-4",
             ),
-            # Compact footer with clean design
             html.Div(
                 [
                     dbc.Row(
                         [
-                            # Left column - app version
                             dbc.Col(
                                 html.Small(
                                     [
@@ -403,7 +301,6 @@ def create_app_layout(settings, statistics, is_sample_data):
                                     "justify-content-sm-start mb-1 mb-sm-0"
                                 ),
                             ),
-                            # Center column - GitHub and About links
                             dbc.Col(
                                 html.Div(
                                     [
@@ -457,7 +354,6 @@ def create_app_layout(settings, statistics, is_sample_data):
                                 sm=4,
                                 className="mb-1 mb-sm-0",
                             ),
-                            # Right column - Last updated
                             dbc.Col(
                                 html.Small(
                                     [
@@ -480,7 +376,6 @@ def create_app_layout(settings, statistics, is_sample_data):
                         ],
                         className="g-1",
                     ),
-                    # Update available banner (compact, below main row)
                     html.Div(
                         id="footer-update-container",
                         children=footer_update_children,
@@ -496,5 +391,5 @@ def create_app_layout(settings, statistics, is_sample_data):
             ),
         ],
         fluid=True,
-        className="px-3 pb-3",  # Remove top padding to allow sticky positioning
+        className="px-3 pb-3",
     )

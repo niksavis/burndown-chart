@@ -1,13 +1,3 @@
-"""
-About Dialog Component
-
-Modal dialog displaying application information, open source licenses,
-and changelog. Provides transparency about the application and its dependencies.
-"""
-
-#######################################################################
-# IMPORTS
-#######################################################################
 import sys
 from pathlib import Path
 
@@ -16,25 +6,11 @@ from dash import html
 
 from configuration import __version__
 
-#######################################################################
-# HELPER FUNCTIONS
-#######################################################################
-
 
 def _parse_markdown_text(text: str) -> list:
-    """Parse simple markdown formatting and convert to Dash components.
 
-    Supports: **bold**, `code`, [link](url)
-
-    Args:
-        text: Text containing markdown formatting
-
-    Returns:
-        List of html.Span/html.Strong/html.Code/html.A components
-    """
     import re  # noqa: PLC0415
 
-    # Pattern to match **bold**, `code`, and [text](url)
     pattern = r"(\*\*.*?\*\*|`.*?`|\[.*?\]\(.*?\))"
     parts = re.split(pattern, text)
 
@@ -44,15 +20,12 @@ def _parse_markdown_text(text: str) -> list:
             continue
 
         if part.startswith("**") and part.endswith("**"):
-            # Bold text
             bold_text = part[2:-2]
             components.append(html.Strong(bold_text))
         elif part.startswith("`") and part.endswith("`"):
-            # Code text
             code_text = part[1:-1]
             components.append(html.Code(code_text, className="mx-1"))
         elif part.startswith("[") and "](" in part:
-            # Link [text](url)
             link_match = re.match(r"\[(.*?)\]\((.*?)\)", part)
             if link_match:
                 link_text, url = link_match.groups()
@@ -67,29 +40,20 @@ def _parse_markdown_text(text: str) -> list:
             else:
                 components.append(html.Span(part))
         else:
-            # Plain text
             components.append(html.Span(part))
 
     return components if components else [html.Span(text)]
 
 
 def _read_licenses_file() -> str:
-    """Read the THIRD_PARTY_LICENSES.txt file from bundled resources.
 
-    Returns:
-        Content of the licenses file, or error message if not found
-    """
     try:
-        # Check if running as frozen executable
         is_frozen = getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")
 
         if is_frozen:
-            # PyInstaller bundles resources in _MEIPASS directory
             meipass = Path(sys._MEIPASS)  # type: ignore[attr-defined]
             licenses_file = meipass / "licenses" / "THIRD_PARTY_LICENSES.txt"
         else:
-            # Development mode - read from project licenses folder
-            # Go up from ui/ to project root
             project_root = Path(__file__).parent.parent
             licenses_file = project_root / "licenses" / "THIRD_PARTY_LICENSES.txt"
 
@@ -103,16 +67,7 @@ def _read_licenses_file() -> str:
 
 
 def _parse_licenses(licenses_text: str) -> list[dict]:
-    """Parse the plain-vertical format license text into structured data.
 
-    Defensive parsing that handles format variations gracefully without breaking UI.
-
-    Args:
-        licenses_text: Content from THIRD_PARTY_LICENSES.txt
-
-    Returns:
-        List of dicts with keys: name, version, license, url, description
-    """
     licenses = []
     current_entry = {}
     field_order = ["name", "version", "license", "url", "description"]
@@ -121,52 +76,39 @@ def _parse_licenses(licenses_text: str) -> list[dict]:
     try:
         lines = licenses_text.split("\n")
 
-        # Defensive: Find where actual licenses start by looking for separator pattern
-        # Expected format: first 11 lines are header, but check for separator to be safe
         start_index = 0
         separator_count = 0
         for i, line in enumerate(lines):
             if line.strip().startswith("==="):
                 separator_count += 1
                 if separator_count == 2:
-                    # Start after second separator and skip any blank lines
                     start_index = i + 1
                     while start_index < len(lines) and not lines[start_index].strip():
                         start_index += 1
                     break
 
-        # Fallback: if no separators found, assume first 11 lines are header
         if start_index == 0:
             start_index = min(11, len(lines))
 
-        # Parse license entries starting after header
         for line in lines[start_index:]:
             line = line.strip()
 
-            # Empty line signals end of an entry
             if not line:
-                # Only add entry if it has all required fields
                 if current_entry and len(current_entry) == len(field_order):
                     licenses.append(current_entry)
-                # Reset for incomplete entries too (defensive)
                 current_entry = {}
                 field_index = 0
                 continue
 
-            # Parse field based on position (plain-vertical format)
             if field_index < len(field_order):
                 field_name = field_order[field_index]
                 current_entry[field_name] = line
                 field_index += 1
-            # Defensive: ignore extra lines beyond expected 5 fields
 
-        # Add last entry if exists and complete
         if current_entry and len(current_entry) == len(field_order):
             licenses.append(current_entry)
 
     except Exception as e:
-        # Defensive: if parsing fails completely, return empty list
-        # This prevents UI crash but logs the error
         import logging  # noqa: PLC0415
 
         logger = logging.getLogger(__name__)
@@ -177,14 +119,7 @@ def _parse_licenses(licenses_text: str) -> list[dict]:
 
 
 def _create_license_accordion(licenses: list[dict]) -> html.Div | dbc.Alert:
-    """Create accordion with all license entries.
 
-    Args:
-        licenses: List of license dicts
-
-    Returns:
-        html.Div containing accordion with all licenses or Alert if empty
-    """
     if not licenses:
         return dbc.Alert(
             [
@@ -208,7 +143,6 @@ def _create_license_accordion(licenses: list[dict]) -> html.Div | dbc.Alert:
         url = lic.get("url", "")
         description = lic.get("description", "")
 
-        # Create accordion item with enhanced title for searchability
         accordion_items.append(
             dbc.AccordionItem(
                 [
@@ -252,7 +186,6 @@ def _create_license_accordion(licenses: list[dict]) -> html.Div | dbc.Alert:
                     if description
                     else None,
                 ],
-                # Include license type in title for searchability
                 title=f"{name} ({version}) - {license_type}"
                 if version
                 else f"{name} - {license_type}",
@@ -284,24 +217,16 @@ def _create_license_accordion(licenses: list[dict]) -> html.Div | dbc.Alert:
 
 
 def _get_app_info_tab() -> dbc.Tab:
-    """Create App Info tab with version and system information.
 
-    Returns:
-        dbc.Tab containing application information
-    """
-    # Get Python version
     python_version = (
         f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     )
 
-    # Check if running as frozen executable
     is_frozen = getattr(sys, "frozen", False)
     install_type = "Standalone Executable" if is_frozen else "Development Mode"
 
-    # Get latest release notes
     latest_release = _get_latest_release_notes()
 
-    # Build content sections
     content_sections = [
         html.H5("Burndown", className="mb-3"),
         html.P(
@@ -327,7 +252,6 @@ def _get_app_info_tab() -> dbc.Tab:
         ),
     ]
 
-    # Add latest release notes if available
     if latest_release:
         version, date, items = latest_release
         content_sections.extend(
@@ -371,7 +295,6 @@ def _get_app_info_tab() -> dbc.Tab:
             ]
         )
 
-    # Add standard sections
     content_sections.extend(
         [
             html.Hr(),
@@ -418,11 +341,7 @@ def _get_app_info_tab() -> dbc.Tab:
 
 
 def _get_open_source_tab() -> dbc.Tab:
-    """Create Open Source tab with attribution and license links.
 
-    Returns:
-        dbc.Tab containing open source attribution
-    """
     content = html.Div(
         [
             html.H5("Open Source Software", className="mb-3"),
@@ -441,7 +360,6 @@ def _get_open_source_tab() -> dbc.Tab:
             ),
             html.Hr(),
             html.H6("Core Technologies", className="mb-3"),
-            # Python
             html.Div(
                 [
                     html.Strong("Python"),
@@ -461,7 +379,6 @@ def _get_open_source_tab() -> dbc.Tab:
                 ],
                 className="mb-3",
             ),
-            # Dash / Plotly
             html.Div(
                 [
                     html.Strong("Dash / Plotly"),
@@ -483,7 +400,6 @@ def _get_open_source_tab() -> dbc.Tab:
                 ],
                 className="mb-3",
             ),
-            # Bootstrap
             html.Div(
                 [
                     html.Strong("Bootstrap"),
@@ -527,15 +443,9 @@ def _get_open_source_tab() -> dbc.Tab:
 
 
 def _get_licenses_tab() -> dbc.Tab:
-    """Create Licenses tab with third-party license information.
 
-    Returns:
-        dbc.Tab containing license information
-    """
-    # Read and parse licenses
     licenses_text = _read_licenses_file()
 
-    # Check if we got an error message
     if licenses_text.startswith("License file not found") or licenses_text.startswith(
         "Error reading"
     ):
@@ -558,10 +468,8 @@ def _get_licenses_tab() -> dbc.Tab:
             style={"maxHeight": "500px", "overflowY": "auto"},
         )
     else:
-        # Parse licenses
         licenses = _parse_licenses(licenses_text)
 
-        # Extract unique license types for autocomplete
         license_types = sorted(
             set(lic.get("license", "") for lic in licenses if lic.get("license"))
         )
@@ -579,7 +487,6 @@ def _get_licenses_tab() -> dbc.Tab:
                     ],
                     className="text-muted mb-3",
                 ),
-                # Search/filter input with autocomplete and clear button
                 html.Div(
                     [
                         dbc.InputGroup(
@@ -591,7 +498,6 @@ def _get_licenses_tab() -> dbc.Tab:
                                     size="sm",
                                     list="license-types-datalist",
                                     debounce=300,
-                                    # 300ms debounce for better performance
                                 ),
                                 dbc.InputGroupText(
                                     html.I(className="fas fa-search"),
@@ -609,7 +515,6 @@ def _get_licenses_tab() -> dbc.Tab:
                     ],
                     className="mb-3",
                 ),
-                # No results message (hidden by default)
                 dbc.Alert(
                     [
                         html.I(className="fas fa-search me-2"),
@@ -635,11 +540,7 @@ def _get_licenses_tab() -> dbc.Tab:
 
 
 def _get_changelog_tab() -> dbc.Tab:
-    """Create Changelog tab with version history.
 
-    Returns:
-        dbc.Tab containing changelog information
-    """
     changelog_content = _read_and_parse_changelog()
 
     content = html.Div(
@@ -675,19 +576,12 @@ def _get_changelog_tab() -> dbc.Tab:
 
 
 def _get_latest_release_notes() -> tuple[str, str, list[str]] | None:
-    """Extract latest version's release notes from changelog.md.
 
-    Returns:
-        Tuple of (version, date, feature_list) or None if not found
-    """
     import sys  # noqa: PLC0415
 
-    # Determine changelog path (works for both dev and frozen)
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-        # Frozen executable - read from bundled resources
         base_path = Path(sys._MEIPASS)  # type: ignore[attr-defined]
     else:
-        # Development mode - read from project root
         base_path = Path(__file__).parent.parent
 
     changelog_file = base_path / "changelog.md"
@@ -699,7 +593,6 @@ def _get_latest_release_notes() -> tuple[str, str, list[str]] | None:
         content = changelog_file.read_text(encoding="utf-8")
         lines = content.split("\n")
 
-        # Find first version section
         version = None
         date = None
         items = []
@@ -708,21 +601,18 @@ def _get_latest_release_notes() -> tuple[str, str, list[str]] | None:
         for line in lines:
             if line.startswith("## v"):
                 if in_version_section:
-                    # We've reached the next version, stop
                     break
-                # Found first version
                 version = line.replace("## ", "").strip()
                 in_version_section = True
             elif in_version_section:
                 if line.strip().lstrip("*_").startswith("Released:"):
                     date = line.strip().strip("*_").replace("Released:", "").strip()
                 elif line.strip().startswith("- "):
-                    # Extract feature/fix item
-                    item = line.strip()[2:]  # Remove "- " prefix
+                    item = line.strip()[2:]
                     items.append(item)
 
         if version and items:
-            return (version, date or "Date unknown", items[:5])  # Limit to 5 items
+            return (version, date or "Date unknown", items[:5])
 
         return None
 
@@ -731,25 +621,17 @@ def _get_latest_release_notes() -> tuple[str, str, list[str]] | None:
 
 
 def _read_and_parse_changelog() -> html.Div:
-    """Read and parse changelog.md file.
 
-    Returns:
-        html.Div containing parsed changelog sections or fallback content
-    """
     import sys  # noqa: PLC0415
 
-    # Determine changelog path (works for both dev and frozen)
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-        # Frozen executable - read from bundled resources
         base_path = Path(sys._MEIPASS)  # type: ignore[attr-defined]
     else:
-        # Development mode - read from project root
         base_path = Path(__file__).parent.parent
 
     changelog_file = base_path / "changelog.md"
 
     if not changelog_file.exists():
-        # Fallback to hardcoded content if file not found
         return html.Div(
             [
                 html.Div(
@@ -797,7 +679,6 @@ def _read_and_parse_changelog() -> html.Div:
     try:
         content = changelog_file.read_text(encoding="utf-8")
 
-        # Parse markdown sections by version (## v{version})
         version_sections = []
         lines = content.split("\n")
 
@@ -806,27 +687,21 @@ def _read_and_parse_changelog() -> html.Div:
 
         for line in lines:
             if line.startswith("## v"):
-                # Save previous section
                 if current_version and current_content:
                     version_sections.append(
                         (current_version, "\n".join(current_content))
                     )
 
-                # Start new section
                 current_version = line.replace("## ", "").strip()
                 current_content = []
             elif line.startswith("# Changelog"):
-                # Skip main title
                 continue
             elif current_version:
-                # Accumulate content for current version
                 current_content.append(line)
 
-        # Save last section
         if current_version and current_content:
             version_sections.append((current_version, "\n".join(current_content)))
 
-        # Convert to HTML
         if not version_sections:
             return html.Div(
                 dbc.Alert(
@@ -837,12 +712,10 @@ def _read_and_parse_changelog() -> html.Div:
 
         elements = []
         for idx, (version, section_content) in enumerate(version_sections):
-            # Parse section content
             section_lines = [
                 line for line in section_content.split("\n") if line.strip()
             ]
 
-            # Extract date if present
             date_text = None
             items = []
 
@@ -850,14 +723,11 @@ def _read_and_parse_changelog() -> html.Div:
                 if line.strip().lstrip("*_").startswith("Released:"):
                     date_text = line.strip().strip("*_")
                 elif line.strip().startswith("###"):
-                    # Skip section headings - not currently displayed
                     continue
                 elif line.strip().startswith("-"):
-                    # Parse markdown in list item
-                    item_text = line.strip()[2:]  # Remove "- " prefix
+                    item_text = line.strip()[2:]
                     items.append(html.Li(_parse_markdown_text(item_text)))
 
-            # Build version section
             version_header: list = [html.Code(version, className="me-2")]
             if idx == 0:
                 version_header.append(
@@ -878,14 +748,12 @@ def _read_and_parse_changelog() -> html.Div:
 
             elements.append(version_div)
 
-            # Add separator except for last item
             if idx < len(version_sections) - 1:
                 elements.append(html.Hr())
 
         return html.Div(elements)
 
     except Exception as e:
-        # Fallback on parse error
         import logging  # noqa: PLC0415
 
         logger = logging.getLogger(__name__)
@@ -902,17 +770,8 @@ def _read_and_parse_changelog() -> html.Div:
         )
 
 
-#######################################################################
-# MAIN COMPONENT
-#######################################################################
-
-
 def create_about_dialog() -> dbc.Modal:
-    """Create About modal dialog with tabs.
 
-    Returns:
-        dbc.Modal component with tabs for App Info, Open Source, Licenses, and Changelog
-    """
     return dbc.Modal(
         [
             dbc.ModalHeader(

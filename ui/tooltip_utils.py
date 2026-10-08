@@ -1,16 +1,3 @@
-"""
-Tooltip Utilities Module
-
-Re-export shim: preserves the original public API while delegating
-implementation to the focused sub-modules:
-  - ui.tooltip_utils_core  (hoverlabel/template/cache/positioning)
-  - ui.tooltip_utils_cards (card/metric tooltip builders)
-  - ui.tooltip_utils_charts (chart-specific tooltip builders)
-"""
-
-#######################################################################
-# RE-EXPORTS
-#######################################################################
 from ui.tooltip_utils_cards import (  # noqa: F401
     _create_interactive_content,
     create_contextual_help,

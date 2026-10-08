@@ -1,9 +1,3 @@
-"""Forecast Analytics - Chart Generation and Forecast History.
-
-Provides historical forecast data retrieval and trend visualization
-chart builders for the forecast analytics dashboard section.
-"""
-
 from __future__ import annotations
 
 import dash_bootstrap_components as dbc
@@ -14,16 +8,11 @@ from ui.style_constants import COLOR_PALETTE
 
 
 def get_forecast_history() -> tuple[list, list, list]:
-    """Get historical forecast data for trend visualization.
 
-    Returns:
-        Tuple of (dates, items_forecasts, points_forecasts) lists
-    """
     try:
         unified_data = load_unified_project_data()
         forecast_history = unified_data.get("forecast_history", [])
 
-        # Extract data for plotting (last 10 data points)
         dates = []
         items_forecasts = []
         points_forecasts = []
@@ -44,17 +33,7 @@ def _build_forecast_trend_chart(
     history_points: list,
     show_points: bool,
 ) -> dbc.Card | None:
-    """Build forecast evolution trend chart card.
 
-    Args:
-        history_dates: List of calculation date strings
-        history_items: List of items-based forecast dates
-        history_points: List of points-based forecast dates
-        show_points: Whether to render the points track
-
-    Returns:
-        dbc.Card containing the chart, or None if insufficient data
-    """
     if not history_dates or len(history_dates) < 2:
         return None
 

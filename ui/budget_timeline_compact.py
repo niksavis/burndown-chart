@@ -1,11 +1,3 @@
-"""
-Compact Budget Timeline Card - Horizontal visualization
-
-Replaces create_budget_timeline_card() in budget_cards.py
-Designed to be compact, show temporal relationships clearly,
-and provide actionable insights at a glance.
-"""
-
 import logging
 from datetime import datetime
 from typing import Any
@@ -24,27 +16,6 @@ def create_budget_timeline_card(
     pert_forecast_weeks: float | None = None,
     card_id: str | None = None,
 ) -> dbc.Card:
-    """
-    Create compact Budget Timeline card with horizontal timeline visualization.
-
-    Shows temporal relationships between all critical dates:
-    - Purple filled bar: elapsed time (start → today)
-    - Yellow outlined bar: remaining baseline time (today → baseline end)
-        - Vertical markers: TODAY (blue), BASELINE (yellow), FORECAST (green),
-            RUNWAY (green/red)
-    - Compact metrics: elapsed, to baseline, runway gaps
-
-    Args:
-        baseline_data: Dict from get_budget_baseline_vs_actual()
-        pert_forecast_weeks: Optional PERT forecast weeks for completion date
-        card_id: Optional HTML ID for the card
-
-    Returns:
-        Compact Dash Bootstrap Card component
-
-    Example:
-        >>> card = create_budget_timeline_card(baseline_data, 15.0)
-    """
 
     def _fallback_card_footer(text: str, icon: str) -> dbc.CardFooter:
         return dbc.CardFooter(
@@ -56,18 +27,15 @@ def create_budget_timeline_card(
         budget_cards, "_create_card_footer", _fallback_card_footer
     )
 
-    # Extract dates
     start_date_str = baseline_data["baseline"]["start_date"]
     allocated_end_str = baseline_data["baseline"]["allocated_end_date"]
     runway_end_str = baseline_data["actual"]["runway_end_date"]
 
-    # Parse dates
     try:
         start_date = datetime.fromisoformat(start_date_str)
         allocated_end = datetime.fromisoformat(allocated_end_str)
         current_date = datetime.now()
 
-        # Parse runway end (handle special cases)
         if runway_end_str and runway_end_str not in [
             "N/A (no consumption)",
             "Over budget",
@@ -78,7 +46,6 @@ def create_budget_timeline_card(
 
     except Exception as e:
         logger.error(f"Failed to parse timeline dates: {e}")
-        # Return error card
         return dbc.Card(
             dbc.CardBody(
                 [
@@ -92,11 +59,9 @@ def create_budget_timeline_card(
             className="metric-card mb-3 h-100",
         )
 
-    # Calculate timeline positions
     elapsed_weeks = baseline_data["actual"]["elapsed_weeks"]
     runway_vs_baseline_weeks = baseline_data["variance"]["runway_vs_baseline_weeks"]
 
-    # Calculate weeks from start for each milestone
     weeks_elapsed = (current_date - start_date).days / 7.0
     weeks_to_baseline = (allocated_end - start_date).days / 7.0
     weeks_to_forecast = (
@@ -109,22 +74,18 @@ def create_budget_timeline_card(
         else "text-danger"
     )
 
-    # Determine timeline range
     timeline_dates = [weeks_elapsed, weeks_to_baseline]
     if weeks_to_forecast:
         timeline_dates.append(weeks_to_forecast)
     if weeks_to_runway:
         timeline_dates.append(weeks_to_runway)
-    timeline_max = max(timeline_dates) * 1.05  # Add 5% padding
+    timeline_max = max(timeline_dates) * 1.05
 
-    # Helper to calculate position percentage
     def calc_pos(weeks: float) -> float:
         return (weeks / timeline_max * 100) if timeline_max > 0 else 0
 
-    # Build compact horizontal timeline bar
     timeline_bar = html.Div(
         [
-            # Elapsed portion (filled purple)
             html.Div(
                 style={
                     "position": "absolute",
@@ -136,7 +97,6 @@ def create_budget_timeline_card(
                     "zIndex": "1",
                 }
             ),
-            # Baseline portion (outlined yellow)
             html.Div(
                 style={
                     "position": "absolute",
@@ -150,7 +110,6 @@ def create_budget_timeline_card(
                     "zIndex": "1",
                 }
             ),
-            # TODAY marker
             html.Div(
                 [
                     html.Div(
@@ -198,7 +157,6 @@ def create_budget_timeline_card(
                     "height": "100%",
                 },
             ),
-            # BASELINE marker
             html.Div(
                 [
                     html.Div(
@@ -249,7 +207,6 @@ def create_budget_timeline_card(
         ]
         + (
             [
-                # FORECAST marker (if available)
                 html.Div(
                     [
                         html.Div(
@@ -303,7 +260,6 @@ def create_budget_timeline_card(
         )
         + (
             [
-                # RUNWAY marker (if available)
                 html.Div(
                     [
                         html.Div(
@@ -369,7 +325,6 @@ def create_budget_timeline_card(
         className="budget-timeline-bar",
     )
 
-    # Compact metrics row
     baseline_weeks_remaining = (allocated_end - current_date).days / 7.0
     metrics_cols = [
         dbc.Col(
@@ -458,7 +413,6 @@ def create_budget_timeline_card(
 
     metrics_row = dbc.Row(metrics_cols, className="g-3 justify-content-center")
 
-    # Build card
     card = dbc.Card(
         [
             create_metric_card_header(title="Budget Timeline"),

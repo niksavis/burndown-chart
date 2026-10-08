@@ -1,39 +1,20 @@
-"""
-Profile creation and management modals.
-
-Contains unified modal for create/duplicate/rename and deletion confirmation modal.
-"""
-
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 
 def create_profile_form_modal() -> dbc.Modal:
-    """Create unified modal for profile create/duplicate/rename operations.
 
-    Modal behavior controlled by dcc.Store component with mode value:
-    - "create": Empty fields, "Create Profile" button
-    - "duplicate": Pre-filled with source profile, "Duplicate Profile" button
-    - "rename": Pre-filled with current name, "Rename Profile" button
-
-    Returns:
-        Bootstrap modal with dynamic title and button based on mode
-    """
     return dbc.Modal(
         [
             dbc.ModalHeader(dbc.ModalTitle(id="profile-form-modal-title")),
             dbc.ModalBody(
                 [
-                    # Hidden store to track operation mode
                     dcc.Store(id="profile-form-mode", data="create"),
-                    # Hidden store to track source profile ID for duplicate/rename
                     dcc.Store(id="profile-form-source-id", data=None),
-                    # Context info (visible for duplicate/rename only)
                     html.Div(
                         id="profile-form-context-info",
                         className="mb-3 text-muted",
                     ),
-                    # Name input (shared across all modes)
                     dbc.Row(
                         [
                             dbc.Col(
@@ -66,7 +47,6 @@ def create_profile_form_modal() -> dbc.Modal:
                             ),
                         ]
                     ),
-                    # Description textarea (visible for create/duplicate only)
                     html.Div(
                         id="profile-form-description-container",
                         children=[
@@ -94,7 +74,6 @@ def create_profile_form_modal() -> dbc.Modal:
                             ),
                         ],
                     ),
-                    # Error alert (shared)
                     html.Div(
                         id="profile-form-error",
                         className="alert alert-danger d-none",
@@ -128,18 +107,12 @@ def create_profile_form_modal() -> dbc.Modal:
 
 
 def create_profile_deletion_modal() -> dbc.Modal:
-    """Create modal for profile deletion confirmation.
 
-    Returns:
-        Bootstrap modal for confirming profile deletion
-    """
     return dbc.Modal(
         [
             dbc.ModalHeader(dbc.ModalTitle("[!] Delete Profile")),
             dbc.ModalBody(
                 [
-                    # Store profile ID when modal opens to prevent
-                    # wrong profile deletion
                     dcc.Store(id="delete-profile-target-id", data=None),
                     html.P(
                         id="delete-profile-warning",
@@ -196,7 +169,7 @@ def create_profile_deletion_modal() -> dbc.Modal:
                         [html.I(className="fas fa-trash me-2"), "Delete Profile"],
                         id="confirm-delete-profile",
                         color="danger",
-                        disabled=True,  # Disabled until confirmation typed
+                        disabled=True,
                         n_clicks=0,
                     ),
                 ]

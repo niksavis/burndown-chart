@@ -1,16 +1,8 @@
-"""
-Unsaved Changes Warning Component
-
-Provides visual feedback when users have unsaved changes in the JQL editor
-to prevent data loss when switching profiles or making other changes.
-"""
-
 import dash_bootstrap_components as dbc
 from dash import html
 
 
 def create_unsaved_changes_warning():
-    """Create an unsaved changes warning component."""
     return dbc.Alert(
         [
             html.I(className="fas fa-exclamation-triangle me-2"),
@@ -25,7 +17,6 @@ def create_unsaved_changes_warning():
 
 
 def create_query_status_indicator():
-    """Create a query status indicator showing saved/unsaved state."""
     return html.Div(
         [
             html.Span(

@@ -1,9 +1,3 @@
-"""Insights Engine - Dash Component Rendering.
-
-Renders insight dicts (produced by insights_engine_scoring) into
-Dash Bootstrap Components for the actionable insights dashboard section.
-"""
-
 from __future__ import annotations
 
 from typing import Any
@@ -16,14 +10,7 @@ from ui.dashboard.insights_engine_scoring import _build_insights_list
 
 
 def _get_severity_config(severity: str) -> dict[str, str]:
-    """Return display configuration dict for a given severity level.
 
-    Args:
-        severity: One of 'danger', 'warning', 'info', 'success'
-
-    Returns:
-        Dict with icon, color, and badge_text keys
-    """
     severity_configs: dict[str, dict[str, str]] = {
         "danger": {
             "icon": "fa-exclamation-triangle",
@@ -59,29 +46,7 @@ def create_insights_section(
     flow_metrics: dict[str, Any] | None = None,
     dora_metrics: dict[str, Any] | None = None,
 ) -> html.Div:
-    """Create actionable insights section with comprehensive intelligence.
 
-    Args:
-        statistics_df: Filtered project statistics (by data_points_count in callback)
-        settings: Project settings dictionary
-        budget_data: Budget baseline vs actual data
-        pert_data: PERT forecast data (optimistic, most likely, pessimistic)
-        deadline: Project deadline date string
-
-    Returns:
-        html.Div containing actionable insights section
-
-    Note: statistics_df is already filtered by data_points_count in the callback.
-    For velocity comparison, we split the filtered data into two halves:
-    - First half: "historical" baseline velocity
-    - Second half: "recent" velocity trend
-
-    IMPORTANT: Scope growth calculations here use the SAME filtered time window as the
-    Scope Analysis tab. Both calculate from the same statistics_df filtered by the
-    Data Points slider. The numbers should always match. If they don't match:
-    - Check if viewing stale/cached data (refresh the page)
-    - Verify both tabs are using the same data_points_count setting
-    """
     insights = _build_insights_list(
         statistics_df=statistics_df,
         settings=settings,
@@ -93,7 +58,6 @@ def create_insights_section(
         dora_metrics=dora_metrics,
     )
 
-    # Create insight items with expandable details (matching Quality Insights structure)
     insight_items = []
     for idx, insight in enumerate(insights):
         severity_config = _get_severity_config(insight["severity"])

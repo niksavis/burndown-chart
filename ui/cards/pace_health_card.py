@@ -1,15 +1,3 @@
-"""Pace Health Card - Required Velocity to Meet Deadline.
-
-This module provides the "Required Pace to Deadline" card that shows:
-- Required velocity to meet project deadline
-- Current velocity from recent data (filtered by Data Points slider)
-- Velocity gap (how much team needs to improve)
-- Health status with visual indicators (✓/○/❄)
-- Actionable recommendations
-
-Automatically handles scope changes by using current remaining work.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -32,39 +20,13 @@ def create_pace_health_card(
     deadline_days: int,
     show_points: bool = True,
 ) -> dbc.Card:
-    """Create Required Pace to Deadline card.
 
-    Args:
-        required_items: Required items per week to meet deadline
-        current_items: Current items per week from filtered data
-        required_points: Required points per week (None if points disabled)
-        current_points: Current points per week (None if points disabled)
-        deadline_days: Days remaining to deadline
-        show_points: Whether to show points section
-
-    Returns:
-        Dash Card component with pace health metrics
-
-    Example:
-        >>> card = create_pace_health_card(
-        ...     required_items=12.5,
-        ...     current_items=10.0,
-        ...     required_points=48.0,
-        ...     current_points=45.5,
-        ...     deadline_days=28,
-        ...     show_points=True
-        ... )
-    """
-
-    # Calculate items-based metrics
     items_health = assess_pace_health(current_items, required_items)
 
-    # Calculate points-based metrics (if enabled and data available)
     points_health = None
     if show_points and required_points and current_points:
         points_health = assess_pace_health(current_points, required_points)
 
-    # Determine overall health (worst of items/points)
     if points_health:
         overall_health = (
             items_health
@@ -90,7 +52,6 @@ def create_pace_health_card(
 
     return dbc.Card(
         [
-            # Card Header
             create_metric_card_header(
                 title="Required Pace",
                 tooltip_text=(
@@ -102,10 +63,8 @@ def create_pace_health_card(
                 ),
                 tooltip_id="pace-health-card",
             ),
-            # Card Body
             dbc.CardBody(
                 [
-                    # Items-based section
                     html.Div(
                         [
                             html.Div(
@@ -127,7 +86,6 @@ def create_pace_health_card(
                             ),
                             html.Div(
                                 [
-                                    # Numeric display with badge
                                     html.Div(
                                         [
                                             html.Span(
@@ -156,7 +114,6 @@ def create_pace_health_card(
                                             "align-items-center mb-2"
                                         ),
                                     ),
-                                    # Progress bar
                                     html.Div(
                                         html.Div(
                                             f"{items_percent:.1f}%",
@@ -180,7 +137,6 @@ def create_pace_health_card(
                         if show_points
                         else {"marginBottom": "0"},
                     ),
-                    # Points-based section (always show, with placeholder when disabled)
                     html.Div(
                         [
                             html.Div(
@@ -204,7 +160,6 @@ def create_pace_health_card(
                             ),
                             html.Div(
                                 [
-                                    # Numeric display with badge
                                     html.Div(
                                         [
                                             html.Span(
@@ -233,7 +188,6 @@ def create_pace_health_card(
                                             "align-items-center mb-2"
                                         ),
                                     ),
-                                    # Progress bar
                                     html.Div(
                                         html.Div(
                                             f"{points_ratio:.1f}%",
@@ -251,12 +205,10 @@ def create_pace_health_card(
                                     ),
                                 ],
                             )
-                            # Case 1: Points tracking enabled and data available
                             if show_points
                             and points_health
                             and required_points is not None
                             and required_points > 0
-                            # Case 2: Points tracking disabled
                             else (
                                 html.Div(
                                     [
@@ -285,7 +237,6 @@ def create_pace_health_card(
                                     className="text-center",
                                 )
                                 if not show_points
-                                # Case 3: Points tracking enabled but no data
                                 else html.Div(
                                     [
                                         html.I(
@@ -317,7 +268,6 @@ def create_pace_health_card(
                     ),
                 ]
             ),
-            # Card Footer
             dbc.CardFooter(
                 html.Small(
                     f"{deadline_days} days remaining to deadline",

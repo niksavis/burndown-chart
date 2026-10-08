@@ -1,10 +1,3 @@
-"""
-Import/Export Panel Component
-
-Dedicated component for data import/export functionality.
-Separated from main JIRA integration for cleaner UI organization.
-"""
-
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
@@ -12,10 +5,8 @@ from ui.button_utils import create_panel_collapse_button
 
 
 def create_import_export_panel():
-    """Create the import/export panel component (content only, no card wrapper)."""
     return html.Div(
         [
-            # Import Section
             dbc.Row(
                 [
                     dbc.Col(
@@ -94,10 +85,8 @@ def create_import_export_panel():
 
 
 def _create_import_export_tab():
-    """Create simplified Import/Export tab with JSON data and metrics."""
     return html.Div(
         [
-            # Import Section
             html.Div(
                 [
                     html.I(className="fas fa-file-import me-2 text-primary"),
@@ -142,9 +131,7 @@ def _create_import_export_tab():
                 multiple=False,
                 accept=".json,application/json",
             ),
-            # Divider
             html.Hr(className="my-3"),
-            # Export Section
             html.Div(
                 [
                     html.I(className="fas fa-file-export me-2 text-primary"),
@@ -157,7 +144,6 @@ def _create_import_export_tab():
                 className="text-muted small mb-2",
                 style={"fontSize": "0.8rem"},
             ),
-            # T013: Export mode selection
             html.Div(
                 [
                     html.Label(
@@ -186,37 +172,34 @@ def _create_import_export_tab():
                 ],
                 className="mb-2",
             ),
-            # T013: Token inclusion checkbox
             html.Div(
                 [
                     dbc.Checkbox(
                         id="include-token-checkbox",
                         label="Include JIRA Token (WARNING: Security Risk)",
-                        value=False,  # Default unchecked
+                        value=False,
                         style={"fontSize": "0.875rem"},
                     ),
                 ],
                 className="mb-2",
             ),
-            # Budget data inclusion checkbox
             html.Div(
                 [
                     dbc.Checkbox(
                         id="include-budget-checkbox",
                         label="Include Budget Data",
-                        value=False,  # Default unchecked
+                        value=False,
                         style={"fontSize": "0.875rem"},
                     ),
                 ],
                 className="mb-2",
             ),
-            # Changelog inclusion checkbox
             html.Div(
                 [
                     dbc.Checkbox(
                         id="include-changelog-checkbox",
                         label="Include Changelog Entries",
-                        value=False,  # Default unchecked
+                        value=False,
                         style={"fontSize": "0.875rem"},
                     ),
                 ],
@@ -237,14 +220,12 @@ def _create_import_export_tab():
                 style={"marginBottom": "1rem"},
             ),
             dcc.Download(id="export-profile-download"),
-            # Import status alert
             dbc.Alert(
                 id="import-status-alert",
                 is_open=False,
                 dismissable=True,
                 duration=8000,
             ),
-            # T013: Token warning modal
             dbc.Modal(
                 [
                     dbc.ModalHeader("Security Warning"),
@@ -297,7 +278,6 @@ def _create_import_export_tab():
                 id="token-warning-modal",
                 is_open=False,
             ),
-            # T050: Profile conflict resolution modal
             dbc.Modal(
                 [
                     dbc.ModalHeader("Profile Already Exists"),
@@ -340,11 +320,9 @@ def _create_import_export_tab():
                                         "value": "rename",
                                     },
                                 ],
-                                value="merge",  # Smart default: preserve credentials
+                                value="merge",
                                 className="mb-3",
                             ),
-                            # New name input field
-                            # shown only when "Rename" is selected
                             html.Div(
                                 [
                                     dbc.Label(
@@ -364,7 +342,7 @@ def _create_import_export_tab():
                                     ),
                                 ],
                                 id="conflict-rename-section",
-                                style={"display": "none"},  # Hidden by default
+                                style={"display": "none"},
                                 className="mb-3 p-3 bg-light rounded",
                             ),
                             html.Div(
@@ -400,7 +378,6 @@ def _create_import_export_tab():
                 id="conflict-resolution-modal",
                 is_open=False,
             ),
-            # Store for import data between callbacks (T050)
             dcc.Store(id="import-data-store"),
         ],
         className="settings-tab-content",
@@ -408,10 +385,8 @@ def _create_import_export_tab():
 
 
 def _create_reports_tab():
-    """Create simplified Reports tab using Data Points slider value."""
     return html.Div(
         [
-            # Report Section Header
             html.Div(
                 [
                     html.I(className="fas fa-file-alt me-2"),
@@ -424,7 +399,6 @@ def _create_reports_tab():
                 className="text-muted small mb-2",
                 style={"fontSize": "0.8rem"},
             ),
-            # Info about time period
             html.Div(
                 [
                     html.I(className="fas fa-chart-line me-2 text-white"),
@@ -440,7 +414,6 @@ def _create_reports_tab():
                 className="alert alert-info py-2 mb-3",
                 style={"fontSize": "0.8rem"},
             ),
-            # Generate button
             html.Div(
                 [
                     dbc.Button(
@@ -457,7 +430,6 @@ def _create_reports_tab():
                 style={"marginBottom": "1rem"},
             ),
             dcc.Download(id="report-download"),
-            # Hidden elements (kept for backward compatibility with callbacks)
             html.Div(
                 [
                     dbc.Checklist(
@@ -482,10 +454,8 @@ def _create_reports_tab():
 
 
 def _create_ai_prompt_tab():
-    """Create AI Prompt Generator tab."""
     return html.Div(
         [
-            # Header
             html.Div(
                 [
                     html.I(className="fas fa-robot me-2 text-primary"),
@@ -499,7 +469,6 @@ def _create_ai_prompt_tab():
                 className="text-muted small mb-2",
                 style={"fontSize": "0.8rem"},
             ),
-            # Info about time period (mirrors Reports tab)
             html.Div(
                 [
                     html.I(className="fas fa-magic me-2 text-white"),
@@ -515,7 +484,6 @@ def _create_ai_prompt_tab():
                 className="alert alert-info py-2 mb-3",
                 style={"fontSize": "0.8rem"},
             ),
-            # Privacy notice
             html.Div(
                 [
                     html.I(className="fas fa-shield-alt me-2"),
@@ -528,7 +496,6 @@ def _create_ai_prompt_tab():
                 className="alert alert-secondary py-2 mb-3",
                 style={"fontSize": "0.8rem"},
             ),
-            # Generate button (matches other action buttons)
             html.Div(
                 [
                     dbc.Button(
@@ -549,31 +516,15 @@ def _create_ai_prompt_tab():
 
 
 def create_import_export_flyout(is_open: bool = False):
-    """
-    Create a flyout panel for import/export functionality.
 
-    This creates a separate collapsible panel similar to the settings panel
-    for data management operations.
-
-    Args:
-        is_open: Whether panel should start in expanded state
-
-    Returns:
-        html.Div: Complete import/export flyout panel
-    """
     return html.Div(
         [
-            # Collapsible import/export panel content (drops down from button)
             dbc.Collapse(
                 html.Div(
                     [
-                        # Tabs row with collapse button
                         html.Div(
                             [
-                                # Collapse button (positioned absolutely,
-                                # so order does not depend on order here)
                                 create_panel_collapse_button("import-export-collapse"),
-                                # Tabbed interface matching Settings panel
                                 dbc.Tabs(
                                     [
                                         dbc.Tab(

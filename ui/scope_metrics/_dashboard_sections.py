@@ -1,5 +1,3 @@
-"""Private section builder helpers for create_scope_metrics_dashboard."""
-
 import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import html
@@ -17,7 +15,6 @@ def _build_backlog_chart_section(
     baseline_points: float,
     show_points: bool,
 ) -> html.Div:
-    """Build the cumulative backlog size over time chart section."""
     return html.Div(
         [
             html.Div(
@@ -58,7 +55,6 @@ def _build_throughput_section(
     total_completed_points: float,
     show_points: bool,
 ) -> html.Div:
-    """Build the scope change vs team throughput comparison section."""
     muted_small_class = "text-muted ms-1 text-size-sm"
     points_created_completed_label = (
         f" ({total_created_points} created vs {total_completed_points} completed)"
@@ -155,7 +151,6 @@ def _build_growth_patterns_section(
     weekly_growth_data: pd.DataFrame,
     show_points: bool,
 ) -> html.Div:
-    """Build the weekly scope growth chart and agile footnote section."""
     growth_patterns_note = (
         "Growth Patterns: Positive spikes show scope additions from new "
         "requirements or discoveries. Negative values indicate backlog "
@@ -163,7 +158,6 @@ def _build_growth_patterns_section(
     )
     return html.Div(
         [
-            # Weekly Scope Growth Chart with Tooltip
             html.Div(
                 [
                     html.Div(
@@ -188,7 +182,6 @@ def _build_growth_patterns_section(
                 ],
                 className="mb-2",
             ),
-            # Enhanced Footnote with Agile Context
             html.Div(
                 className="text-muted fst-italic small text-center mb-5 pb-3",
                 children=[
@@ -206,7 +199,6 @@ def _build_adaptability_section(
     stability_index: dict,
     show_points: bool,
 ) -> html.Div:
-    """Build the adaptability gauges and agile context footer section."""
     adaptability_points_help = (
         SCOPE_HELP_TEXTS["adaptability_index"]
         + " This version measures adaptability based on story points rather "
@@ -223,7 +215,6 @@ def _build_adaptability_section(
     )
     return html.Div(
         [
-            # Adaptability section with title
             html.H5(
                 [
                     html.I(className="fas fa-chart-pie me-2 text-accent"),
@@ -254,10 +245,8 @@ def _build_adaptability_section(
                                             create_enhanced_stability_gauge(
                                                 stability_index["items_stability"],
                                                 "",
-                                                # Empty title since we have header above
                                                 height=280,
                                                 show_toolbar=False,
-                                                # Hide toolbar for cleaner UI
                                             ),
                                         ]
                                     )
@@ -289,10 +278,8 @@ def _build_adaptability_section(
                                                 create_enhanced_stability_gauge(
                                                     stability_index["points_stability"],
                                                     "",
-                                                    # Empty title (header above)
                                                     height=280,
                                                     show_toolbar=False,
-                                                    # Hide toolbar for cleaner UI
                                                 ),
                                             ]
                                         )
@@ -307,7 +294,6 @@ def _build_adaptability_section(
                     else []
                 ),
             ),
-            # Enhanced Footer with Agile Context
             html.Div(
                 className="text-muted fst-italic small text-center mt-3",
                 children=[

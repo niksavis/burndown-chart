@@ -1,9 +1,3 @@
-"""
-Dashboard Enhanced - Forecast and Velocity Metric Cards
-
-Provides card builders for items/points forecast and velocity display.
-"""
-
 from __future__ import annotations
 
 from datetime import datetime, timedelta
@@ -25,7 +19,6 @@ def _create_forecast_card(
     show_data: bool = True,
     card_id: str | None = None,
 ) -> dbc.Card:
-    """Create enhanced forecast card - readable text, minimal whitespace."""
     if not show_data:
         return dbc.Card(
             dbc.CardBody(
@@ -70,7 +63,6 @@ def _create_forecast_card(
     )
     status_text = "On Track" if status == "on_track" else "At Risk"
 
-    # Probability color
     if probability >= 70:
         prob_color = "#28a745"
     elif probability >= 40:
@@ -83,7 +75,6 @@ def _create_forecast_card(
     return dbc.Card(
         dbc.CardBody(
             [
-                # Header - minimal spacing
                 html.Div(
                     [
                         html.I(
@@ -98,7 +89,6 @@ def _create_forecast_card(
                     ],
                     className="d-flex align-items-center mb-1",
                 ),
-                # Primary forecast
                 html.Div(
                     [
                         html.Div(
@@ -118,7 +108,6 @@ def _create_forecast_card(
                     ],
                     className="mb-2",
                 ),
-                # Confidence intervals
                 html.Div(
                     [
                         html.Div(
@@ -229,7 +218,6 @@ def _create_forecast_card(
                     ],
                     className="mb-2 pb-2 border-bottom",
                 ),
-                # Status
                 html.Div(
                     [
                         html.Div(
@@ -285,7 +273,6 @@ def _create_velocity_card(
     show_data: bool = True,
     card_id: str | None = None,
 ) -> dbc.Card:
-    """Create enhanced velocity card with predictability."""
     if not show_data:
         return dbc.Card(
             dbc.CardBody(
@@ -318,7 +305,6 @@ def _create_velocity_card(
 
     cv = velocity_stats["cv"]
 
-    # Predictability classification
     if cv < 25:
         predict_label = "Predictable"
         predict_color = "#28a745"
@@ -332,7 +318,6 @@ def _create_velocity_card(
         predict_color = "#dc3545"
         predict_emoji = "[X]"
 
-    # Recent trend
     recent_change = velocity_stats["recent_change"]
     if abs(recent_change) < 5:
         trend_icon = "fa-minus"
@@ -350,7 +335,6 @@ def _create_velocity_card(
     return dbc.Card(
         dbc.CardBody(
             [
-                # Header
                 html.Div(
                     [
                         html.I(
@@ -365,7 +349,6 @@ def _create_velocity_card(
                     ],
                     className="d-flex align-items-center mb-1",
                 ),
-                # Primary metric
                 html.Div(
                     [
                         html.Div(
@@ -385,7 +368,6 @@ def _create_velocity_card(
                     ],
                     className="mb-1",
                 ),
-                # Sparkline
                 html.Div(
                     [
                         _create_sparkline_bars(
@@ -401,7 +383,6 @@ def _create_velocity_card(
                     ],
                     className="mb-1 pb-2 border-bottom",
                 ),
-                # Predictability
                 html.Div(
                     [
                         html.Div(

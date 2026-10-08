@@ -1,8 +1,3 @@
-"""Scope Metrics Chart Components
-
-Provides bar and line chart components for scope growth visualization.
-"""
-
 from typing import cast
 
 import plotly.graph_objs as go
@@ -12,10 +7,7 @@ from configuration.chart_config import get_scope_metrics_chart_config
 
 
 def create_scope_growth_chart(weekly_growth_data, show_points=True):
-    """Create a bar chart showing weekly scope growth.
 
-    Uses side-by-side bars and separate y-axes for items and points.
-    """
     if weekly_growth_data.empty:
         empty_layout = go.Layout(
             title="Weekly Scope Growth",
@@ -33,28 +25,22 @@ def create_scope_growth_chart(weekly_growth_data, show_points=True):
             style={"height": f"{chart_height}px"},
         )
 
-    # Calculate the data ranges to align zero lines
     items_min = weekly_growth_data["items_growth"].min()
     items_max = weekly_growth_data["items_growth"].max()
     points_min = weekly_growth_data["points_growth"].min()
     points_max = weekly_growth_data["points_growth"].max()
 
-    # Add some padding (10% of range) to both axes
     items_range = items_max - items_min
     points_range = points_max - points_min
     items_padding = items_range * 0.1 if items_range > 0 else 1
     points_padding = points_range * 0.1 if points_range > 0 else 1
 
-    # Calculate ranges that align zero lines
-    # Get the larger absolute value for each axis to make them symmetric around zero
     items_abs_max = max(abs(items_min), abs(items_max)) + items_padding
     points_abs_max = max(abs(points_min), abs(points_max)) + points_padding
 
-    # Set symmetric ranges around zero to ensure proper alignment
     items_range_final = [-items_abs_max, items_abs_max]
     points_range_final = [-points_abs_max, points_abs_max]
 
-    # Create trace for items - keep blue color, vary intensity for positive/negative
     items_colors = [
         "rgba(0, 123, 255, 0.9)" if val < 0 else "rgba(0, 123, 255, 0.4)"
         for val in weekly_growth_data["items_growth"]
@@ -65,11 +51,9 @@ def create_scope_growth_chart(weekly_growth_data, show_points=True):
         y=weekly_growth_data["items_growth"],
         name="Items (darker=completing faster)",
         marker_color=items_colors,
-        # Darker blue = net reduction (good), lighter = additions
-        width=0.4,  # Make bars narrower to fit side by side
-        offset=-0.25,  # Shift to the left for side by side
-        yaxis="y",  # Use primary y-axis
-        # Add hover text to clarify meaning of values
+        width=0.4,
+        offset=-0.25,
+        yaxis="y",
         hovertemplate=(
             "<b>Items Net Change</b><br>"
             + "Week: %{x}<br>"
@@ -79,7 +63,6 @@ def create_scope_growth_chart(weekly_growth_data, show_points=True):
         ),
     )
 
-    # Create points trace - keep orange color, vary intensity for positive/negative
     points_colors = [
         "rgba(253, 126, 20, 0.9)" if val < 0 else "rgba(253, 126, 20, 0.4)"
         for val in weekly_growth_data["points_growth"]
@@ -90,11 +73,9 @@ def create_scope_growth_chart(weekly_growth_data, show_points=True):
         y=weekly_growth_data["points_growth"],
         name="Points (darker=completing faster)",
         marker_color=points_colors,
-        # Darker orange = net reduction (good), lighter = additions
-        width=0.4,  # Make bars narrower to fit side by side
-        offset=0.25,  # Shift to the right for side by side
-        yaxis="y2",  # Use secondary y-axis
-        # Add hover text to clarify meaning of values
+        width=0.4,
+        offset=0.25,
+        yaxis="y2",
         hovertemplate=(
             "<b>Points Net Change</b><br>"
             + "Week: %{x}<br>"
@@ -104,12 +85,10 @@ def create_scope_growth_chart(weekly_growth_data, show_points=True):
         ),
     )
 
-    # Create data list - include points trace only if points tracking is enabled
     data_traces = [items_trace]
     if show_points:
         data_traces.append(points_trace)
 
-    # Create layout with dual y-axes but still using side-by-side bars
     layout = go.Layout(
         title="Weekly Scope Growth (+ Increase, - Reduction)",
         xaxis={
@@ -127,7 +106,7 @@ def create_scope_growth_chart(weekly_growth_data, show_points=True):
             "zeroline": True,
             "zerolinecolor": "rgba(0, 123, 255, 0.2)",
             "side": "left",
-            "range": items_range_final,  # Set explicit range to align zero
+            "range": items_range_final,
         },
         yaxis2={
             "title": {
@@ -140,14 +119,14 @@ def create_scope_growth_chart(weekly_growth_data, show_points=True):
             "zerolinecolor": "rgba(253, 126, 20, 0.2)",
             "overlaying": "y",
             "side": "right",
-            "range": points_range_final,  # Set explicit range to align zero
+            "range": points_range_final,
         }
         if show_points
         else {},
         height=300,
         margin={
             "l": 60,
-            "r": 60,  # Increased right margin back for the second y-axis
+            "r": 60,
             "t": 70,
             "b": 60,
         },
@@ -159,13 +138,11 @@ def create_scope_growth_chart(weekly_growth_data, show_points=True):
         },
         hovermode="x unified",
         plot_bgcolor="rgba(255, 255, 255, 0.9)",
-        barmode="group",  # Keep the bars grouped side by side
+        barmode="group",
     )
 
-    # Create figure
     figure = go.Figure(data=data_traces, layout=layout)
 
-    # Add a reference line at y=0 for both axes
     figure.add_shape(
         type="line",
         x0=0,
@@ -200,21 +177,7 @@ def create_scope_growth_chart(weekly_growth_data, show_points=True):
 def create_cumulative_scope_chart(
     weekly_growth_data, baseline_items, baseline_points, show_points=True
 ):
-    """
-    Create a line chart showing backlog evolution over time
-    with separate y-axes for items and points.
 
-    Args:
-        weekly_growth_data (DataFrame): DataFrame with weekly growth data
-        baseline_items (int): Initial baseline for items
-            (backlog at period start = current + completed - created)
-        baseline_points (int): Initial baseline for points
-            (backlog at period start = current + completed - created)
-        show_points (bool): Whether to show points traces
-
-    Returns:
-        dcc.Graph: A graph component with backlog size evolution
-    """
     if weekly_growth_data.empty:
         empty_layout = go.Layout(
             title="Backlog Size Over Time",
@@ -232,21 +195,14 @@ def create_cumulative_scope_chart(
             style={"height": f"{chart_height}px"},
         )
 
-    # Sort data by week to ensure proper accumulation
     weekly_data = weekly_growth_data.sort_values("start_date")
 
-    # Create cumulative series for items and points (NET change from baseline)
     weekly_data["cum_items_growth"] = weekly_data["items_growth"].cumsum()
     weekly_data["cum_points_growth"] = weekly_data["points_growth"].cumsum()
 
-    # Calculate actual remaining work over time
-    # by starting from baseline and applying cumulative changes
-    # This represents the actual backlog size at each week (baseline + net_change)
-    # Cannot go negative as long as baseline is positive
     weekly_data["net_scope_items"] = baseline_items + weekly_data["cum_items_growth"]
     weekly_data["net_scope_points"] = baseline_points + weekly_data["cum_points_growth"]
 
-    # Create traces for items (yaxis1) - showing actual remaining work from baseline
     items_baseline_trace = go.Scatter(
         x=weekly_data["week_label"],
         y=[baseline_items] * len(weekly_data),
@@ -276,7 +232,6 @@ def create_cumulative_scope_chart(
         yaxis="y",
     )
 
-    # Create traces for points with different color (yaxis2)
     points_baseline_trace = go.Scatter(
         x=weekly_data["week_label"],
         y=[baseline_points] * len(weekly_data),
@@ -307,8 +262,6 @@ def create_cumulative_scope_chart(
         yaxis="y2",
     )
 
-    # Create data list - include points traces only if points tracking is enabled
-    # Baseline traces show initial scope at start of period
     data_traces = [
         items_baseline_trace,
         items_scope_trace,
@@ -316,7 +269,6 @@ def create_cumulative_scope_chart(
     if show_points:
         data_traces.extend([points_baseline_trace, points_scope_trace])
 
-    # Create layout with dual y-axes
     layout = go.Layout(
         title="Backlog Size Over Time (Remaining Work)",
         xaxis={
@@ -363,7 +315,6 @@ def create_cumulative_scope_chart(
         plot_bgcolor="rgba(255, 255, 255, 0.9)",
     )
 
-    # Create figure with conditional traces
     figure = go.Figure(
         data=data_traces,
         layout=layout,

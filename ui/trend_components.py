@@ -1,13 +1,5 @@
-"""
-Trend Components Module
-
-Components for trend visualization and trend indicators.
-Extracted from ui/components.py during refactoring (bd-rnol).
-"""
-
 from dash import html
 
-# Define common trend icons and colors
 TREND_ICONS = {
     "stable": "fas fa-equals",
     "up": "fas fa-arrow-up",
@@ -16,58 +8,37 @@ TREND_ICONS = {
 }
 
 TREND_COLORS = {
-    "stable": "#6c757d",  # Gray
-    "up": "#28a745",  # Green
-    "down": "#dc3545",  # Red
+    "stable": "#6c757d",
+    "up": "#28a745",
+    "down": "#dc3545",
 }
 
 
 def create_compact_trend_indicator(trend_data, metric_name="Items"):
-    """
-    Create a compact trend indicator component that shows performance trends
-    in a space-efficient way.
 
-    Args:
-        trend_data: Dictionary containing trend information
-        metric_name: Name of the metric being shown (Items or Points)
-
-    Returns:
-        Dash component for displaying trend information in a compact format
-    """
-    # Extract values from trend data or use defaults
     percent_change = trend_data.get("percent_change", 0)
     current_avg = trend_data.get("current_avg", 0)
     previous_avg = trend_data.get("previous_avg", 0)
     weeks_compared = trend_data.get("weeks_compared", 4)
 
-    # Check if we're in baseline building mode
-    # (need 8 weeks: 4 recent + 4 older for comparison)
-    # Two conditions indicate insufficient data:
-    # 1. weeks_compared < 4 means not enough weeks after aggregation
-    # 2. total_weeks_available < 8 means insufficient total data
     total_weeks_needed = 8
-    total_weeks_available = weeks_compared * 2  # Default calculation
+    total_weeks_available = weeks_compared * 2
 
     is_insufficient_data = (
         weeks_compared < 4 or total_weeks_available < total_weeks_needed
     )
 
     if is_insufficient_data:
-        # Not enough data for trend comparison - show baseline building message
-        # Estimate weeks available from the data we have
         if weeks_compared < 4:
             total_weeks_available = weeks_compared * 2
         else:
-            # When weeks_compared=4 but averages are 0, we have < 8 weeks of actual data
-            # This happens when raw statistics_data length < 8
-            total_weeks_available = 0  # Unknown exact count
+            total_weeks_available = 0
 
         direction = "baseline"
         icon_class = TREND_ICONS.get("baseline", "fas fa-hourglass-half")
         text_color = "#6c757d"
         bg_color = "rgba(108, 117, 125, 0.1)"
         border_color = "rgba(108, 117, 125, 0.2)"
-    # Determine trend direction and colors for established trends
     elif abs(percent_change) < 5:
         direction = "stable"
         icon_class = TREND_ICONS["stable"]
@@ -87,7 +58,6 @@ def create_compact_trend_indicator(trend_data, metric_name="Items"):
         bg_color = "rgba(220, 53, 69, 0.1)"
         border_color = "rgba(220, 53, 69, 0.2)"
 
-    # Pre-compute trend badge to avoid long inline ternaries
     if direction == "baseline":
         if total_weeks_available == 0:
             trend_badge = "Building baseline..."
@@ -99,7 +69,6 @@ def create_compact_trend_indicator(trend_data, metric_name="Items"):
     else:
         trend_badge = f"{abs(percent_change):.0f}% {direction.capitalize()}"
 
-    # Create the compact trend indicator
     return html.Div(
         className="compact-trend-indicator d-flex align-items-center p-2 rounded mb-3",
         style={
@@ -108,7 +77,6 @@ def create_compact_trend_indicator(trend_data, metric_name="Items"):
             "maxWidth": "100%",
         },
         children=[
-            # Trend icon with circle background
             html.Div(
                 className=(
                     "trend-icon me-3 d-flex align-items-center "
@@ -126,7 +94,6 @@ def create_compact_trend_indicator(trend_data, metric_name="Items"):
                     style={"color": text_color, "fontSize": "1rem"},
                 ),
             ),
-            # Trend information
             html.Div(
                 className="trend-info",
                 style={"flexGrow": 1, "minWidth": 0},
@@ -183,24 +150,13 @@ def create_compact_trend_indicator(trend_data, metric_name="Items"):
 
 
 def create_trend_indicator(trend_data, metric_name="Items"):
-    """
-    Create a trend indicator component that shows performance trends.
 
-    Args:
-        trend_data: Dictionary containing trend information
-        metric_name: Name of the metric being shown (Items or Points)
-
-    Returns:
-        Dash component for displaying trend information
-    """
-    # Extract values from trend data or use defaults
     percent_change = trend_data.get("percent_change", 0)
     is_significant = trend_data.get("is_significant", False)
     weeks = trend_data.get("weeks_compared", 4)
     current_avg = trend_data.get("current_avg", 0)
     previous_avg = trend_data.get("previous_avg", 0)
 
-    # Determine trend direction based on percent change
     if abs(percent_change) < 5:
         direction = "stable"
     elif percent_change > 0:
@@ -208,14 +164,11 @@ def create_trend_indicator(trend_data, metric_name="Items"):
     else:
         direction = "down"
 
-    # Use global constants for icons and colors
     text_color = TREND_COLORS[direction]
     icon_class = TREND_ICONS[direction]
 
-    # Determine font weight based on significance
     font_weight = "bold" if is_significant else "normal"
 
-    # Pre-compute direction strings to avoid long inline f-strings
     direction_label = (
         "Increase"
         if direction == "up"
@@ -243,7 +196,6 @@ def create_trend_indicator(trend_data, metric_name="Items"):
         else "text-muted"
     )
 
-    # Build the component
     return html.Div(
         [
             html.H6(f"{metric_name} Trend (Last {weeks * 2} Weeks)", className="mb-2"),
@@ -288,7 +240,6 @@ def create_trend_indicator(trend_data, metric_name="Items"):
                 ],
                 className="d-flex flex-wrap small text-muted",
             ),
-            # Add warning/celebration message for significant changes
             html.Div(
                 html.Span(
                     f"This {trend_word} is {significance_text}.",

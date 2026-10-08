@@ -1,8 +1,3 @@
-"""Bug analysis UI components.
-
-Provides UI components for bug metrics display, charts, and analysis tab layout.
-"""
-
 from datetime import datetime
 
 import dash_bootstrap_components as dbc
@@ -23,22 +18,7 @@ BETWEEN_CLASS = "d-flex justify-content-between"
 
 
 def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
-    """Create compact bug metrics summary display with three cards in responsive layout.
 
-    Args:
-        bug_metrics: Bug metrics summary dictionary with:
-            - total_bugs: Total bug count
-            - open_bugs: Open bug count
-            - closed_bugs: Closed bug count
-            - resolution_rate: Resolution rate (0.0-1.0)
-        forecast: Bug resolution forecast dictionary
-
-    Returns:
-        Div containing three metric cards
-        (Resolution Rate, Open Bugs, Expected Resolution)
-        arranged in one row on desktop (md+) and stacked on mobile
-    """
-    # Handle zero bugs case (T027)
     if not bug_metrics or bug_metrics.get("total_bugs", 0) == 0:
         return html.Div(
             [
@@ -52,7 +32,6 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
             ]
         )
 
-    # Extract metrics
     total_bugs = bug_metrics.get("total_bugs", 0)
     open_bugs = bug_metrics.get("open_bugs", 0)
     closed_bugs = bug_metrics.get("closed_bugs", 0)
@@ -61,51 +40,46 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
     date_from = bug_metrics.get("date_from")
     date_to = bug_metrics.get("date_to")
 
-    # Determine resolution rate color and status
     if resolution_rate >= 0.80:
-        rate_color = "#28a745"  # Green
+        rate_color = "#28a745"
         rate_bg = "rgba(40, 167, 69, 0.1)"
         rate_border = "rgba(40, 167, 69, 0.2)"
         rate_status = "Excellent"
         rate_icon = "fa-check-circle"
     elif resolution_rate >= 0.70:
-        rate_color = "#ffc107"  # Yellow
+        rate_color = "#ffc107"
         rate_bg = "rgba(255, 193, 7, 0.1)"
         rate_border = "rgba(255, 193, 7, 0.2)"
         rate_status = "Good"
         rate_icon = "fa-exclamation-triangle"
     else:
-        rate_color = "#dc3545"  # Red
+        rate_color = "#dc3545"
         rate_bg = "rgba(220, 53, 69, 0.1)"
         rate_border = "rgba(220, 53, 69, 0.2)"
         rate_status = "Needs Attention"
         rate_icon = "fa-exclamation-circle"
 
-    # Determine open bugs status
     if open_bugs == 0:
         open_color = "#28a745"
         open_bg = "rgba(40, 167, 69, 0.1)"
         open_border = "rgba(40, 167, 69, 0.2)"
         open_icon = "fa-check-circle"
     elif open_bugs <= 5:
-        open_color = "#20c997"  # Teal
+        open_color = "#20c997"
         open_bg = "rgba(32, 201, 151, 0.1)"
         open_border = "rgba(32, 201, 151, 0.2)"
         open_icon = "fa-bug"
     else:
-        open_color = "#fd7e14"  # Orange
+        open_color = "#fd7e14"
         open_bg = "rgba(253, 126, 20, 0.1)"
         open_border = "rgba(253, 126, 20, 0.2)"
         open_icon = "fa-folder-open"
 
-    # Extract forecast data if available
     most_likely_weeks = forecast.get("most_likely_weeks", 0) if forecast else 0
     most_likely_date = forecast.get("most_likely_date", "") if forecast else ""
     avg_closure_rate = forecast.get("avg_closure_rate", 0.0) if forecast else 0.0
     insufficient_data = forecast.get("insufficient_data", True) if forecast else True
     weeks_analyzed = forecast.get("weeks_analyzed", 0) if forecast else 0
-
-    # Format date for display
 
     def format_date(iso_date: str) -> str:
         if not iso_date:
@@ -131,7 +105,6 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
     )
     date_range_text = f"{date_from_text} - {date_to_text}"
 
-    # Forecast colors based on weeks
     if not insufficient_data and open_bugs > 0:
         if most_likely_weeks <= 2:
             forecast_color = "#28a745"
@@ -152,19 +125,16 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
             forecast_icon = "fa-calendar-alt"
             forecast_status = "Long Term"
     else:
-        # Default colors for insufficient data or zero bugs
         forecast_color = "#6c757d"
         forecast_bg = "rgba(108, 117, 125, 0.1)"
         forecast_border = "rgba(108, 117, 125, 0.2)"
         forecast_icon = "fa-info-circle"
         forecast_status = "N/A"
 
-    # Build the three-card responsive layout
     return html.Div(
         [
             dbc.Row(
                 [
-                    # Resolution Rate Card
                     dbc.Col(
                         [
                             html.Div(
@@ -218,7 +188,6 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
                                                     ),
                                                 ],
                                             ),
-                                            # Add tooltip for Resolution Rate
                                             dbc.Tooltip(
                                                 BUG_ANALYSIS_TOOLTIPS[
                                                     "resolution_rate"
@@ -273,7 +242,6 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
                         md=4,
                         className="mb-2",
                     ),
-                    # Open Bugs Card
                     dbc.Col(
                         [
                             html.Div(
@@ -327,7 +295,6 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
                                                     ),
                                                 ],
                                             ),
-                                            # Add tooltip for Open Bugs
                                             dbc.Tooltip(
                                                 BUG_ANALYSIS_TOOLTIPS["open_bugs"],
                                                 target="info-tooltip-open-bugs-help",
@@ -370,7 +337,6 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
                         md=4,
                         className="mb-2",
                     ),
-                    # Expected Resolution Card
                     dbc.Col(
                         [
                             html.Div(
@@ -427,7 +393,6 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
                                                     ),
                                                 ],
                                             ),
-                                            # Add tooltip for Expected Resolution
                                             dbc.Tooltip(
                                                 BUG_ANALYSIS_TOOLTIPS[
                                                     "expected_resolution"
@@ -502,21 +467,8 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
 def create_quality_insights_panel(
     insights: list[dict], weekly_stats: list[dict] | None = None
 ) -> html.Div:
-    """Create quality insights panel with severity icons and expandable details.
 
-    Args:
-        insights: List of insight dictionaries with:
-            - type: InsightType enum
-            - severity: InsightSeverity enum
-            - message: Short insight message
-            - actionable_recommendation: Detailed recommendation
-        weekly_stats: Optional list of weekly statistics for data sufficiency check
-
-    Returns:
-        Div containing title and Card with quality insights
-    """
     if not insights:
-        # Check if we have weekly stats to provide better feedback
         weeks_available = len(weekly_stats) if weekly_stats else 0
 
         if weeks_available < 3:
@@ -575,7 +527,6 @@ def create_quality_insights_panel(
         )
 
     def get_severity_config(severity: InsightSeverity) -> dict:
-        """Get icon and color configuration for severity level."""
         severity_configs = {
             InsightSeverity.CRITICAL: {
                 "icon": "fa-exclamation-triangle",
@@ -600,12 +551,10 @@ def create_quality_insights_panel(
         }
         return severity_configs.get(severity, severity_configs[InsightSeverity.LOW])
 
-    # Create insight items with expandable details
     insight_items = []
     for idx, insight in enumerate(insights):
         severity_config = get_severity_config(insight["severity"])
 
-        # Create collapse ID for this insight
         collapse_id = f"insight-collapse-{idx}"
 
         insight_item = dbc.Card(
@@ -688,20 +637,7 @@ def create_quality_insights_panel(
 
 
 def create_bug_forecast_card(forecast: dict, open_bugs: int) -> html.Div:
-    """Create compact bug resolution forecast display (indicator-style).
 
-    Args:
-        forecast: Forecast dictionary with:
-            - most_likely_weeks: Expected weeks to resolution
-            - most_likely_date: Expected completion date (ISO format)
-            - avg_closure_rate: Average bugs resolved per week
-            - insufficient_data: True if forecast cannot be calculated
-        open_bugs: Number of currently open bugs
-
-    Returns:
-        Div with compact forecast indicator
-    """
-    # Handle insufficient data case
     if forecast.get("insufficient_data", False):
         return html.Div(
             [
@@ -719,7 +655,6 @@ def create_bug_forecast_card(forecast: dict, open_bugs: int) -> html.Div:
             ]
         )
 
-    # Handle zero open bugs
     if open_bugs == 0:
         return html.Div(
             [
@@ -734,15 +669,11 @@ def create_bug_forecast_card(forecast: dict, open_bugs: int) -> html.Div:
             ]
         )
 
-    # Extract forecast data
     most_likely_weeks = forecast.get("most_likely_weeks", 0)
     most_likely_date = forecast.get("most_likely_date", "")
     avg_closure_rate = forecast.get("avg_closure_rate", 0.0)
 
-    # Format date for display (YYYY-MM-DD -> Mon DD, YYYY)
-
     def format_date(iso_date: str) -> str:
-        """Format ISO date for display."""
         if not iso_date:
             return "N/A"
         try:
@@ -753,21 +684,20 @@ def create_bug_forecast_card(forecast: dict, open_bugs: int) -> html.Div:
 
     most_likely_date_formatted = format_date(most_likely_date)
 
-    # Determine color based on weeks
     if most_likely_weeks <= 2:
-        forecast_color = "#28a745"  # Green
+        forecast_color = "#28a745"
         forecast_bg = "rgba(40, 167, 69, 0.1)"
         forecast_border = "rgba(40, 167, 69, 0.2)"
         forecast_icon = "fa-check-circle"
         forecast_status = "Soon"
     elif most_likely_weeks <= 4:
-        forecast_color = "#20c997"  # Teal
+        forecast_color = "#20c997"
         forecast_bg = "rgba(32, 201, 151, 0.1)"
         forecast_border = "rgba(32, 201, 151, 0.2)"
         forecast_icon = "fa-calendar-check"
         forecast_status = "On Track"
     else:
-        forecast_color = "#ffc107"  # Yellow
+        forecast_color = "#ffc107"
         forecast_bg = "rgba(255, 193, 7, 0.1)"
         forecast_border = "rgba(255, 193, 7, 0.2)"
         forecast_icon = "fa-calendar-alt"
@@ -775,7 +705,6 @@ def create_bug_forecast_card(forecast: dict, open_bugs: int) -> html.Div:
 
     return html.Div(
         [
-            # Compact forecast indicator
             html.Div(
                 className=f"{COMPACT_CARD_CLASS} mb-3",
                 style={
@@ -831,7 +760,6 @@ def create_bug_forecast_card(forecast: dict, open_bugs: int) -> html.Div:
                                     ),
                                 ],
                             ),
-                            # Analysis period information
                             html.Div(
                                 style={
                                     "fontSize": "0.7rem",
@@ -862,16 +790,8 @@ def create_bug_forecast_card(forecast: dict, open_bugs: int) -> html.Div:
 
 
 def create_bug_analysis_tab() -> html.Div:
-    """Create bug analysis tab layout placeholder.
 
-    NOTE: This function is now deprecated. Bug analysis content is rendered
-    directly in the visualization callback for instant loading without
-    the "Loading bug analysis..." flicker.
-
-    Returns:
-        Empty placeholder div (content rendered by visualization callback)
-    """
     return html.Div(
         id="bug-analysis-tab-content",
-        children=html.Div(),  # Empty - will be replaced by callback
+        children=html.Div(),
     )

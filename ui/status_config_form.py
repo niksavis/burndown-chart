@@ -1,9 +1,3 @@
-"""
-Status Configuration Form Component
-
-Provides UI for configuring JIRA status lists with subset validation.
-"""
-
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
@@ -15,27 +9,13 @@ def create_status_config_form(
     wip_statuses=None,
     available_statuses=None,
 ):
-    """
-    Create status list configuration form.
 
-    Args:
-        flow_end_statuses: List of completion status names
-        active_statuses: List of active status names
-        flow_start_statuses: List of flow start status names
-        wip_statuses: List of WIP status names
-        available_statuses: List of available status dictionaries from JIRA
-
-    Returns:
-        Dash component with status configuration UI
-    """
     flow_end_statuses = flow_end_statuses or []
     active_statuses = active_statuses or []
     flow_start_statuses = flow_start_statuses or []
     wip_statuses = wip_statuses or []
     available_statuses = available_statuses or []
 
-    # Create options for dropdowns, grouped by category.
-    # Include current values even if metadata has not been fetched yet.
     status_options = [
         {
             "label": f"{s.get('name', '')} ({s.get('category_name', 'Unknown')})",
@@ -44,7 +24,6 @@ def create_status_config_form(
         for s in available_statuses
     ]
 
-    # Add current values to options if not already present (ensures they display)
     existing_statuses = {s.get("name", "") for s in available_statuses}
     for status in (
         flow_end_statuses + active_statuses + flow_start_statuses + wip_statuses
@@ -54,7 +33,6 @@ def create_status_config_form(
 
     return html.Div(
         [
-            # Flow Metrics Status Classification Card
             dbc.Card(
                 [
                     dbc.CardHeader(
@@ -71,7 +49,6 @@ def create_status_config_form(
                                 ),
                                 className="text-muted small mb-3",
                             ),
-                            # WIP Statuses (first - the superset)
                             dbc.Row(
                                 [
                                     dbc.Col(
@@ -131,7 +108,6 @@ def create_status_config_form(
                                 ],
                                 className="mb-3",
                             ),
-                            # Flow Start Statuses
                             dbc.Row(
                                 [
                                     dbc.Col(
@@ -160,8 +136,6 @@ def create_status_config_form(
                                                 ),
                                                 className="text-muted small mb-2",
                                             ),
-                                            # Dynamic validation warning - shown only
-                                            # when Flow Start has values not in WIP
                                             html.Div(
                                                 id="flow-start-wip-subset-warning",
                                                 className="mb-2",
@@ -193,7 +167,6 @@ def create_status_config_form(
                                 ],
                                 className="mb-3",
                             ),
-                            # Active Statuses
                             dbc.Row(
                                 [
                                     dbc.Col(
@@ -225,8 +198,6 @@ def create_status_config_form(
                                                 ),
                                                 className="text-muted small mb-2",
                                             ),
-                                            # Dynamic validation warning - shown only
-                                            # when Active has values not in WIP
                                             html.Div(
                                                 id="active-wip-subset-warning",
                                                 className="mb-2",
@@ -258,7 +229,6 @@ def create_status_config_form(
                                 ],
                                 className="mb-3",
                             ),
-                            # Flow End (Completion) Statuses
                             dbc.Row(
                                 [
                                     dbc.Col(
@@ -323,9 +293,7 @@ def create_status_config_form(
                 ],
                 className="mb-3",
             ),
-            # Validation warnings
             html.Div(id="status-config-validation-warnings", className="mt-3"),
-            # Auto-detection info
             html.Div(
                 id="status-auto-detection-info",
                 className="mt-3 alert alert-info",

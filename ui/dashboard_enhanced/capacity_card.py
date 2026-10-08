@@ -1,9 +1,3 @@
-"""
-Dashboard Enhanced - Capacity Gap Analysis Card
-
-Provides the capacity gap card comparing required vs actual velocity.
-"""
-
 from __future__ import annotations
 
 import dash_bootstrap_components as dbc
@@ -17,7 +11,6 @@ def _create_capacity_card(
     days_to_deadline: float,
     show_data: bool = True,
 ) -> dbc.Card:
-    """Create capacity gap analysis card."""
     if not show_data:
         return dbc.Card(
             dbc.CardBody(
@@ -52,7 +45,6 @@ def _create_capacity_card(
         (capacity_gap / required_velocity * 100) if required_velocity > 0 else 0
     )
 
-    # Status
     if gap_percent >= -5:
         gap_color = "#28a745"
         gap_emoji = "[OK]"
@@ -66,7 +58,6 @@ def _create_capacity_card(
         gap_emoji = "[X]"
         gap_label = "SHORTFALL"
 
-    # Calculate options
     weeks_to_deadline = days_to_deadline / 7
     scope_reduction = abs(capacity_gap * weeks_to_deadline) if gap_percent < 0 else 0
     velocity_increase = abs(gap_percent) if gap_percent < 0 else 0
@@ -74,7 +65,6 @@ def _create_capacity_card(
     return dbc.Card(
         dbc.CardBody(
             [
-                # Header
                 html.Div(
                     [
                         html.I(
@@ -89,7 +79,6 @@ def _create_capacity_card(
                     ],
                     className="d-flex align-items-center mb-1",
                 ),
-                # Status
                 html.Div(
                     [
                         html.Div(
@@ -118,7 +107,6 @@ def _create_capacity_card(
                     ],
                     className="mb-1",
                 ),
-                # Metrics
                 html.Div(
                     [
                         html.Div(
@@ -154,7 +142,6 @@ def _create_capacity_card(
                     ],
                     className="mb-1 pb-2 border-bottom",
                 ),
-                # Action
                 html.Div(
                     (
                         html.Div(

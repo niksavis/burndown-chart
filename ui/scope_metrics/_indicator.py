@@ -1,8 +1,3 @@
-"""Scope Change Indicator Component
-
-Provides the scope change indicator widget for scope metrics dashboard.
-"""
-
 import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import html
@@ -20,33 +15,14 @@ def create_scope_change_indicator(
     help_key=None,
     help_category=None,
 ):
-    """
-    Create a scope change indicator that shows scope change rate
-    with throughput ratio comparison.
 
-    Args:
-        title: Title of the scope change metric
-        value: Percentage value of scope change
-        threshold: Threshold percentage for determining status color
-        tooltip: Optional tooltip text
-        throughput_ratio: Optional ratio of created vs completed items/points
-
-    Returns:
-        html.Div: A scope change indicator component
-    """
-    # Use the threshold from DEFAULT_SETTINGS if not provided
     if threshold is None:
         threshold = DEFAULT_SETTINGS["scope_change_threshold"]
 
-    # Generate a unique ID for the indicator based on the title (for tooltip target)
     indicator_id = f"scope-indicator-{title.lower().replace(' ', '-')}"
 
-    # Determine status based on value and throughput ratio
     high_throughput_ratio = throughput_ratio and throughput_ratio > 1
 
-    # By default, scope changes are not considered negative
-    # Only if changes are significant AND outpacing throughput,
-    # we show warning indicators
     if value is None or pd.isna(value):
         icon_class = TREND_ICONS["stable"]
         text_color = TREND_COLORS["stable"]
@@ -55,26 +31,23 @@ def create_scope_change_indicator(
         value_text = "N/A"
         status_text = "Unknown"
     elif value > threshold and high_throughput_ratio:
-        # Only show warning if both threshold exceeded and throughput ratio > 1
         icon_class = TREND_ICONS["up"]
-        text_color = TREND_COLORS["down"]  # Red to indicate potential concern
-        bg_color = "rgba(220, 53, 69, 0.1)"  # Light red background
+        text_color = TREND_COLORS["down"]
+        bg_color = "rgba(220, 53, 69, 0.1)"
         border_color = "rgba(220, 53, 69, 0.2)"
         value_text = f"{value}%"
         status_text = "High Change"
     elif value > threshold * 0.8 and high_throughput_ratio:
-        # Warning level - approaching threshold and throughput ratio > 1
         icon_class = TREND_ICONS["up"]
-        text_color = "#fd7e14"  # Orange color for notice
-        bg_color = "rgba(253, 126, 20, 0.1)"  # Light orange background
+        text_color = "#fd7e14"
+        bg_color = "rgba(253, 126, 20, 0.1)"
         border_color = "rgba(253, 126, 20, 0.2)"
         value_text = f"{value}%"
         status_text = "Moderate Change"
     else:
-        # Normal - either below threshold or not outpacing throughput
         icon_class = TREND_ICONS["up" if value > 0 else "stable"]
-        text_color = "#20c997"  # Teal color for neutral/information
-        bg_color = "rgba(32, 201, 151, 0.1)"  # Light teal background
+        text_color = "#20c997"
+        bg_color = "rgba(32, 201, 151, 0.1)"
         border_color = "rgba(32, 201, 151, 0.2)"
         value_text = f"{value}%"
         status_text = "Normal Change"
@@ -90,7 +63,6 @@ def create_scope_change_indicator(
         "mt-1 text-size-xs text-muted"
     )
 
-    # Create the compact trend-style indicator
     indicator = html.Div(
         className=(
             "compact-trend-indicator scope-change-indicator d-flex "
@@ -103,7 +75,6 @@ def create_scope_change_indicator(
         },
         id=indicator_id,
         children=[
-            # Icon with circle background
             html.Div(
                 className=(
                     "trend-icon scope-change-icon me-3 d-flex "
@@ -113,7 +84,6 @@ def create_scope_change_indicator(
                     className=f"{icon_class} scope-change-icon-symbol",
                 ),
             ),
-            # Scope Change information
             html.Div(
                 className="trend-info scope-change-info",
                 children=[
@@ -126,8 +96,6 @@ def create_scope_change_indicator(
                                         title,
                                         className="fw-medium text-size-sm",
                                     ),
-                                    # Phase 9.2 Progressive Disclosure:
-                                    # Add help button if help parameters provided
                                     (
                                         help_key
                                         and help_category
@@ -199,7 +167,6 @@ def create_scope_change_indicator(
         ],
     )
 
-    # Add tooltip if provided
     if tooltip:
         return html.Div(
             [
@@ -217,5 +184,4 @@ def create_scope_change_indicator(
     return indicator
 
 
-# For backwards compatibility
 create_scope_creep_indicator = create_scope_change_indicator

@@ -1,10 +1,3 @@
-"""
-Dashboard Enhanced - Overview Bar Widget
-
-Provides the compact top-level overview bar showing health, progress,
-deadline, and success probability at a glance.
-"""
-
 from __future__ import annotations
 
 import dash_bootstrap_components as dbc
@@ -23,7 +16,6 @@ def _create_overview_bar(
     deadline_str: str,
     items_probability: float,
 ) -> dbc.Card:
-    """Build the compact overview bar card with key project metrics."""
     prob_color = (
         "#28a745"
         if items_probability >= 70
@@ -35,10 +27,8 @@ def _create_overview_bar(
     return dbc.Card(
         dbc.CardBody(
             [
-                # Top row: Main metrics (wraps on mobile)
                 html.Div(
                     [
-                        # Health Status
                         html.Div(
                             [
                                 html.Span(
@@ -71,7 +61,6 @@ def _create_overview_bar(
                             className="d-flex align-items-center px-2 py-1",
                             style={"minWidth": "100px"},
                         ),
-                        # Divider (hidden on mobile)
                         html.Div(
                             style={
                                 "width": "1px",
@@ -81,7 +70,6 @@ def _create_overview_bar(
                             },
                             className="d-none d-md-block",
                         ),
-                        # Progress
                         html.Div(
                             [
                                 html.I(
@@ -132,7 +120,6 @@ def _create_overview_bar(
                             className="d-flex align-items-center px-2 py-1",
                             style={"minWidth": "140px"},
                         ),
-                        # Divider (hidden on mobile)
                         html.Div(
                             style={
                                 "width": "1px",
@@ -142,7 +129,6 @@ def _create_overview_bar(
                             },
                             className="d-none d-md-block",
                         ),
-                        # Deadline
                         html.Div(
                             [
                                 html.I(
@@ -184,7 +170,6 @@ def _create_overview_bar(
                             className="d-flex align-items-center px-2 py-1",
                             style={"minWidth": "120px"},
                         ),
-                        # Divider (hidden on mobile)
                         html.Div(
                             style={
                                 "width": "1px",
@@ -194,7 +179,6 @@ def _create_overview_bar(
                             },
                             className="d-none d-lg-block",
                         ),
-                        # Success Probability
                         html.Div(
                             [
                                 html.I(
@@ -234,9 +218,7 @@ def _create_overview_bar(
                     ),
                     style={"gap": "0.25rem"},
                 ),
-                # Divider line (on mobile)
                 html.Hr(className="my-2 d-md-none", style={"margin": "0.5rem 0"}),
-                # Bottom row: Key Indicators (wraps on mobile)
                 html.Div(
                     [
                         html.Span(

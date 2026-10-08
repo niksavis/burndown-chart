@@ -1,17 +1,3 @@
-"""
-Budget Cards - Cost Metrics Module
-
-Cost efficiency tracking cards for item-based and point-based delivery metrics.
-Extracted from budget_cards.py as part of architectural refactoring.
-
-Cards:
-1. Cost per Item - Team cost divided by delivery velocity (items/week)
-2. Cost per Point - Team cost divided by story point velocity (conditional)
-3. Budget Forecast - Consumption status with PERT forecast
-
-Created: January 30, 2026 (extracted from budget_cards.py)
-"""
-
 import logging
 from typing import Any
 
@@ -31,27 +17,11 @@ def create_cost_per_item_card(
     card_id: str | None = None,
     baseline_data: dict[str, Any] | None = None,
 ) -> dbc.Card:
-    """
-    Create Cost per Item card (auto-calculated from Team Cost ÷ Velocity).
 
-    Args:
-        cost_per_item: Current cost per item
-        pert_weighted_avg: PERT-weighted average cost per item
-        currency_symbol: Currency symbol for display
-        card_id: Optional HTML ID for the card
-        baseline_data: Optional dict from get_budget_baseline_vs_actual()
-
-    Returns:
-        Dash Bootstrap Card component
-
-    Example:
-        >>> card = create_cost_per_item_card(425.50, 410.20, "€")
-    """
     details = {"calculation": "Auto-calculated: Team Cost / Velocity"}
     if pert_weighted_avg:
         details["pert_avg"] = f"{currency_symbol}{pert_weighted_avg:.2f}"
 
-    # Build rich text details for baseline comparison
     text_details = None
     if baseline_data:
         variance_eur = baseline_data["variance"]["cost_per_item_variance_eur"]
@@ -62,7 +32,6 @@ def create_cost_per_item_card(
 
         budgeted_cost_per_item = budgeted_rate / baseline_velocity
 
-        # Variance badge
         if abs(variance_pct) < 5:
             variance_badge = dbc.Badge("On Target", color="success", className="ms-2")
         elif variance_eur < 0:
@@ -76,11 +45,7 @@ def create_cost_per_item_card(
                 f"{variance_pct:.1f}% Less Efficient", color="danger", className="ms-2"
             )
 
-        # Calculate deviation percentage
-        # (negative = more efficient, positive = less efficient)
-        # Cap at ±50% for visual display
         deviation_pct = min(max(variance_pct, -50), 50)
-        # Convert to 0-100 scale: -50% = 0, 0% = 50, +50% = 100
         visual_position = 50 + deviation_pct
 
         text_details = [
@@ -113,7 +78,6 @@ def create_cost_per_item_card(
                             ),
                         ],
                     ),
-                    # Efficiency deviation indicator (centered at baseline)
                     html.Div(
                         [
                             html.Div(
@@ -146,7 +110,6 @@ def create_cost_per_item_card(
                             ),
                             html.Div(
                                 [
-                                    # Background track
                                     html.Div(
                                         style={
                                             "position": "absolute",
@@ -161,7 +124,6 @@ def create_cost_per_item_card(
                                             "opacity": "0.3",
                                         },
                                     ),
-                                    # Baseline marker (center)
                                     html.Div(
                                         style={
                                             "position": "absolute",
@@ -173,7 +135,6 @@ def create_cost_per_item_card(
                                             "top": "-3px",
                                         },
                                     ),
-                                    # Actual position indicator
                                     html.Div(
                                         style={
                                             "position": "absolute",
@@ -249,25 +210,8 @@ def create_cost_per_point_card(
     card_id: str | None = None,
     baseline_data: dict[str, Any] | None = None,
 ) -> dbc.Card:
-    """
-    Create Cost per Point card (conditional on points_field_available).
 
-    Args:
-        cost_per_point: Current cost per story point
-        pert_weighted_avg: PERT-weighted average cost per point
-        points_available: Whether points field is available
-        currency_symbol: Currency symbol for display
-        card_id: Optional HTML ID for the card
-        baseline_data: Optional dict from get_budget_baseline_vs_actual()
-
-    Returns:
-        Dash Bootstrap Card component or warning card
-
-    Example:
-        >>> card = create_cost_per_point_card(85.10, 82.40, True, "€")
-    """
     if not points_available:
-        # Return placeholder card when points are not configured
         metric_data = {
             "metric_name": "cost_per_point",
             "alternative_name": "Cost Per Point",
@@ -289,7 +233,6 @@ def create_cost_per_point_card(
         }
         return create_metric_card(metric_data, card_id, show_details_button=False)
 
-    # Check if points tracking is enabled but no data available
     if cost_per_point is None or cost_per_point == 0:
         metric_data = {
             "metric_name": "cost_per_point",
@@ -313,12 +256,10 @@ def create_cost_per_point_card(
     if pert_weighted_avg:
         details["pert_avg"] = f"{currency_symbol}{pert_weighted_avg:.2f}"
 
-    # Build rich text details for baseline comparison (similar to cost per item)
     text_details = None
     if baseline_data:
         velocity_points = baseline_data["actual"]["velocity_points"]
         budgeted_rate = baseline_data["baseline"]["team_cost_per_week_eur"]
-        # Get baseline velocity from budget settings (not hardcoded)
         baseline_velocity_points = baseline_data["baseline"].get(
             "assumed_baseline_velocity_points", 21.0
         )
@@ -331,7 +272,6 @@ def create_cost_per_point_card(
             else 0
         )
 
-        # Variance badge
         if abs(variance_pct) < 5:
             variance_badge = dbc.Badge("On Target", color="success", className="ms-2")
         elif variance_eur < 0:
@@ -345,11 +285,7 @@ def create_cost_per_point_card(
                 f"{variance_pct:.1f}% Less Efficient", color="danger", className="ms-2"
             )
 
-        # Calculate deviation percentage
-        # (negative = more efficient, positive = less efficient)
-        # Cap at ±50% for visual display
         deviation_pct = min(max(variance_pct, -50), 50)
-        # Convert to 0-100 scale: -50% = 0, 0% = 50, +50% = 100
         visual_position = 50 + deviation_pct
 
         text_details = [
@@ -383,7 +319,6 @@ def create_cost_per_point_card(
                             ),
                         ],
                     ),
-                    # Efficiency deviation indicator (centered at baseline)
                     html.Div(
                         [
                             html.Div(
@@ -416,7 +351,6 @@ def create_cost_per_point_card(
                             ),
                             html.Div(
                                 [
-                                    # Background track
                                     html.Div(
                                         style={
                                             "position": "absolute",
@@ -431,7 +365,6 @@ def create_cost_per_point_card(
                                             "opacity": "0.3",
                                         },
                                     ),
-                                    # Baseline marker (center)
                                     html.Div(
                                         style={
                                             "position": "absolute",
@@ -443,7 +376,6 @@ def create_cost_per_point_card(
                                             "top": "-3px",
                                         },
                                     ),
-                                    # Actual position indicator
                                     html.Div(
                                         style={
                                             "position": "absolute",
@@ -522,34 +454,9 @@ def create_budget_forecast_card(
     card_id: str | None = None,
     data_points_count: int = 12,
 ) -> dbc.Card:
-    """
-    Create Budget Status card with consumed/remaining progress and forecast.
 
-    Compact layout with horizontal progress bar and inline metrics.
-
-    Args:
-        forecast_value: Forecasted total budget needed
-        confidence_low: Lower confidence bound (pessimistic)
-        confidence_high: Upper confidence bound (optimistic)
-        consumed_pct: Percentage of budget consumed
-        consumed_eur: Absolute amount consumed
-        budget_total: Total budget amount
-        confidence_level: "established" or "building"
-        currency_symbol: Currency symbol for display
-        card_id: Optional HTML ID for the card
-        data_points_count: Number of weeks for context
-
-    Returns:
-        Dash Bootstrap Card component
-
-    Example:
-        >>> card = create_budget_forecast_card(
-        ...     48500, 45000, 52000, 75.5, 37750, 50000, "established", "€"
-        ... )
-    """
     remaining_eur = budget_total - consumed_eur
 
-    # Build text details with progress bar and breakdown
     if consumed_pct < 70:
         tier_color = "green"
         tier_label = "Healthy"
@@ -569,7 +476,6 @@ def create_budget_forecast_card(
 
     remaining_eur = budget_total - consumed_eur
 
-    # Build text details with progress bar and breakdown
     text_details = [
         html.Div(
             [
@@ -578,7 +484,6 @@ def create_budget_forecast_card(
                     className="text-muted fw-bold d-block mb-3 text-center",
                     style={"fontSize": "0.75rem"},
                 ),
-                # Progress bar
                 html.Div(
                     [
                         html.Div(
@@ -615,7 +520,6 @@ def create_budget_forecast_card(
                         ),
                     ],
                 ),
-                # Consumed and Remaining breakdown
                 dbc.Row(
                     [
                         dbc.Col(
@@ -653,7 +557,6 @@ def create_budget_forecast_card(
                     ],
                     className="g-2",
                 ),
-                # Forecast
                 html.Div(
                     [
                         html.I(

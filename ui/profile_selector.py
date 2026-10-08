@@ -1,10 +1,3 @@
-"""
-Profile selector UI component.
-
-Provides dropdown for profile selection and management buttons.
-Follows the same pattern as query_selector.py for consistency.
-"""
-
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
@@ -12,22 +5,12 @@ from data.profile_manager import get_active_profile, list_profiles
 
 
 def create_profile_dropdown(id_suffix: str = "") -> dbc.Col:
-    """Create profile dropdown selector.
 
-    Args:
-        id_suffix: Optional suffix for component IDs
-
-    Returns:
-        Bootstrap column containing profile dropdown
-    """
-    # Load profiles
     profiles = list_profiles()
     active_profile = get_active_profile()
 
-    # Build dropdown options
     options = []
     for profile in profiles:
-        # Create label with JIRA URL to help distinguish profiles
         jira_info = ""
         if profile.get("jira_url"):
             jira_info = f" • {profile['jira_url']}"
@@ -38,14 +21,12 @@ def create_profile_dropdown(id_suffix: str = "") -> dbc.Col:
 
         options.append({"label": label, "value": profile["id"]})
 
-    # Determine initial value
     value = (
         active_profile.id if active_profile else (profiles[0]["id"] if profiles else "")
     )
 
     return dbc.Col(
         [
-            # Hidden store to trigger dropdown refresh after profile switches
             dcc.Store(id="profile-switch-trigger", data=0),
             html.Label(
                 "Profile",
@@ -64,19 +45,12 @@ def create_profile_dropdown(id_suffix: str = "") -> dbc.Col:
         xs=12,
         lg=6,
         className="mb-3",
-        id="profile-selector-container",  # ID for CSS z-index stacking context
+        id="profile-selector-container",
     )
 
 
 def create_profile_actions(id_suffix: str = "") -> dbc.Col:
-    """Create profile action buttons (create, rename, duplicate, delete).
 
-    Args:
-        id_suffix: Optional suffix for component IDs
-
-    Returns:
-        Bootstrap column containing action buttons
-    """
     return dbc.Col(
         dbc.ButtonGroup(
             [
@@ -108,7 +82,7 @@ def create_profile_actions(id_suffix: str = "") -> dbc.Col:
                 ),
             ],
             className="w-100",
-            style={"marginTop": "1.71rem"},  # Align with dropdown (label height + mb-1)
+            style={"marginTop": "1.71rem"},
         ),
         xs=12,
         lg=6,
@@ -117,14 +91,7 @@ def create_profile_actions(id_suffix: str = "") -> dbc.Col:
 
 
 def create_profile_selector_panel(id_suffix: str = "") -> html.Div:
-    """Create complete profile selector panel with dropdown and actions.
 
-    Args:
-        id_suffix: Optional suffix for component IDs
-
-    Returns:
-        Div containing profile management UI (no card wrapper)
-    """
     return html.Div(
         [
             dbc.Row(
@@ -136,19 +103,12 @@ def create_profile_selector_panel(id_suffix: str = "") -> html.Div:
             ),
         ],
         className="mb-0",
-        style={"position": "relative"},  # For absolute positioning of overlay
+        style={"position": "relative"},
     )
 
 
 def create_profile_tooltip_content(profile: dict) -> str:
-    """Create tooltip content for profile hover.
 
-    Args:
-        profile: Profile data dict
-
-    Returns:
-        HTML string for tooltip
-    """
     parts = []
 
     if profile.get("description"):

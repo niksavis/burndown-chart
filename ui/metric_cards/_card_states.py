@@ -1,5 +1,3 @@
-"""Error and loading state cards for metric display."""
-
 from typing import Any
 
 import dash_bootstrap_components as dbc
@@ -7,10 +5,7 @@ from dash import html
 
 
 def _create_error_card(metric_data: dict, card_id: str | None) -> dbc.Card:
-    """Create card for error state with actionable guidance.
 
-    Matches h-100 layout of success cards for consistent card heights.
-    """
     error_state = metric_data.get("error_state", "unknown_error")
     error_message = metric_data.get("error_message", "An error occurred")
 
@@ -140,7 +135,7 @@ def _create_error_card(metric_data: dict, card_id: str | None) -> dbc.Card:
 
     card_footer = dbc.CardFooter(
         html.Div(
-            "\u00a0",  # Non-breaking space to maintain minimal height
+            "\u00a0",
             className="text-center text-muted",
             style={"fontSize": "0.75rem", "opacity": "0"},
         ),
@@ -151,14 +146,7 @@ def _create_error_card(metric_data: dict, card_id: str | None) -> dbc.Card:
 
 
 def create_loading_card(metric_name: str) -> dbc.Card:
-    """Create a loading placeholder card.
 
-    Args:
-        metric_name: Name of the metric being calculated
-
-    Returns:
-        Card with loading spinner
-    """
     display_name = metric_name.replace("_", " ").title()
 
     return dbc.Card(

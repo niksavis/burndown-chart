@@ -1,9 +1,3 @@
-"""Dashboard Metric Cards using modern metric_cards.py patterns.
-
-This module provides dashboard-specific metric card creation using the
-standardized metric_cards.py component for visual consistency with DORA/Flow metrics.
-"""
-
 from typing import Any
 
 import dash_bootstrap_components as dbc
@@ -15,19 +9,11 @@ from ui.tooltip_utils import create_info_tooltip
 
 
 def create_dashboard_forecast_card(metrics: dict[str, Any]) -> dbc.Card:
-    """Create completion forecast metric card.
 
-    Args:
-        metrics: Dashboard metrics dictionary
-
-    Returns:
-        Metric card for completion forecast
-    """
     days_to_completion = metrics.get("days_to_completion", 0)
     completion_percentage = metrics.get("completion_percentage", 0.0)
     completion_confidence = metrics.get("completion_confidence", 0)
 
-    # Determine performance tier based on progress vs timeline
     if completion_percentage >= 80:
         tier = "On Track"
         tier_color = "green"
@@ -41,7 +27,6 @@ def create_dashboard_forecast_card(metrics: dict[str, Any]) -> dbc.Card:
         tier = "Starting"
         tier_color = "orange"
 
-    # Format metric data for create_metric_card
     metric_data = {
         "metric_name": "completion_forecast",
         "alternative_name": "Completion Forecast",
@@ -65,19 +50,11 @@ def create_dashboard_forecast_card(metrics: dict[str, Any]) -> dbc.Card:
 
 
 def create_dashboard_velocity_card(metrics: dict[str, Any]) -> dbc.Card:
-    """Create velocity metric card.
 
-    Args:
-        metrics: Dashboard metrics dictionary
-
-    Returns:
-        Metric card for velocity
-    """
     velocity_items = metrics.get("current_velocity_items", 0.0)
     velocity_points = metrics.get("current_velocity_points", 0.0)
     velocity_trend = metrics.get("velocity_trend", "stable")
 
-    # Determine performance tier based on velocity trend
     if velocity_trend == "increasing":
         tier = "Accelerating"
         tier_color = "green"
@@ -91,7 +68,6 @@ def create_dashboard_velocity_card(metrics: dict[str, Any]) -> dbc.Card:
         tier = "Unknown"
         tier_color = "orange"
 
-    # Format metric data
     metric_data = {
         "metric_name": "current_velocity",
         "alternative_name": "Current Velocity",
@@ -115,19 +91,11 @@ def create_dashboard_velocity_card(metrics: dict[str, Any]) -> dbc.Card:
 
 
 def create_dashboard_remaining_card(metrics: dict[str, Any]) -> dbc.Card:
-    """Create remaining work metric card.
 
-    Args:
-        metrics: Dashboard metrics dictionary
-
-    Returns:
-        Metric card for remaining work
-    """
     remaining_items = metrics.get("remaining_items", 0)
     remaining_points = metrics.get("remaining_points", 0.0)
     completion_percentage = metrics.get("completion_percentage", 0.0)
 
-    # Determine performance tier based on remaining work
     if completion_percentage >= 75:
         tier = "Nearly Complete"
         tier_color = "green"
@@ -141,7 +109,6 @@ def create_dashboard_remaining_card(metrics: dict[str, Any]) -> dbc.Card:
         tier = "Starting Out"
         tier_color = "orange"
 
-    # Format metric data
     metric_data = {
         "metric_name": "remaining_work",
         "alternative_name": "Remaining Work",
@@ -163,18 +130,10 @@ def create_dashboard_remaining_card(metrics: dict[str, Any]) -> dbc.Card:
 
 
 def create_dashboard_pert_card(metrics: dict[str, Any]) -> dbc.Card:
-    """Create PERT timeline metric card.
 
-    Args:
-        metrics: Dashboard metrics dictionary
-
-    Returns:
-        Metric card for PERT timeline
-    """
     days_to_deadline = metrics.get("days_to_deadline", 0)
     days_to_completion = metrics.get("days_to_completion", 0)
 
-    # Determine performance tier based on timeline vs deadline
     if days_to_completion and days_to_deadline:
         timeline_ratio = (
             days_to_completion / days_to_deadline if days_to_deadline > 0 else 0
@@ -196,7 +155,6 @@ def create_dashboard_pert_card(metrics: dict[str, Any]) -> dbc.Card:
         tier = "Unknown"
         tier_color = "orange"
 
-    # Format metric data
     metric_data = {
         "metric_name": "pert_timeline",
         "alternative_name": "Timeline Range",
@@ -220,14 +178,7 @@ def create_dashboard_pert_card(metrics: dict[str, Any]) -> dbc.Card:
 
 
 def create_dashboard_overview_content(metrics: dict[str, Any]) -> html.Div:
-    """Create overview section content for dashboard (similar to DORA/Flow metrics).
 
-    Args:
-        metrics: Dashboard metrics dictionary
-
-    Returns:
-        Div containing overview content with enhanced visuals
-    """
     completion_percentage = metrics.get("completion_percentage", 0.0)
     days_to_completion = metrics.get("days_to_completion", 0)
     completion_confidence = metrics.get("completion_confidence", 0)
@@ -235,24 +186,20 @@ def create_dashboard_overview_content(metrics: dict[str, Any]) -> html.Div:
     velocity_trend = metrics.get("velocity_trend", "stable")
     days_to_deadline = metrics.get("days_to_deadline", 0)
 
-    # Calculate project health score (0-100)
     health_score = _calculate_health_score(metrics)
     health_color, health_label = _get_health_color_and_label(health_score)
 
-    # Determine trend icon and color
     trend_icons = {
-        "increasing": ("fas fa-arrow-up", "#198754"),  # Green
-        "stable": ("fas fa-minus", "#0dcaf0"),  # Cyan
-        "decreasing": ("fas fa-arrow-down", "#ffc107"),  # Warning
-        "unknown": ("fas fa-question", "#6c757d"),  # Gray
+        "increasing": ("fas fa-arrow-up", "#198754"),
+        "stable": ("fas fa-minus", "#0dcaf0"),
+        "decreasing": ("fas fa-arrow-down", "#ffc107"),
+        "unknown": ("fas fa-question", "#6c757d"),
     }
     trend_icon, trend_color = trend_icons.get(velocity_trend, trend_icons["unknown"])
     completion_label_text = f"{completion_percentage:.1f}% Complete"
 
-    # Create summary row with enhanced visuals
     return html.Div(
         [
-            # Project Health Score - Prominent at top
             dbc.Row(
                 [
                     dbc.Col(
@@ -330,7 +277,6 @@ def create_dashboard_overview_content(metrics: dict[str, Any]) -> html.Div:
                                         ],
                                         className="text-center",
                                     ),
-                                    # Progress bar
                                     html.Div(
                                         [
                                             html.Small(
@@ -360,12 +306,10 @@ def create_dashboard_overview_content(metrics: dict[str, Any]) -> html.Div:
                         md=4,
                         className="mb-3 mb-md-0",
                     ),
-                    # Key Metrics Grid
                     dbc.Col(
                         [
                             dbc.Row(
                                 [
-                                    # Estimated Completion with icon
                                     dbc.Col(
                                         [
                                             html.Div(
@@ -398,7 +342,6 @@ def create_dashboard_overview_content(metrics: dict[str, Any]) -> html.Div:
                                         xs=6,
                                         className="mb-3",
                                     ),
-                                    # Velocity with trend indicator
                                     dbc.Col(
                                         [
                                             html.Div(
@@ -431,7 +374,6 @@ def create_dashboard_overview_content(metrics: dict[str, Any]) -> html.Div:
                                         xs=6,
                                         className="mb-3",
                                     ),
-                                    # Confidence
                                     dbc.Col(
                                         [
                                             html.Div(
@@ -464,7 +406,6 @@ def create_dashboard_overview_content(metrics: dict[str, Any]) -> html.Div:
                                         xs=6,
                                         className="mb-3 mb-md-0",
                                     ),
-                                    # Days to Deadline
                                     dbc.Col(
                                         [
                                             html.Div(
@@ -507,36 +448,13 @@ def create_dashboard_overview_content(metrics: dict[str, Any]) -> html.Div:
                 ],
                 className="mb-3",
             ),
-            # Key Insights Section
             _create_key_insights(metrics),
         ]
     )
 
 
 def _calculate_health_score(metrics: dict[str, Any]) -> int:
-    """Calculate overall project health score (0-100).
 
-    Uses the comprehensive health formula.
-
-    This function uses the comprehensive health calculator (6 dimensions) to ensure
-    consistency with dashboard and reports.
-
-    Formula - 6 Dimensions:
-    - Delivery (25%): Progress, trend, throughput
-    - Predictability (20%): CV, schedule, confidence
-    - Quality (20%): Bug resolution, DORA CFR/MTTR
-    - Efficiency (15%): Flow efficiency, flow time
-    - Sustainability (10%): Scope (context-aware), WIP, distribution
-    - Financial (10%): Budget adherence, runway
-
-    Args:
-        metrics: Dashboard metrics dictionary
-
-    Returns:
-        Health score from 0-100
-    """
-
-    # Prepare dashboard metrics for health calculator
     completion_pct = metrics.get("completion_percentage", 0)
     velocity_cv = metrics.get("velocity_cv", 0)
     trend_direction = metrics.get("trend_direction", "stable")
@@ -552,7 +470,6 @@ def _calculate_health_score(metrics: dict[str, Any]) -> int:
         "scope_change_rate": scope_change_rate,
     }
 
-    # Calculate comprehensive health (extended metrics will be None for dashboard-only)
     health_result = calculate_comprehensive_project_health(
         dashboard_metrics=dashboard_metrics_for_health,
         dora_metrics=None,
@@ -566,36 +483,21 @@ def _calculate_health_score(metrics: dict[str, Any]) -> int:
 
 
 def _get_health_color_and_label(score: int) -> tuple[str, str]:
-    """Get color and label for health score.
 
-    Args:
-        score: Health score (0-100)
-
-    Returns:
-        Tuple of (color_hex, label_text)
-    """
     if score >= 70:
-        return "#198754", "Good"  # Green
+        return "#198754", "Good"
     elif score >= 50:
-        return "#ffc107", "Caution"  # Yellow
+        return "#ffc107", "Caution"
     elif score >= 30:
-        return "#fd7e14", "At Risk"  # Orange
+        return "#fd7e14", "At Risk"
     else:
-        return "#dc3545", "Critical"  # Red
+        return "#dc3545", "Critical"
 
 
 def _create_key_insights(metrics: dict[str, Any]) -> html.Div:
-    """Create key insights section with actionable intelligence.
 
-    Args:
-        metrics: Dashboard metrics dictionary
-
-    Returns:
-        Div containing key insights
-    """
     insights = []
 
-    # Schedule insight
     days_to_completion = metrics.get("days_to_completion", 0)
     days_to_deadline = metrics.get("days_to_deadline", 0)
 
@@ -626,7 +528,6 @@ def _create_key_insights(metrics: dict[str, Any]) -> html.Div:
                 }
             )
 
-    # Velocity insight
     velocity_trend = metrics.get("velocity_trend", "unknown")
     if velocity_trend == "increasing":
         insights.append(
@@ -645,7 +546,6 @@ def _create_key_insights(metrics: dict[str, Any]) -> html.Div:
             }
         )
 
-    # Progress insight
     completion_percentage = metrics.get("completion_percentage", 0.0)
     if completion_percentage >= 75:
         insights.append(
@@ -656,7 +556,6 @@ def _create_key_insights(metrics: dict[str, Any]) -> html.Div:
             }
         )
 
-    # Return insights section if we have any
     if not insights:
         return html.Div()
 
@@ -696,7 +595,7 @@ def _create_key_insights(metrics: dict[str, Any]) -> html.Div:
                 ),
                 className="border-0",
                 style={
-                    "backgroundColor": "#e7f3ff",  # Light blue background
+                    "backgroundColor": "#e7f3ff",
                     "borderLeft": "4px solid #0d6efd",
                 },
             ),

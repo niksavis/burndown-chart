@@ -1,11 +1,3 @@
-"""Namespace syntax input component with autocomplete.
-
-Provides a user-friendly input field for namespace syntax with real-time
-autocomplete suggestions from JIRA metadata.
-
-Reference: specs/namespace-syntax-analysis.md
-"""
-
 from typing import Any
 
 import dash_bootstrap_components as dbc
@@ -21,29 +13,10 @@ def create_namespace_input(
     label: str | None = None,
     help_text: str | None = None,
 ) -> html.Div:
-    """Create namespace input field with autocomplete.
 
-    Args:
-        field_id: Unique ID for the input component
-        current_value: Current namespace path value
-        placeholder: Placeholder text for empty input
-        label: Optional label text
-        help_text: Optional help text shown below input
-
-    Returns:
-        dbc.FormGroup containing namespace input with autocomplete
-
-    Examples:
-        >>> create_namespace_input(
-        ...     field_id="deployment_timestamp",
-        ...     current_value="DevOps.Status:Deployed.DateTime",
-        ...     label="Deployment Timestamp",
-        ...     help_text="When deployment occurred"
-        ... )
-    """
     input_component = dcc.Dropdown(
         id={"type": "namespace-input", "field": field_id},
-        options=[],  # Populated dynamically by callback
+        options=[],
         value=current_value,
         placeholder=placeholder,
         searchable=True,
@@ -75,7 +48,7 @@ def create_namespace_input(
 
 
 def create_namespace_input_with_toggle(
-    field_id: str | Any,  # Accept string or dict for pattern-matching IDs
+    field_id: str | Any,
     current_value: str | None = None,
     field_options: list[Any] | None = None,
     placeholder: str = "Type namespace path or select field",
@@ -83,33 +56,7 @@ def create_namespace_input_with_toggle(
     help_text: str | None = None,
     show_syntax_help: bool = True,
 ) -> dbc.Card:
-    """Create namespace input with toggle between simple and advanced modes.
 
-    Provides two input modes:
-    1. Simple mode: Traditional dropdown field selector
-    2. Advanced mode: Namespace syntax input with autocomplete
-
-    Args:
-        field_id: Unique ID for the input component (string or dict
-            for pattern-matching)
-        current_value: Current value (field ID or namespace path)
-        field_options: Options for dropdown mode (traditional field selection)
-        placeholder: Placeholder text
-        label: Optional label text
-        help_text: Optional help text
-        show_syntax_help: Whether to show collapsible syntax help
-
-    Returns:
-        dbc.Card containing dual-mode input
-
-    Examples:
-        >>> create_namespace_input_with_toggle(
-        ...     field_id="deployment_timestamp",
-        ...     current_value="DevOps.Status:Deployed.DateTime",
-        ...     label="Deployment Timestamp"
-        ... )
-    """
-    # Determine current mode based on value format
     is_namespace_syntax = current_value and (
         "." in current_value or ":" in current_value
     )
@@ -151,7 +98,6 @@ def create_namespace_input_with_toggle(
         ]
     )
 
-    # Simple mode: Traditional dropdown
     simple_mode = dbc.Collapse(
         dcc.Dropdown(
             id={"type": "field-mapping-dropdown", "field": field_id},
@@ -167,12 +113,11 @@ def create_namespace_input_with_toggle(
         is_open=not is_namespace_syntax,
     )
 
-    # Advanced mode: Namespace syntax input
     advanced_mode = dbc.Collapse(
         [
             dcc.Dropdown(
                 id={"type": "namespace-input", "field": field_id},
-                options=[],  # Populated dynamically by autocomplete callback
+                options=[],
                 value=current_value if is_namespace_syntax else None,
                 placeholder=placeholder,
                 searchable=True,
@@ -181,7 +126,6 @@ def create_namespace_input_with_toggle(
                 maxHeight=300,
                 style={"fontFamily": "monospace"},
             ),
-            # Syntax help (collapsible)
             dbc.Collapse(
                 dbc.Alert(
                     [
@@ -254,11 +198,7 @@ def create_namespace_input_with_toggle(
 
 
 def create_syntax_help_section() -> dbc.Collapse:
-    """Create collapsible syntax help section for namespace paths.
 
-    Returns:
-        dbc.Collapse containing comprehensive syntax documentation
-    """
     return dbc.Collapse(
         dbc.Card(
             dbc.CardBody(

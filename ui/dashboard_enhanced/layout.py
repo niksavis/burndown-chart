@@ -1,10 +1,3 @@
-"""
-Dashboard Enhanced - Main Assembly
-
-Orchestrates the enhanced dashboard by computing context and assembling
-sections from focused submodules.
-"""
-
 from __future__ import annotations
 
 from datetime import datetime, timedelta
@@ -37,8 +30,6 @@ def _prepare_dashboard_context(
     total_points: float,
     show_points: bool,
 ) -> dict:
-    """Compute all derived metrics needed to render the dashboard."""
-    # Use last statistics date as forecast starting point (aligns with report)
     current_date = (
         statistics_df["date"].iloc[-1] if not statistics_df.empty else datetime.now()
     )
@@ -76,7 +67,6 @@ def _prepare_dashboard_context(
         else empty_stats
     )
 
-    # Determine if we have actual points data (not just tracking enabled)
     has_points_data = (
         show_points
         and points_stats["mean"] > 0
@@ -168,7 +158,6 @@ def _prepare_dashboard_context(
 
 
 def _build_cards_row(ctx: dict) -> dbc.Row:
-    """Build the four forecast/velocity metric cards row."""
     return dbc.Row(
         [
             dbc.Col(
@@ -239,7 +228,6 @@ def _build_cards_row(ctx: dict) -> dbc.Row:
 
 
 def _build_team_performance_card(ctx: dict) -> dbc.Card:
-    """Build the team performance card showing recent vs historical velocity."""
     items_stats = ctx["items_stats"]
     points_stats = ctx["points_stats"]
     has_points_data = ctx["has_points_data"]
@@ -370,7 +358,6 @@ def _build_team_performance_card(ctx: dict) -> dbc.Card:
 
 
 def _build_capacity_row(ctx: dict, days_to_deadline: float) -> dbc.Row:
-    """Build the capacity analysis and team performance row."""
     return dbc.Row(
         [
             dbc.Col(
@@ -410,14 +397,7 @@ def create_enhanced_dashboard(
     deadline_str: str,
     show_points: bool = True,
 ) -> html.Div:
-    """
-    Create concise, actionable enhanced dashboard.
 
-    Sections:
-    - Overview bar: health, progress, deadline, success probability
-    - Metric cards: items/points forecast + velocity (4 cards)
-    - Capacity row: capacity gap + team performance
-    """
     ctx = _prepare_dashboard_context(
         statistics_df=statistics_df,
         pert_time_items=pert_time_items,

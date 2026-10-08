@@ -1,16 +1,9 @@
-"""Private helper utilities for metric card components.
-
-Provides color/tier lookups, text explanations, sparkline builder, and
-the additional-info formatter used across metric card sub-modules.
-"""
-
 from typing import Any
 
 from dash import html
 
 
 def _get_flow_performance_tier(metric_name: str, value: float):  # noqa: PLC0415
-    """Lazy wrapper: breaks circular _helpers -> flow_metrics_dashboard."""
     from ui.flow_metrics_dashboard import (  # noqa: PLC0415
         _get_flow_performance_tier as _fn,  # noqa: PLC0415
     )
@@ -19,55 +12,28 @@ def _get_flow_performance_tier(metric_name: str, value: float):  # noqa: PLC0415
 
 
 def _get_flow_performance_tier_color_hex(metric_name: str, value: float) -> str:
-    """Get hex color code for Flow metric performance tier.
-
-    Maps Flow metric performance tiers to semaphore colors:
-    - Excellent/Healthy: Green (#198754)
-    - Good: Cyan (#0dcaf0)
-    - Fair/Warning: Yellow (#ffc107)
-    - Slow/Low/High: Orange (#fd7e14)
-    - Critical: Red (#dc3545)
-
-    Args:
-        metric_name: Flow metric identifier (e.g., "flow_velocity", "flow_time")
-        value: Metric value
-
-    Returns:
-        Hex color code for performance tier
-    """
-    # Import tier determination function
 
     tier = _get_flow_performance_tier(metric_name, value)
 
-    # Map tier labels to semaphore hex colors
     tier_color_map = {
-        "Excellent": "#198754",  # Green
-        "Good": "#0dcaf0",  # Cyan
-        "Healthy": "#198754",  # Green
-        "Fair": "#ffc107",  # Yellow
-        "Warning": "#ffc107",  # Yellow
-        "Slow": "#fd7e14",  # Orange
-        "Low": "#fd7e14",  # Orange
-        "High": "#fd7e14",  # Orange (for WIP)
-        "Critical": "#dc3545",  # Red
+        "Excellent": "#198754",
+        "Good": "#0dcaf0",
+        "Healthy": "#198754",
+        "Fair": "#ffc107",
+        "Warning": "#ffc107",
+        "Slow": "#fd7e14",
+        "Low": "#fd7e14",
+        "High": "#fd7e14",
+        "Critical": "#dc3545",
     }
 
-    return tier_color_map.get(tier, "#6f42c1")  # Default to purple if unknown
+    return tier_color_map.get(tier, "#6f42c1")
 
 
 def _create_mini_bar_sparkline(
     data: list[float], color: str, height: int = 40
 ) -> html.Div:
-    """Create a mini CSS-based bar sparkline for inline trend display.
 
-    Args:
-        data: List of numeric values to display
-        color: CSS color for bars
-        height: Maximum height of bars in pixels
-
-    Returns:
-        Div containing mini bar chart
-    """
     if not data or len(data) < 2:
         return html.Div()
 
@@ -77,7 +43,7 @@ def _create_mini_bar_sparkline(
     bars = []
     for i, val in enumerate(normalized):
         bar_height = max(val * height, 2)
-        opacity = 0.5 + (i / len(normalized)) * 0.5  # Fade from 0.5 to 1.0
+        opacity = 0.5 + (i / len(normalized)) * 0.5
 
         bars.append(
             html.Div(
@@ -100,14 +66,7 @@ def _create_mini_bar_sparkline(
 
 
 def _get_metric_explanation(metric_name: str) -> str:
-    """Get explanation text for what a metric measures.
 
-    Args:
-        metric_name: Internal metric name
-
-    Returns:
-        Explanation text for the metric
-    """
     explanations = {
         "deployment_frequency": (
             "How often you deploy to production. "
@@ -188,59 +147,36 @@ def _get_metric_explanation(metric_name: str) -> str:
 def _get_metric_relationship_hint(
     metric_name: str, value: float | None, metric_data: dict[str, Any]
 ) -> str | None:
-    """Get relationship hint showing how this metric affects others.
 
-    These hints explain universal relationships between metrics and are shown
-    regardless of current metric state to provide educational context and
-    maintain consistent card layouts.
-
-    Args:
-        metric_name: Internal metric name
-        value: Current metric value
-        metric_data: Full metric data dictionary
-
-    Returns:
-        Relationship hint text or None
-    """
     if value is None:
         return None
 
-    # Show hints for all metrics - they explain universal relationships
-
-    # Flow Load (WIP) - affects everything
     if metric_name == "flow_load":
         return "High WIP typically increases Lead Time and Flow Time"
 
-    # Change Failure Rate - affects MTTR
     elif metric_name == "change_failure_rate":
         return "High failure rate often increases MTTR and slows delivery"
 
-    # Mean Time To Recovery - affected by CFR and process maturity
     elif metric_name == "mean_time_to_recovery":
         return (
             "Long MTTR may indicate insufficient monitoring "
             "or unclear rollback procedures"
         )
 
-    # Deployment Frequency - foundation for other DORA metrics
     elif metric_name == "deployment_frequency":
         return "Low deployment frequency can increase batch size and Lead Time"
 
-    # Lead Time - affected by WIP
     elif metric_name == "lead_time_for_changes":
         return "Long lead time may indicate high WIP or process bottlenecks"
 
-    # Flow Time - affected by WIP
     elif metric_name == "flow_time":
         return "Long cycle time may indicate high WIP or too much waiting"
 
-    # Flow Velocity - core throughput metric
     elif metric_name == "flow_velocity":
         return (
             "Low velocity may indicate bottlenecks, high WIP, or process inefficiency"
         )
 
-    # Flow Efficiency - related to waiting
     elif metric_name == "flow_efficiency":
         if value < 20:
             return "Low efficiency indicates high wait times between work stages"
@@ -258,20 +194,10 @@ def _get_metric_relationship_hint(
 def _get_action_prompt(
     metric_name: str, value: float | None, metric_data: dict[str, Any]
 ) -> str | None:
-    """Get actionable guidance when metrics are concerning.
 
-    Args:
-        metric_name: Internal metric name
-        value: Current metric value
-        metric_data: Full metric data dictionary
-
-    Returns:
-        Action prompt text or None if metric is healthy
-    """
     if value is None:
         return None
 
-    # Flow Load (WIP) - Critical state
     if metric_name == "flow_load":
         wip_thresholds = metric_data.get("wip_thresholds", {})
         critical_threshold = wip_thresholds.get("critical", 40)
@@ -282,7 +208,6 @@ def _get_action_prompt(
                 "items to reduce WIP."
             )
 
-    # Change Failure Rate - High failure rate
     elif metric_name == "change_failure_rate":
         if value > 30:
             return (
@@ -290,7 +215,6 @@ def _get_action_prompt(
                 "and testing procedures."
             )
 
-    # Lead Time for Changes - Slow delivery (>1 week = 7 days)
     elif metric_name == "lead_time_for_changes":
         unit = metric_data.get("unit", "")
         if "day" in unit.lower() and value > 7:
@@ -298,7 +222,6 @@ def _get_action_prompt(
                 "Slow delivery cycle. Check for bottlenecks and consider reducing WIP."
             )
 
-    # Mean Time to Recovery - Slow recovery (>1 day = 24 hours)
     elif metric_name == "mean_time_to_recovery":
         unit = metric_data.get("unit", "")
         if "hour" in unit.lower() and value > 24:
@@ -312,16 +235,13 @@ def _get_action_prompt(
                 "process and automation."
             )
 
-    # Deployment Frequency - Low deployment rate
     elif metric_name == "deployment_frequency":
-        # Check if deploying less than once per week (< ~0.14 deploys/week = < 1/month)
         if value < 1:
             return (
                 "Low deployment frequency. Consider smaller batch sizes "
                 "and more frequent releases."
             )
 
-    # Flow Efficiency - Too low or too high
     elif metric_name == "flow_efficiency":
         if value < 20:
             return (
@@ -338,13 +258,11 @@ def _get_action_prompt(
 
 
 def _format_additional_info(metric_data: dict) -> str:
-    """Format additional information text for metric card."""
     total_issues = metric_data.get("total_issue_count", 0)
     excluded_issues = metric_data.get("excluded_issue_count", 0)
     metric_name = metric_data.get("metric_name", "")
-    n_weeks = metric_data.get("_n_weeks", 12)  # Get selected time period
+    n_weeks = metric_data.get("_n_weeks", 12)
 
-    # Determine aggregation method label
     aggregation_labels = {
         "lead_time_for_changes": "Median of weekly medians",
         "mean_time_to_recovery": "Median of weekly medians",
@@ -363,13 +281,12 @@ def _format_additional_info(metric_data: dict) -> str:
     else:
         base_text = f"{total_issues} issues" if total_issues > 0 else ""
 
-    # Format: "Aggregation method * Based on X issues * Y weeks"
     parts = []
     if aggregation_label:
         parts.append(aggregation_label)
     if base_text:
         parts.append(base_text)
-    if metric_name != "flow_load" and n_weeks:  # Don't show weeks for WIP
+    if metric_name != "flow_load" and n_weeks:
         parts.append(f"{n_weeks} weeks")
 
     return " \u2022 ".join(parts)

@@ -1,13 +1,3 @@
-"""Flow Metrics Dashboard UI Components.
-
-Provides the user interface for viewing Flow metrics including Velocity, Time,
-Efficiency, Load, and Distribution with work type breakdown.
-
-Uses Data Points slider from settings panel to control historical data display.
-Metrics calculated per ISO week (Monday-Sunday), showing current week
-and N-1 historical weeks.
-"""
-
 from typing import Any
 
 import dash_bootstrap_components as dbc
@@ -27,32 +17,23 @@ from ui.tooltip_utils import create_info_tooltip
 
 
 def create_flow_dashboard() -> dbc.Container:
-    """Create the complete Flow metrics dashboard layout.
-
-    Returns:
-        dbc.Container with Flow metrics dashboard components
-    """
-    # Check if JIRA data exists AND if metrics are calculated
 
     has_jira_data = False
     has_metrics = False
 
     try:
-        # Check if JIRA data exists in database for active query
         active_profile_id = get_active_profile_id()
         active_query_id = get_active_query_id()
 
         if active_profile_id and active_query_id:
             has_jira_data = has_jira_data_for_query(active_profile_id, active_query_id)
 
-            # Check if metrics are calculated (check if ANY week has metrics)
             if has_jira_data:
                 available_weeks = get_available_weeks()
                 has_metrics = len(available_weeks) > 0
     except Exception:
-        pass  # No data available
+        pass
 
-    # Determine initial content based on what's available
     if not has_jira_data:
         initial_content = [create_no_data_state()]
     elif not has_metrics:
@@ -62,14 +43,11 @@ def create_flow_dashboard() -> dbc.Container:
 
     return dbc.Container(
         [
-            # Store for tracking if user has seen welcome banner (uses localStorage)
             dcc.Store(id="flow-welcome-dismissed", storage_type="local", data=False),
-            # Welcome banner for first-time users (dismissible)
             html.Div(
                 id="flow-welcome-banner",
-                children=[],  # Will be populated by callback based on storage
+                children=[],
             ),
-            # Compact overview section with distinct background
             html.Div(
                 id="flow-overview-wrapper",
                 children=[
@@ -78,20 +56,18 @@ def create_flow_dashboard() -> dbc.Container:
                             [
                                 html.Div(
                                     id="flow-metrics-overview",
-                                    children=[],  # Will be populated by callback
+                                    children=[],
                                 ),
                             ],
                             className="pt-3 px-3 pb-0",
-                            # Top and side padding, no bottom padding
                         ),
                         className="mb-3 overview-section",
                         style={
-                            "backgroundColor": "#f8f9fa",  # Light gray background
+                            "backgroundColor": "#f8f9fa",
                             "border": "none",
                             "borderRadius": "8px",
                         },
                     ),
-                    # Info banner with balanced spacing
                     html.P(
                         [
                             html.I(className="fas fa-info-circle me-2 text-info"),
@@ -102,23 +78,15 @@ def create_flow_dashboard() -> dbc.Container:
                             " controls weeks displayed.",
                         ],
                         className="text-muted small mb-3 mt-3",
-                        # Equal top and bottom margin
                     ),
                 ],
-                style={
-                    "display": "none"
-                },  # Hidden by default, shown by callback when metrics exist
+                style={"display": "none"},
             ),
-            # Metrics cards grid
-            # (includes Flow metrics + Work Distribution in one container)
-            # No loading wrapper - skeleton provides loading state
             html.Div(
                 children=initial_content,
-                # Show banner or skeleton based on data availability
                 id="flow-metrics-cards-container",
-                className="mb-4",  # Add spacing below cards
+                className="mb-4",
             ),
-            # Store for metrics data
             dcc.Store(id="flow-metrics-store", data={}),
         ],
         fluid=True,
@@ -130,38 +98,25 @@ def create_flow_metric_card(
     metric_data: dict[str, Any],
     metric_name: str,
 ) -> dbc.Card:
-    """Create a metric card for a single Flow metric.
 
-    Args:
-        metric_data: Metric calculation result
-        metric_name: Display name for the metric
-
-    Returns:
-        dbc.Card with metric display
-    """
     error_state = metric_data.get("error_state", "success")
 
     if error_state != "success":
-        # Error card
         return _create_flow_error_card(metric_data, metric_name)
 
     value = metric_data.get("value")
     unit = metric_data.get("unit", "")
 
-    # Format value display
     if isinstance(value, float):
         value_display = f"{value:.2f}"
     else:
         value_display = str(value)
 
-    # Get status color based on metric type (default to primary if value is None)
     status_color = _get_flow_metric_color(metric_data["metric_name"], value or 0.0)
 
-    # Get tooltip for this metric
     metric_key = metric_data["metric_name"]
     tooltip_text = FLOW_METRICS_TOOLTIPS.get(metric_key, "")
 
-    # Create metric title with info icon
     if tooltip_text:
         title_element = html.H6(
             [
@@ -191,9 +146,7 @@ def create_flow_metric_card(
                         ],
                         className="mb-3",
                     ),
-                    # Type breakdown if available
                     _create_type_breakdown(metric_data.get("details", {})),
-                    # Trend indicator if available
                     _create_trend_indicator(metric_data.get("details", {})),
                 ]
             ),
@@ -205,15 +158,7 @@ def create_flow_metric_card(
 
 
 def _create_flow_error_card(metric_data: dict[str, Any], metric_name: str) -> dbc.Card:
-    """Create an error card for Flow metric.
 
-    Args:
-        metric_data: Metric data with error state
-        metric_name: Display name
-
-    Returns:
-        dbc.Card with error display
-    """
     error_message = metric_data.get("error_message", "Unknown error")
 
     return dbc.Card(
@@ -244,20 +189,12 @@ def _create_flow_error_card(metric_data: dict[str, Any], metric_name: str) -> db
 
 
 def _create_type_breakdown(details: dict[str, Any]) -> html.Div:
-    """Create work type breakdown display.
 
-    Args:
-        details: Metric details with by_type breakdown
-
-    Returns:
-        html.Div with type breakdown or empty div
-    """
     by_type = details.get("by_type", {})
 
     if not by_type or all(v == 0 for v in by_type.values()):
         return html.Div()
 
-    # Create mini badges for each type
     type_badges = []
     type_colors = {
         "Feature": "primary",
@@ -289,28 +226,20 @@ def _create_type_breakdown(details: dict[str, Any]) -> html.Div:
 
 
 def _create_trend_indicator(details: dict[str, Any]) -> html.Div:
-    """Create trend indicator display.
 
-    Args:
-        details: Metric details with trend information
-
-    Returns:
-        html.Div with trend display or empty div
-    """
     trend_direction = details.get("trend_direction", "unknown")
     trend_percentage = details.get("trend_percentage", 0)
 
     if trend_direction == "unknown" or trend_percentage == 0:
         return html.Div()
 
-    # Determine icon and color
     if trend_direction == "up":
         icon = "fa-arrow-up"
         color = "success"
     elif trend_direction == "down":
         icon = "fa-arrow-down"
         color = "danger"
-    else:  # stable
+    else:
         icon = "fa-minus"
         color = "secondary"
 
@@ -328,17 +257,8 @@ def _create_trend_indicator(details: dict[str, Any]) -> html.Div:
 
 
 def _get_flow_performance_tier(metric_name: str, value: float) -> str:
-    """Get performance tier label for Flow metrics.
 
-    Args:
-        metric_name: Metric identifier (e.g., "flow_velocity", "flow_time")
-        value: Metric value
-
-    Returns:
-        Performance tier label (e.g., "Healthy", "Good", "Needs Improvement")
-    """
     if metric_name == "flow_load":
-        # Flow Load (WIP) - health-based tiers
         if value < 10:
             return "Healthy"
         elif value < 20:
@@ -348,7 +268,6 @@ def _get_flow_performance_tier(metric_name: str, value: float) -> str:
         else:
             return "Critical"
     elif metric_name == "flow_velocity":
-        # Flow Velocity - higher is better
         if value >= 20:
             return "Excellent"
         elif value >= 10:
@@ -358,7 +277,6 @@ def _get_flow_performance_tier(metric_name: str, value: float) -> str:
         else:
             return "Low"
     elif metric_name == "flow_time":
-        # Flow Time - lower is better (days)
         if value <= 3:
             return "Excellent"
         elif value <= 7:
@@ -368,8 +286,6 @@ def _get_flow_performance_tier(metric_name: str, value: float) -> str:
         else:
             return "Slow"
     elif metric_name == "flow_efficiency":
-        # Flow Efficiency - percentage, higher is better (less waiting)
-        # Most orgs: 10-25% (lots of waiting), Good: 40-60%, Excellent: 60%+
         if value >= 60:
             return "Excellent"
         elif value >= 40:
@@ -383,23 +299,12 @@ def _get_flow_performance_tier(metric_name: str, value: float) -> str:
 
 
 def _get_flow_performance_tier_color(metric_name: str, value: float) -> str:
-    """Get performance tier color for Flow metrics.
 
-    Args:
-        metric_name: Metric identifier
-        value: Metric value
-
-    Returns:
-        Color name (green/blue/yellow/orange/red)
-    """
     tier = _get_flow_performance_tier(metric_name, value)
 
-    # Map tier labels to colors with visual distinction
-    # Excellent (best) -> green, Good -> blue, Fair -> yellow,
-    # Low/Slow/High -> orange, Critical -> red
     tier_color_map = {
         "Excellent": "green",
-        "Good": "blue",  # Use blue to distinguish from Excellent
+        "Good": "blue",
         "Healthy": "green",
         "Fair": "yellow",
         "Warning": "yellow",
@@ -413,25 +318,15 @@ def _get_flow_performance_tier_color(metric_name: str, value: float) -> str:
 
 
 def _get_flow_metric_color(metric_name: str, value: float) -> str:
-    """Get color for metric based on value and thresholds.
 
-    Args:
-        metric_name: Name of the metric
-        value: Metric value
-
-    Returns:
-        Bootstrap color class name
-    """
-    # Flow Efficiency thresholds
     if metric_name == "flow_efficiency":
         if 25 <= value <= 40:
-            return "success"  # Healthy range
+            return "success"
         elif value < 15:
-            return "danger"  # Critical
+            return "danger"
         else:
-            return "warning"  # Outside ideal range
+            return "warning"
 
-    # Flow Load (WIP) - lower is generally better
     if metric_name == "flow_load":
         if value < 10:
             return "success"
@@ -440,48 +335,19 @@ def _get_flow_metric_color(metric_name: str, value: float) -> str:
         else:
             return "warning"
 
-    # Default colors
     return "primary"
 
 
 def create_flow_metrics_cards_grid(metrics_data: dict):
-    """Create a grid of Flow metric cards with Phase 1 enhancements.
 
-    Now uses the same create_metric_card() function as DORA metrics to include:
-        - Performance tier badges (Healthy/Warning/Critical for WIP,
-            Good/Needs Improvement for others)
-    - Trend indicators with percentage change
-    - Mini sparklines
-    - Collapsible detail charts
-
-    Args:
-        metrics_data: Dictionary mapping metric names to metric data
-            Example:
-            {
-                "flow_velocity": {
-                    "metric_name": "flow_velocity",
-                    "value": 5.2,
-                    "unit": "items/week",
-                    "weekly_labels": [...],
-                    "weekly_values": [...],
-                    ...
-                },
-                "flow_time": {...}
-            }
-
-    Returns:
-        dbc.Row containing the grid of Flow metric cards
-    """
     if not metrics_data:
         return html.Div(
             children="No Flow metrics available. Please ensure data is loaded.",
             className="text-muted p-3",
         )
 
-    # Create cards using the same function as DORA metrics (with Phase 1 enhancements)
     cards = []
     for metric_name, metric_info in metrics_data.items():
-        # Add performance tier and tooltip if not already present
         if "performance_tier" not in metric_info:
             metric_info["performance_tier"] = _get_flow_performance_tier(
                 metric_name, metric_info.get("value", 0)
@@ -493,12 +359,9 @@ def create_flow_metrics_cards_grid(metrics_data: dict):
         if "tooltip" not in metric_info:
             metric_info["tooltip"] = FLOW_METRICS_TOOLTIPS.get(metric_name, "")
 
-        # Use the card ID that matches the expected format for callbacks
         card_id = f"{metric_name}-card"
         card = create_metric_card(metric_info, card_id)
 
-        # Phase 2: One card per row for better detail chart visibility,
-        # with bottom margin
         cards.append(dbc.Col(card, width=12, className="mb-3"))
 
     return dbc.Row(cards, className="metric-cards-grid")

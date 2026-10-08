@@ -1,17 +1,3 @@
-"""
-Budget Cards - Core Metrics Module
-
-Core budget tracking cards for primary consumption, burn rate, and runway metrics.
-Extracted from budget_cards.py as part of architectural refactoring.
-
-Cards:
-1. Budget Utilization - Consumption percentage with health zones
-2. Weekly Burn Rate - Spending rate with trend analysis
-3. Budget Runway - Remaining time until budget exhaustion
-
-Created: January 30, 2026 (extracted from budget_cards.py)
-"""
-
 import logging
 import math
 from typing import Any
@@ -33,30 +19,7 @@ def create_budget_utilization_card(
     card_id: str | None = None,
     baseline_data: dict[str, Any] | None = None,
 ) -> dbc.Card:
-    """Create Budget Utilization card showing consumption percentage.
 
-    Health zones (% consumed):
-    - Green (<70%): Healthy
-    - Yellow (70-85%): Warning
-    - Orange (85-95%): High
-    - Red (95-100%+): Critical
-
-    Args:
-        consumed_pct: Percentage of budget consumed
-        consumed_eur: Absolute amount consumed
-        budget_total: Total budget amount
-        currency_symbol: Currency symbol for display
-        data_points_count: Number of weeks for context
-        card_id: Optional HTML ID for the card
-        baseline_data: Optional dict from get_budget_baseline_vs_actual()
-
-    Returns:
-        Dash Bootstrap Card component
-
-    Example:
-        >>> card = create_budget_utilization_card(75.5, 37750, 50000, "€")
-    """
-    # Determine health zone
     if consumed_pct < 70:
         tier_color = "green"
         tier_label = "Healthy"
@@ -76,7 +39,6 @@ def create_budget_utilization_card(
         "remaining": f"{currency_symbol}{(budget_total - consumed_eur):,.2f}",
     }
 
-    # Build rich text details for baseline comparison
     text_details = None
     if baseline_data:
         elapsed_weeks = baseline_data["actual"]["elapsed_weeks"]
@@ -90,26 +52,25 @@ def create_budget_utilization_card(
             else "Budget and time are aligned"
         )
 
-        # Determine pace status with clear zones
         if variance_pct < -10:
             pace_status = "Under-spending"
-            pace_color = "#198754"  # Green
+            pace_color = "#198754"
             pace_icon = "fa-check-circle"
         elif variance_pct < -2:
             pace_status = "Efficient"
-            pace_color = "#20c997"  # Teal
+            pace_color = "#20c997"
             pace_icon = "fa-thumbs-up"
         elif variance_pct <= 2:
             pace_status = "On Pace"
-            pace_color = "#6c757d"  # Gray
+            pace_color = "#6c757d"
             pace_icon = "fa-equals"
         elif variance_pct <= 10:
             pace_status = "Warning"
-            pace_color = "#ffc107"  # Yellow
+            pace_color = "#ffc107"
             pace_icon = "fa-exclamation-triangle"
         else:
             pace_status = "Over-spending"
-            pace_color = "#dc3545"  # Red
+            pace_color = "#dc3545"
             pace_icon = "fa-exclamation-circle"
 
         text_details = [
@@ -120,10 +81,8 @@ def create_budget_utilization_card(
                         className="text-muted fw-bold d-block mb-2 text-center",
                         style={"fontSize": "0.75rem"},
                     ),
-                    # Two side-by-side progress indicators
                     html.Div(
                         [
-                            # Time Elapsed Column
                             html.Div(
                                 [
                                     html.Div(
@@ -159,7 +118,6 @@ def create_budget_utilization_card(
                                 ],
                                 style={"flex": "1", "marginRight": "0.5rem"},
                             ),
-                            # Budget Used Column
                             html.Div(
                                 [
                                     html.Div(
@@ -200,7 +158,6 @@ def create_budget_utilization_card(
                         ],
                         className="d-flex mb-3",
                     ),
-                    # Pace Status Indicator
                     html.Div(
                         [
                             html.Div(
@@ -272,45 +229,22 @@ def create_weekly_burn_rate_card(
     card_id: str | None = None,
     baseline_data: dict[str, Any] | None = None,
 ) -> dbc.Card:
-    """
-    Create Weekly Burn Rate card with sparkline and 4-week weighted trend arrow.
 
-    Args:
-        burn_rate: Current weighted burn rate (EUR/week)
-        weekly_values: Historical weekly burn rates for sparkline
-        weekly_labels: Week labels for sparkline
-        trend_pct: Trend percentage change (positive = increasing burn)
-        currency_symbol: Currency symbol for display
-        data_points_count: Number of weeks shown (respects filter)
-        card_id: Optional HTML ID for the card
-        baseline_data: Optional dict from get_budget_baseline_vs_actual()
-
-    Returns:
-        Dash Bootstrap Card component
-
-    Example:
-        >>> card = create_weekly_burn_rate_card(
-        ...     4000, [3500, 3800, 4100, 4000], ["W40", "W41", "W42", "W43"],
-        ...     5.2, "€", 4
-        ... )
-    """
-    # Determine trend direction
     if abs(trend_pct) < 2:
         trend_arrow = "→"
         trend_color = "text-secondary"
     elif trend_pct > 0:
         trend_arrow = "↗"
-        trend_color = "text-danger"  # Increasing burn = warning
+        trend_color = "text-danger"
     else:
         trend_arrow = "↘"
-        trend_color = "text-success"  # Decreasing burn = good
+        trend_color = "text-success"
 
     details = {
         "trend": f"{trend_arrow} {abs(trend_pct):.1f}%",
         "trend_color": trend_color,
     }
 
-    # Build rich text details for baseline comparison
     text_details = None
     if baseline_data:
         budgeted_rate = baseline_data["baseline"]["team_cost_per_week_eur"]
@@ -318,7 +252,6 @@ def create_weekly_burn_rate_card(
         variance_pct = baseline_data["variance"]["burn_rate_variance_pct"]
         runway_weeks = baseline_data["actual"]["runway_weeks"]
 
-        # Variance color badge
         if abs(variance_pct) < 5:
             variance_badge = dbc.Badge("On Target", color="success", className="ms-2")
         elif variance_eur < 0:
@@ -332,14 +265,12 @@ def create_weekly_burn_rate_card(
                 f"{variance_pct:.1f}% Over Budget", color="danger", className="ms-2"
             )
 
-        # Calculate projected impact
         projected_impact = (
             variance_eur * runway_weeks
             if not math.isinf(runway_weeks) and runway_weeks > 0
             else 0
         )
 
-        # Calculate deviation percentage for centered bar visualization
         deviation_pct = min(max(variance_pct, -50), 50)
         visual_position = 50 + deviation_pct
 
@@ -365,7 +296,6 @@ def create_weekly_burn_rate_card(
                             ),
                         ],
                     ),
-                    # Deviation indicator (centered at baseline)
                     html.Div(
                         [
                             html.Div(
@@ -398,7 +328,6 @@ def create_weekly_burn_rate_card(
                             ),
                             html.Div(
                                 [
-                                    # Background gradient track
                                     html.Div(
                                         style={
                                             "position": "absolute",
@@ -413,7 +342,6 @@ def create_weekly_burn_rate_card(
                                             "opacity": "0.3",
                                         },
                                     ),
-                                    # Baseline marker (center)
                                     html.Div(
                                         style={
                                             "position": "absolute",
@@ -425,7 +353,6 @@ def create_weekly_burn_rate_card(
                                             "top": "-3px",
                                         },
                                     ),
-                                    # Actual position indicator
                                     html.Div(
                                         style={
                                             "position": "absolute",
@@ -521,23 +448,7 @@ def create_budget_runway_card(
     card_id: str | None = None,
     baseline_data: dict[str, Any] | None = None,
 ) -> dbc.Card:
-    """
-    Create Budget Runway card with critical <4 weeks warning.
 
-    Args:
-        runway_weeks: Remaining budget runway in weeks
-        pert_forecast_weeks: PERT forecast completion weeks (for comparison)
-        currency_symbol: Currency symbol for display
-        card_id: Optional HTML ID for the card
-        baseline_data: Optional dict from get_budget_baseline_vs_actual()
-
-    Returns:
-        Dash Bootstrap Card component
-
-    Example:
-        >>> card = create_budget_runway_card(12.5, 15.0, "€")
-    """
-    # Handle infinity runway (when burn rate is 0)
     if math.isinf(runway_weeks):
         metric_data = {
             "metric_name": "budget_runway",
@@ -556,7 +467,6 @@ def create_budget_runway_card(
         }
         return create_metric_card(metric_data, card_id, show_details_button=False)
 
-    # Handle negative runway (over budget)
     if runway_weeks < 0:
         metric_data = {
             "metric_name": "budget_runway",
@@ -576,7 +486,6 @@ def create_budget_runway_card(
         }
         return create_metric_card(metric_data, card_id, show_details_button=False)
 
-    # Determine health status
     if runway_weeks < 4:
         tier_color = "red"
         tier_label = "Critical"
@@ -592,12 +501,10 @@ def create_budget_runway_card(
 
     details = {}
 
-    # Build rich text details for baseline comparison
     text_details = None
     if baseline_data:
         extension_weeks = baseline_data["variance"]["runway_vs_baseline_weeks"]
 
-        # Extension badge
         if abs(extension_weeks) < 1:
             extension_badge = dbc.Badge("On Target", color="success", className="ms-2")
         elif extension_weeks > 0:
@@ -609,11 +516,9 @@ def create_budget_runway_card(
                 f"{extension_weeks:.2f}w Shortage", color="danger", className="ms-2"
             )
 
-        # Calculate forecast comparison
         forecast_gap = runway_weeks - pert_forecast_weeks if pert_forecast_weeks else 0
         allocated_weeks_baseline = baseline_data["baseline"]["time_allocated_weeks"]
 
-        # Calculate deviation percentage for centered bar visualization
         extension_pct = (
             (extension_weeks / allocated_weeks_baseline * 100)
             if allocated_weeks_baseline > 0
@@ -644,7 +549,6 @@ def create_budget_runway_card(
                             ),
                         ],
                     ),
-                    # Deviation indicator (centered at baseline)
                     html.Div(
                         [
                             html.Div(
@@ -677,7 +581,6 @@ def create_budget_runway_card(
                             ),
                             html.Div(
                                 [
-                                    # Background gradient track
                                     html.Div(
                                         style={
                                             "position": "absolute",
@@ -692,7 +595,6 @@ def create_budget_runway_card(
                                             "opacity": "0.3",
                                         },
                                     ),
-                                    # Baseline marker (center)
                                     html.Div(
                                         style={
                                             "position": "absolute",
@@ -704,7 +606,6 @@ def create_budget_runway_card(
                                             "top": "-3px",
                                         },
                                     ),
-                                    # Actual position indicator
                                     html.Div(
                                         style={
                                             "position": "absolute",

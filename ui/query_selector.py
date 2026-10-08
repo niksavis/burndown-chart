@@ -1,9 +1,3 @@
-"""Query Selector Component for Profile Workspace Switching.
-
-This module provides UI components for selecting and managing queries within profiles.
-Integrates with data.query_manager for query operations.
-"""
-
 from typing import Any
 
 import dash_bootstrap_components as dbc
@@ -15,32 +9,20 @@ def create_query_dropdown(
     queries: list[dict[str, Any]] | None = None,
     id_suffix: str = "",
 ) -> dbc.Col:
-    """Create query selection dropdown.
 
-    Args:
-        active_query_id: Currently active query ID
-        queries: List of query dicts with 'id', 'name', 'is_active' keys
-        id_suffix: Optional suffix for component IDs (for multiple instances)
-
-    Returns:
-        Bootstrap column containing query dropdown
-    """
     if queries is None:
         queries = []
 
-    # Build dropdown options
     options = []
     for query in queries:
         label = query.get("name", "Unnamed Query")
         value = query.get("id", "")
 
-        # Add indicator for active query
         if query.get("is_active", False):
             label += " [Active]"
 
         options.append({"label": label, "value": value})
 
-    # Determine initial value
     value = (
         active_query_id
         if active_query_id
@@ -69,14 +51,7 @@ def create_query_dropdown(
 
 
 def create_query_actions(id_suffix: str = "") -> dbc.Col:
-    """Create query action buttons (create, edit, delete).
 
-    Args:
-        id_suffix: Optional suffix for component IDs
-
-    Returns:
-        Bootstrap column containing action buttons
-    """
     return dbc.Col(
         dbc.ButtonGroup(
             [
@@ -103,7 +78,7 @@ def create_query_actions(id_suffix: str = "") -> dbc.Col:
                 ),
             ],
             className="w-100",
-            style={"marginTop": "2rem"},  # Push buttons down to align with dropdown
+            style={"marginTop": "2rem"},
         ),
         xs=12,
         lg=6,
@@ -112,14 +87,7 @@ def create_query_actions(id_suffix: str = "") -> dbc.Col:
 
 
 def create_query_selector_panel(id_suffix: str = "") -> dbc.Card:
-    """Create complete query selector panel with dropdown and actions.
 
-    Args:
-        id_suffix: Optional suffix for component IDs
-
-    Returns:
-        Bootstrap card containing query selector
-    """
     return dbc.Card(
         dbc.CardBody(
             [
@@ -130,7 +98,6 @@ def create_query_selector_panel(id_suffix: str = "") -> dbc.Card:
                     ],
                     className="g-2",
                 ),
-                # Empty state message (hidden by default, shown via callback)
                 dbc.Alert(
                     [
                         html.I(className="fas fa-search me-2"),
@@ -154,14 +121,7 @@ def create_query_selector_panel(id_suffix: str = "") -> dbc.Card:
 
 
 def create_query_loading_indicator(id_suffix: str = "") -> dbc.Spinner:
-    """Create loading spinner for query switching operations.
 
-    Args:
-        id_suffix: Optional suffix for component ID
-
-    Returns:
-        Bootstrap spinner component
-    """
     return dbc.Spinner(
         id=f"query-loading-spinner{id_suffix}",
         color="primary",
@@ -172,19 +132,11 @@ def create_query_loading_indicator(id_suffix: str = "") -> dbc.Spinner:
 
 
 def create_query_info_tooltip(query: dict[str, Any]) -> str:
-    """Generate tooltip text for query with metadata.
 
-    Args:
-        query: Query dict with 'name', 'jql', 'created_at' keys
-
-    Returns:
-        HTML string for tooltip content
-    """
     name = query.get("name", "Unnamed")
     jql = query.get("jql", "")
     created_at = query.get("created_at", "Unknown")
 
-    # Truncate long JQL for tooltip
     jql_display = jql if len(jql) <= 100 else f"{jql[:97]}..."
 
     return f"""
@@ -197,20 +149,12 @@ def create_query_info_tooltip(query: dict[str, Any]) -> str:
 
 
 def get_query_dropdown_options(queries: list[dict[str, Any]]) -> list[dict[str, str]]:
-    """Convert query list to dropdown options format.
 
-    Args:
-        queries: List of query dicts from list_queries_for_profile()
-
-    Returns:
-        List of dicts with 'label' and 'value' keys for dropdown
-    """
     options = []
     for query in queries:
         label = query.get("name", "Unnamed Query")
         value = query.get("id", "")
 
-        # Add active indicator
         if query.get("is_active", False):
             label += " [Active]"
 

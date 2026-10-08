@@ -1,13 +1,3 @@
-"""Activity and Quality/Scope Section Components.
-
-This module provides dashboard sections for:
-- Recent Activity: Tracking completed items and story points over a fixed 4-week window
-- Quality & Scope: Monitoring scope management, backlog growth, and delivery consistency
-
-These sections provide key insights into team throughput, scope creep, and delivery
-predictability for effective project management and forecasting.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -28,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 
 def safe_divide(numerator, denominator, default=0):
-    """Safely divide two numbers, returning default if denominator is zero."""
     try:
         return numerator / denominator if denominator != 0 else default
     except TypeError, ZeroDivisionError:
@@ -40,35 +29,20 @@ def create_recent_activity_section(
     show_points: bool = True,
     additional_context: dict[str, Any] | None = None,
 ) -> html.Div:
-    """Create compact recent performance section showing completed items clearly.
 
-    Note: This section ALWAYS shows the last 4 weeks of data, regardless of
-    the data_points_count slider. This provides a consistent "current status" view.
-    Other dashboard sections respect the data_points_count filter.
-
-    Args:
-        statistics_df: DataFrame with statistics data
-        show_points: Whether to show points-related metrics (default: True)
-
-    Returns:
-        Dash HTML Div component with recent completions metrics
-    """
     if statistics_df.empty:
         return html.Div()
 
-    # ALWAYS use last 4 weeks for "Recent Completions" - fixed window
-    recent_window = min(4, len(statistics_df))  # 4 weeks or less if data is limited
+    recent_window = min(4, len(statistics_df))
     recent_data = statistics_df.tail(recent_window)
 
     if recent_data.empty:
         return html.Div()
 
-    # Calculate metrics for items
     total_items_completed = recent_data["completed_items"].sum()
     avg_items_weekly = recent_data["completed_items"].mean()
     items_sparkline_values = recent_data["completed_items"].tolist()
 
-    # Calculate metrics for points
     has_points_data = "completed_points" in recent_data.columns
     total_points_completed = (
         recent_data["completed_points"].sum() if has_points_data else 0
@@ -78,7 +52,6 @@ def create_recent_activity_section(
         recent_data["completed_points"].tolist() if has_points_data else [0, 0, 0, 0]
     )
 
-    # PROGRESSIVE BLENDING: Calculate blend_metadata for current week (Feature bd-a1vn)
     items_blend_metadata = None
     points_blend_metadata = None
 
@@ -87,16 +60,11 @@ def create_recent_activity_section(
         and additional_context.get("current_week_label")
         and len(recent_data) >= 2
     ):
-        # Check if last week in recent_data is the current week
         last_week_label = None
         if "week_label" in recent_data.columns and len(recent_data) > 0:
             last_week_label = recent_data["week_label"].iloc[-1]
         current_week_label = additional_context["current_week_label"]
 
-        # Determine if current week already has a row in the recent data.
-        # On Monday before Update Data runs, the new ISO week is not yet
-        # in the database; recent_data contains only prior weeks.
-        # We still want to show blending using actual=0 (nothing done yet).
         current_week_in_data = last_week_label == current_week_label
         logger.info(
             "[Blending-RecentCompletions] current_week_in_data=%s "
@@ -109,12 +77,9 @@ def create_recent_activity_section(
         items_values = items_sparkline_values.copy()
 
         if current_week_in_data and len(items_values) >= 2:
-            # Current week row exists: last value is the partial actual
             current_week_actual = items_values[-1]
             prior_weeks = items_values[:-1]
         elif not current_week_in_data and len(items_values) >= 2:
-            # Current week not yet in data (e.g., Monday before Update Data)
-            # No items completed yet this week; all rows are prior history
             current_week_actual = 0.0
             prior_weeks = items_values
         else:
@@ -123,7 +88,6 @@ def create_recent_activity_section(
         if prior_weeks:
             forecast_weeks = prior_weeks[-4:] if len(prior_weeks) >= 4 else prior_weeks
 
-            # Calculate items forecast
             if len(forecast_weeks) >= 2:
                 try:
                     forecast_weeks_float = [float(v) for v in forecast_weeks]
@@ -150,7 +114,6 @@ def create_recent_activity_section(
                         e,
                     )
 
-        # Calculate points blend metadata
         if has_points_data and show_points:
             points_values = points_sparkline_values.copy()
 
@@ -282,7 +245,6 @@ def create_recent_activity_section(
         "with point estimates."
     )
 
-    # Create metric cards for Recent Completions
     items_cards = [
         create_professional_metric_card(
             {
@@ -374,15 +336,12 @@ def create_recent_activity_section(
                     f"W{i + 1}" for i in range(len(items_sparkline_values))
                 ],
                 "blend_metadata": items_blend_metadata,
-                # Progressive blending (bd-a1vn)
             },
             show_details_button=False,
         ),
     ]
 
-    # Always show points cards - distinguish between disabled and no data
     if has_points_data and show_points and total_points_completed > 0:
-        # Case 1: Points tracking enabled with data
         points_cards = [
             create_professional_metric_card(
                 {
@@ -478,13 +437,11 @@ def create_recent_activity_section(
                         f"W{i + 1}" for i in range(len(points_sparkline_values))
                     ],
                     "blend_metadata": points_blend_metadata,
-                    # Progressive blending (bd-a1vn)
                 },
                 show_details_button=False,
             ),
         ]
     elif not show_points:
-        # Case 2: Points tracking disabled
         points_cards = [
             create_professional_metric_card(
                 {
@@ -511,7 +468,6 @@ def create_recent_activity_section(
             ),
         ]
     else:
-        # Case 3: Points tracking enabled but no data (0 points)
         points_cards = [
             create_professional_metric_card(
                 {
@@ -573,19 +529,10 @@ def create_recent_activity_section(
 def create_quality_scope_section(
     statistics_df: pd.DataFrame, settings: dict
 ) -> html.Div:
-    """Create quality and scope tracking section.
 
-    Args:
-        statistics_df: DataFrame with statistics data
-        settings: Dictionary with application settings
-
-    Returns:
-        Dash HTML Div component with quality and scope metrics
-    """
     if statistics_df.empty:
         return html.Div()
 
-    # Calculate scope metrics with time frame context
     scope_metrics = []
 
     if "created_items" in statistics_df.columns:
@@ -593,8 +540,6 @@ def create_quality_scope_section(
         total_completed = statistics_df["completed_items"].sum()
         scope_growth_rate = safe_divide(total_created, total_completed) * 100
 
-        # Calculate scope change rate (% of initial baseline)
-        # Baseline = scope at START of period: remaining + completed - created
         current_remaining = (
             statistics_df["remaining_items"].iloc[-1]
             if "remaining_items" in statistics_df.columns and not statistics_df.empty
@@ -607,11 +552,9 @@ def create_quality_scope_section(
             else 0
         )
 
-        # Get date range for context
         if "date" in statistics_df.columns and not statistics_df.empty:
             start_date = statistics_df["date"].min()
             end_date = statistics_df["date"].max()
-            # Convert to datetime and handle NaT (Not a Time) values
             start_dt = pd.to_datetime(start_date, format="mixed", errors="coerce")
             end_dt = pd.to_datetime(end_date, format="mixed", errors="coerce")
             if pd.notna(start_dt) and pd.notna(end_dt):
@@ -645,7 +588,7 @@ def create_quality_scope_section(
                 {
                     "label": "New Work in Backlog",
                     "value": f"{scope_change_rate:.1f}%",
-                    "color": "rgb(20, 168, 150)",  # Teal - distinct from items blue
+                    "color": "rgb(20, 168, 150)",
                     "icon": "fa-chart-area",
                     "tooltip": scope_new_work_tooltip,
                 },
@@ -659,14 +602,11 @@ def create_quality_scope_section(
             ]
         )
 
-    # Calculate quality metrics
     if len(statistics_df) >= 4:
-        # Velocity stability
         velocity_std = statistics_df["completed_items"].std()
         velocity_mean = statistics_df["completed_items"].mean()
         velocity_cv = safe_divide(velocity_std, velocity_mean) * 100
 
-        # Trend analysis - compare first half vs second half of filtered data
         mid_point = len(statistics_df) // 2
         recent_avg = statistics_df.iloc[mid_point:]["completed_items"].mean()
         older_avg = (

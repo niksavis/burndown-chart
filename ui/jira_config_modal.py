@@ -1,45 +1,19 @@
-"""
-JIRA Configuration Modal Component
-
-This module provides a Bootstrap modal dialog for JIRA API configuration.
-Users can configure their JIRA connection settings once, including base URL,
-API version, authentication token, cache settings, and custom field mappings.
-
-Feature: 003-jira-config-separation
-"""
-
-#######################################################################
-# IMPORTS
-#######################################################################
 import dash_bootstrap_components as dbc
 from dash import html
 
-#######################################################################
-# MODAL COMPONENT
-#######################################################################
-
 
 def create_jira_config_modal():
-    """
-    Create JIRA configuration modal dialog with form fields.
 
-    Returns:
-        dbc.Modal: Complete modal component with form fields for JIRA configuration
-    """
     return dbc.Modal(
         [
             dbc.ModalHeader(dbc.ModalTitle("JIRA Configuration"), close_button=True),
             dbc.ModalBody(
                 [
-                    # Connection status feedback area
-                    # (minimal space; toasts used for messages)
                     html.Div(
                         id="jira-connection-status",
                         style={"minHeight": "0px", "marginBottom": "4px"},
                     ),
-                    # Last test timestamp display (T025 - User Story 2)
                     html.Div(id="jira-last-test-display", className="mb-3"),
-                    # Connection Settings (Base URL + API Version in one row)
                     dbc.Row(
                         [
                             dbc.Col(
@@ -94,9 +68,7 @@ def create_jira_config_modal():
                         ],
                         className="mb-2",
                     ),
-                    # API version change warning (T028 - User Story 2)
                     html.Div(id="jira-api-version-warning", className="mb-3"),
-                    # Authentication (Full width for security)
                     dbc.Row(
                         [
                             dbc.Col(
@@ -126,7 +98,6 @@ def create_jira_config_modal():
                         ],
                         className="mb-3",
                     ),
-                    # Performance Settings (Cache Size + Max Results in one row)
                     dbc.Row(
                         [
                             dbc.Col(
@@ -182,27 +153,23 @@ def create_jira_config_modal():
                         ],
                         className="mb-3",
                     ),
-                    # Save status feedback area
                     html.Div(id="jira-save-status"),
                 ]
             ),
             dbc.ModalFooter(
                 [
-                    # Standard web pattern:
-                    # Close on left (safe exit), actions grouped on right
                     dbc.Button(
                         "Close",
                         id="jira-config-cancel-button",
                         color="secondary",
-                        outline=True,  # Outline style for less prominence
-                        className="me-auto",  # Push to left, creates visual separation
+                        outline=True,
+                        className="me-auto",
                     ),
-                    # Action buttons grouped on right: Test → Save
                     dbc.Button(
                         [html.I(className="fas fa-plug me-2"), "Test Connection"],
                         id="jira-test-connection-button",
                         color="info",
-                        outline=True,  # Less prominent than Save
+                        outline=True,
                         className="me-2",
                     ),
                     dbc.Button(
@@ -216,25 +183,15 @@ def create_jira_config_modal():
         id="jira-config-modal",
         size="lg",
         is_open=False,
-        backdrop="static",  # Prevent closing by clicking outside
-        keyboard=True,  # Allow closing with Escape key
+        backdrop="static",
+        keyboard=True,
         centered=True,
     )
 
 
 def create_jira_config_button(compact: bool = False):
-    """
-    Create button to open JIRA configuration modal.
 
-    Args:
-        compact: If True, creates icon-only button;
-            if False, creates full button with text
-
-    Returns:
-        dbc.Button: Configuration button for Data Source interface
-    """
     if compact:
-        # Compact icon-only button for settings panel
         return dbc.Button(
             html.I(className="fas fa-cog"),
             id="jira-config-button",
@@ -245,12 +202,11 @@ def create_jira_config_button(compact: bool = False):
             className="mb-3",
         )
     else:
-        # Full button with text for other interfaces
         return dbc.Button(
             [html.I(className="fas fa-cog me-2"), "Configure JIRA"],
             id="jira-config-button",
             color="primary",
             outline=False,
-            className="w-100",  # Full width, no margin
-            size="md",  # Standard size to match overall UI
+            className="w-100",
+            size="md",
         )

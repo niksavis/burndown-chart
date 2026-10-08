@@ -1,9 +1,3 @@
-"""
-Dashboard Enhanced - Visual Primitive Components
-
-Provides sparkline bar charts and progress bars used across dashboard cards.
-"""
-
 from __future__ import annotations
 
 from dash import html
@@ -12,7 +6,6 @@ from dash import html
 def _create_sparkline_bars(
     data_series: list, color: str = "#0d6efd", height: int = 35
 ) -> html.Div:
-    """Create sparkline bar chart."""
     if not data_series or len(data_series) == 0:
         return html.Div(
             "No data",
@@ -57,7 +50,6 @@ def _create_sparkline_bars(
 def _create_progress_bar(
     completed: float, total: float, color: str = "#0d6efd"
 ) -> html.Div:
-    """Create animated progress bar."""
     if total == 0:
         percent = 0.0
     else:

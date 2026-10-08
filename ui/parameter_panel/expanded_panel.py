@@ -1,5 +1,3 @@
-"""Expanded parameter panel component with all input fields."""
-
 import math
 from typing import cast
 
@@ -16,33 +14,12 @@ def create_parameter_panel_expanded(
     id_suffix: str = "",
     statistics: list | None = None,
 ) -> html.Div:
-    """
-    Create expanded parameter panel section with all input fields.
 
-    This component supports User Story 1: Quick Parameter Adjustments
-    While Viewing Charts.
-    When expanded, it displays ALL forecast-critical parameter input fields matching
-    the functionality of the old Input Parameters card with improved UX using sliders.
-
-    User Story 6: Contextual Help System - Adds help icons to parameter inputs.
-
-    Args:
-        settings: Dictionary containing current parameter values
-            (pert_factor, deadline, etc.)
-        id_suffix: Suffix for generating unique IDs
-        statistics: Optional list of statistics data points for
-            calculating max data points
-
-    Returns:
-        html.Div: Expanded parameter panel with complete input fields and help tooltips
-    """
     panel_id = f"parameter-panel-expanded{'-' + id_suffix if id_suffix else ''}"
 
-    # Extract settings with defaults
     pert_factor = settings.get("pert_factor", 3)
     deadline = settings.get("deadline")
     milestone = settings.get("milestone")
-    # Date pickers use date=None and clearable=True (matching budget effective date)
     total_items = settings.get("total_items", 0)
     estimated_items = settings.get("estimated_items", 0)
     total_points = settings.get("total_points", 0)
@@ -50,21 +27,15 @@ def create_parameter_panel_expanded(
     show_points = settings.get("show_points", False)
     data_points_count = settings.get("data_points_count", 10)
 
-    # Calculate max data points from statistics if available
-    # CRITICAL FIX: Count unique dates, not total rows (avoids duplicate date inflation)
-    max_data_points = 52  # Default max
+    max_data_points = 52
     if statistics and len(statistics) > 0:
-        # Count unique dates to get actual week count
         unique_dates = set(
             stat.get("date") or stat.get("stat_date") for stat in statistics
         )
         max_data_points = len(unique_dates) if unique_dates else len(statistics)
 
-    # Enforce minimum to prevent slider errors with new queries
     max_data_points = max(4, max_data_points)
 
-    # Calculate dynamic marks for Data Points slider
-    # 5 points: min (4), 1/4, 1/2 (middle), 3/4, max
     min_data_points = 4
     range_size = max_data_points - min_data_points
     quarter_point = math.ceil(min_data_points + range_size / 4)
@@ -83,13 +54,9 @@ def create_parameter_panel_expanded(
         [
             html.Div(
                 [
-                    # Tabs row with collapse button
                     html.Div(
                         [
-                            # Collapse button (positioned absolutely,
-                            # so order doesn't matter)
                             create_panel_collapse_button("parameter-collapse"),
-                            # Tabbed interface matching Settings panel
                             dbc.Tabs(
                                 [
                                     dbc.Tab(
@@ -99,9 +66,6 @@ def create_parameter_panel_expanded(
                                         children=[
                                             html.Div(
                                                 [
-                                                    # No header - tab label
-                                                    # serves as title
-                                                    # Section 1: Project Timeline
                                                     html.Div(
                                                         _create_timeline_section(
                                                             pert_factor,
@@ -115,7 +79,6 @@ def create_parameter_panel_expanded(
                                                             "mb-4 pb-3 border-bottom"
                                                         ),
                                                     ),
-                                                    # Section 2: Work Scope
                                                     html.Div(
                                                         _create_work_scope_section(
                                                             total_items,
@@ -130,7 +93,6 @@ def create_parameter_panel_expanded(
                                             )
                                         ],
                                     ),
-                                    # Budget Tab
                                     dbc.Tab(
                                         label="Budget",
                                         tab_id="budget-tab",
@@ -167,7 +129,6 @@ def _create_timeline_section(
     deadline: str | None,
     milestone: str | None,
 ) -> list:
-    """Create Project Timeline section with date pickers and sliders."""
     return [
         html.H6(
             [
@@ -182,7 +143,6 @@ def _create_timeline_section(
         ),
         dbc.Row(
             [
-                # Deadline Date Picker
                 dbc.Col(
                     _create_date_picker_field(
                         "Deadline",
@@ -196,7 +156,6 @@ def _create_timeline_section(
                     lg=3,
                     className="mb-3",
                 ),
-                # Milestone Date Picker
                 dbc.Col(
                     _create_date_picker_field(
                         "Milestone (optional)",
@@ -210,7 +169,6 @@ def _create_timeline_section(
                     lg=3,
                     className="mb-3",
                 ),
-                # Forecast Range Slider
                 dbc.Col(
                     _create_forecast_range_slider(pert_factor),
                     xs=12,
@@ -218,7 +176,6 @@ def _create_timeline_section(
                     lg=3,
                     className="mb-3",
                 ),
-                # Data Points Slider
                 dbc.Col(
                     _create_data_points_slider(
                         data_points_count, data_points_marks, max_data_points
@@ -241,7 +198,6 @@ def _create_date_picker_field(
     help_text: str,
     initial_date: str | None = None,
 ) -> list:
-    """Create a timeline date field with label and help tooltip."""
     return [
         html.Label(
             [
@@ -277,7 +233,6 @@ def _create_date_picker_field(
 
 
 def _create_forecast_range_slider(pert_factor: int) -> list:
-    """Create Forecast Range slider with color-coded marks."""
     return [
         html.Label(
             [
@@ -319,7 +274,6 @@ def _create_data_points_slider(
     data_points_marks: dict,
     max_data_points: int,
 ) -> list:
-    """Create Data Points slider with dynamic marks."""
     return [
         html.Label(
             [
@@ -352,9 +306,7 @@ def _create_work_scope_section(
     estimated_points: float,
     show_points: bool,
 ) -> list:
-    """Create Work Scope section with items/points inputs."""
     return [
-        # Section header with Points Tracking toggle
         html.Div(
             [
                 html.H6(
@@ -386,7 +338,6 @@ def _create_work_scope_section(
             ],
             className="d-flex justify-content-between align-items-center mb-3",
         ),
-        # Single Row: All 4 fields with equal width
         dbc.Row(
             [
                 dbc.Col(
@@ -501,7 +452,6 @@ def _create_work_scope_field(
     disabled: bool = False,
     placeholder: str = "",
 ) -> list:
-    """Create a work scope input field with label and help tooltip."""
     label_suffix = (
         " (optional)" if "estimated" in label.lower() else " (currently open)"
     )

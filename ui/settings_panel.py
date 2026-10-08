@@ -1,15 +1,3 @@
-"""
-Settings Panel Component
-
-Collapsible panel for JIRA integration and import/export settings.
-Follows the same pattern as the Parameter Panel for consistent UX.
-
-User Story 6: Contextual Help System - Adds help icons to settings features.
-"""
-
-#######################################################################
-# IMPORTS
-#######################################################################
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
@@ -27,13 +15,8 @@ from ui.profile_modals import (
 from ui.save_query_modal import create_save_query_modal
 from ui.unsaved_changes_modal import create_unsaved_changes_modal
 
-#######################################################################
-# HELPER FUNCTIONS
-#######################################################################
-
 
 def _get_default_jql_query():
-    """Get default JQL query from settings."""
     try:
         app_settings = load_app_settings()
         return app_settings.get("jql_query", "project = JRASERVER")
@@ -42,16 +25,7 @@ def _get_default_jql_query():
 
 
 def _get_default_jql_profile_id():
-    """
-    Get profile ID for dropdown initial value.
 
-    Priority:
-    1. If jql_query exactly matches a saved profile → return that profile ID
-    2. Otherwise → return empty (dropdown shows no selection)
-
-    This ensures the dropdown accurately reflects whether the current query
-    matches a saved profile or is a custom query.
-    """
     try:
         app_settings = load_app_settings()
         jql_query = app_settings.get("jql_query", "")
@@ -59,7 +33,6 @@ def _get_default_jql_profile_id():
         if not jql_query:
             return ""
 
-        # Try to match current JQL query to a saved profile
         profiles = load_query_profiles()
         normalized_query = jql_query.strip().lower()
 
@@ -68,7 +41,6 @@ def _get_default_jql_profile_id():
             if profile_jql.strip().lower() == normalized_query:
                 return profile.get("id", "")
 
-        # No match found - return empty (user has custom query)
         return ""
 
     except ImportError, Exception:
@@ -76,7 +48,6 @@ def _get_default_jql_profile_id():
 
 
 def _get_query_profile_options():
-    """Get query profile dropdown options."""
     try:
         profiles = load_query_profiles()
         options = []
@@ -95,21 +66,8 @@ def _get_query_profile_options():
         return []
 
 
-#######################################################################
-# SETTINGS PANEL EXPANDED CONTENT
-#######################################################################
-
-
 def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
-    """
-    Create expanded settings panel content with JIRA integration and import/export.
 
-    Args:
-        id_suffix: Suffix for unique IDs
-
-    Returns:
-        html.Div: Expanded panel content
-    """
     align_items_center_mb2 = "d-flex align-items-center mb-2"
     align_items_center_mb3 = "d-flex align-items-center mb-3"
     form_label_small_muted = "form-label small text-muted mb-1"
@@ -150,13 +108,10 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                 [
                     dbc.CardBody(
                         [
-                            # Two column layout
                             dbc.Row(
                                 [
-                                    # Left Column: JIRA Integration
                                     dbc.Col(
                                         [
-                                            # Header with config button
                                             html.Div(
                                                 [
                                                     html.I(
@@ -176,7 +131,6 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                 ],
                                                 className=align_items_center_mb2,
                                             ),
-                                            # Status indicator and config button row
                                             html.Div(
                                                 [
                                                     html.Div(
@@ -216,11 +170,7 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                 ],
                                                 className=align_items_center_mb3,
                                             ),
-                                            # Integrated Query Management
-                                            # (JQL-first workflow)
                                             create_integrated_query_management(),
-                                            # Hidden compatibility components
-                                            # for old JQL profile callbacks
                                             html.Div(
                                                 [
                                                     dcc.Dropdown(
@@ -244,7 +194,6 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                 ],
                                                 style={"display": "none"},
                                             ),
-                                            # Action buttons below Saved Queries
                                             dbc.Row(
                                                 [
                                                     dbc.Col(
@@ -287,7 +236,6 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                                     id="jira-cache-status",
                                                                     className=status_text_class,
                                                                     style=min_height_40,
-                                                                    # Fixed loading area
                                                                     children="",
                                                                 ),
                                                             ),
@@ -325,7 +273,6 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                                     id="calculate-metrics-status",
                                                                     className=status_text_class,
                                                                     style=min_height_40,
-                                                                    # Fixed loading area
                                                                     children="",
                                                                 ),
                                                             ),
@@ -339,10 +286,8 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                         md=8,
                                         className="border-end",
                                     ),
-                                    # Right Column: Import/Export
                                     dbc.Col(
                                         [
-                                            # Header - aligned with left column
                                             html.Div(
                                                 [
                                                     html.I(
@@ -362,7 +307,6 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                 ],
                                                 className=align_items_center_mb2,
                                             ),
-                                            # Import - more compact
                                             html.Div(
                                                 [
                                                     html.Label(
@@ -394,7 +338,6 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                 ],
                                                 className="mb-3",
                                             ),
-                                            # Export - more compact
                                             html.Div(
                                                 [
                                                     html.Label(
@@ -421,7 +364,6 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                 ],
                                 className="g-3",
                             ),
-                            # Hidden components for callback compatibility
                             html.Div(
                                 [
                                     dcc.Dropdown(
@@ -451,38 +393,21 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
     )
 
 
-#######################################################################
-# SETTINGS PANEL CONTAINER
-#######################################################################
-
-
 def create_settings_panel(is_open: bool = False, id_suffix: str = "") -> html.Div:
-    """
-    Create complete collapsible settings panel.
 
-    Args:
-        is_open: Whether panel should start in expanded state
-        id_suffix: Suffix for generating unique IDs
-
-    Returns:
-        html.Div: Complete settings panel with collapse functionality
-    """
     collapse_id = f"settings-collapse{'-' + id_suffix if id_suffix else ''}"
     panel_id = f"settings-panel{'-' + id_suffix if id_suffix else ''}"
 
     return html.Div(
         [
-            # Collapsible panel
             dbc.Collapse(
                 create_settings_panel_expanded(id_suffix=id_suffix),
                 id=collapse_id,
                 is_open=is_open,
                 style={"marginTop": "-1rem"},
             ),
-            # Profile management modals
             create_profile_form_modal(),
             create_profile_deletion_modal(),
-            # Integrated query management modals
             create_save_query_modal(),
             create_unsaved_changes_modal(),
             create_delete_query_modal(),

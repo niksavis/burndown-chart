@@ -1,9 +1,3 @@
-"""
-Budget revision history table component.
-
-Builds the paginated revision history table for the budget settings card.
-"""
-
 import math
 
 from dash import html
@@ -17,18 +11,7 @@ def create_revision_history_table(
     page: int = 1,
     per_page: int = REVISIONS_PER_PAGE,
 ) -> tuple:
-    """
-    Create paginated revision history table with navigation controls.
 
-    Args:
-        revisions: List of revision tuples from database
-        currency_symbol: Currency symbol for display
-        page: Current page number (1-indexed)
-        per_page: Number of revisions per page
-
-    Returns:
-        Tuple of (table_element, page_info, prev_disabled, next_disabled, total_pages)
-    """
     if not revisions:
         return (
             html.P(
@@ -45,7 +28,6 @@ def create_revision_history_table(
     total_revisions = len(revisions)
     total_pages = math.ceil(total_revisions / per_page)
 
-    # Ensure page is within bounds
     page = max(1, min(page, total_pages))
 
     start_idx = (page - 1) * per_page
@@ -64,7 +46,6 @@ def create_revision_history_table(
             created_at,
         ) = rev
 
-        # Format effective date as "YYYY-Wxx (YYYY-MM-DD)"
         effective_date_str = rev_date[:10]
         effective_display = f"{week_label} ({effective_date_str})"
 

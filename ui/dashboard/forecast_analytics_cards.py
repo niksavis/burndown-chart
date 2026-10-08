@@ -1,8 +1,3 @@
-"""Forecast Analytics - Summary Card Builders.
-
-Contains builders for expected completion and confidence interval cards.
-"""
-
 from __future__ import annotations
 
 from typing import Any
@@ -25,7 +20,6 @@ def _build_expected_completion_card(
     expected_completion_tooltip: str,
     row_between_class: str,
 ) -> dbc.Card:
-    """Build the Expected Completion metric card."""
     points_track_body: Any
     if show_points and points_pert_date != "No data":
         points_track_body = html.Div(
@@ -227,7 +221,6 @@ def _build_confidence_intervals_card(
     confidence_intervals_tooltip: str,
     row_between_class: str,
 ) -> dbc.Card:
-    """Build the Confidence Intervals metric card."""
     return dbc.Card(
         [
             create_metric_card_header(

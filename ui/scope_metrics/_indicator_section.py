@@ -1,5 +1,3 @@
-"""Private section builder for the scope indicators row."""
-
 from dash import html
 
 from configuration import SCOPE_HELP_TEXTS
@@ -24,7 +22,6 @@ def _build_scope_indicators_section(
     baseline_points: float,
     show_points: bool,
 ) -> html.Div:
-    """Build the items + points scope change indicator row."""
     info_icon_class = "fas fa-info-circle text-info ms-2 cursor-pointer"
     points_header_icon_class = "fas fa-chart-bar me-2 text-points"
     calc_icon_class = "fas fa-calculator text-info ms-2 cursor-pointer"
@@ -63,10 +60,8 @@ def _build_scope_indicators_section(
     )
     return html.Div(
         [
-            # Items trend box
             html.Div(
                 [
-                    # Header with icon and tooltip - matching weekly metrics style
                     html.Div(
                         className="d-flex align-items-center mb-2",
                         children=[
@@ -81,7 +76,6 @@ def _build_scope_indicators_section(
                             ),
                         ],
                     ),
-                    # Enhanced scope change indicator with tooltips
                     html.Div(
                         [
                             create_scope_change_indicator(
@@ -91,17 +85,14 @@ def _build_scope_indicators_section(
                                 SCOPE_HELP_TEXTS["scope_change_rate"],
                                 items_throughput_ratio,
                             ),
-                            # Add scope calculation tooltip icon
                             html.I(
                                 className=calc_icon_class,
                                 id="info-tooltip-items-scope-calculation",
                             ),
-                            # Add throughput ratio tooltip icon
                             html.I(
                                 className=line_icon_class,
                                 id="info-tooltip-items-throughput-ratio",
                             ),
-                            # Add scope breakdown methodology tooltip icon
                             html.I(
                                 className=bar_icon_class,
                                 id="info-tooltip-items-scope-breakdown",
@@ -109,7 +100,6 @@ def _build_scope_indicators_section(
                         ],
                         className="d-flex align-items-center gap-1",
                     ),
-                    # Enhanced forecast pills - matching weekly metrics style
                     html.Div(
                         [
                             create_forecast_pill(
@@ -137,7 +127,6 @@ def _build_scope_indicators_section(
                         ],
                         className=forecast_pills_class,
                     ),
-                    # Tooltip components - matching weekly metrics pattern
                     html.Div(
                         [
                             create_info_tooltip(
@@ -162,13 +151,11 @@ def _build_scope_indicators_section(
                 ],
                 className="col-md-6 col-12 mb-3 pe-md-2",
             ),
-            # Points trend box - only show if points tracking is enabled
         ]
         + (
             [
                 html.Div(
                     [
-                        # Header with icon and tooltip - matching weekly metrics style
                         html.Div(
                             className="d-flex align-items-center mb-2",
                             children=[
@@ -183,7 +170,6 @@ def _build_scope_indicators_section(
                                 ),
                             ],
                         ),
-                        # Enhanced scope change indicator with tooltips
                         html.Div(
                             [
                                 create_scope_change_indicator(
@@ -193,17 +179,14 @@ def _build_scope_indicators_section(
                                     points_scope_change_help,
                                     points_throughput_ratio,
                                 ),
-                                # Add scope calculation tooltip icon
                                 html.I(
                                     className=calc_icon_class,
                                     id="info-tooltip-points-scope-calculation",
                                 ),
-                                # Add throughput ratio tooltip icon
                                 html.I(
                                     className=line_icon_class,
                                     id="info-tooltip-points-throughput-ratio",
                                 ),
-                                # Add scope breakdown methodology tooltip icon
                                 html.I(
                                     className=bar_icon_class,
                                     id="info-tooltip-points-scope-breakdown",
@@ -211,7 +194,6 @@ def _build_scope_indicators_section(
                             ],
                             className="d-flex align-items-center gap-1",
                         ),
-                        # Enhanced forecast pills - matching weekly metrics style
                         html.Div(
                             [
                                 create_forecast_pill(
@@ -239,7 +221,6 @@ def _build_scope_indicators_section(
                             ],
                             className=forecast_pills_class,
                         ),
-                        # Tooltip components - matching weekly metrics pattern
                         html.Div(
                             [
                                 create_info_tooltip(

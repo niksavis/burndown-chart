@@ -1,16 +1,3 @@
-"""
-Forecast Card Components
-
-This module provides forecast-related card components including:
-- Main forecast graph visualization
-- Forecast methodology explanation
-- Items per week forecast information
-- Points per week forecast information
-
-All forecast cards use PERT (Program Evaluation and Review Technique)
-methodology for three-point estimation.
-"""
-
 from datetime import datetime
 
 import dash_bootstrap_components as dbc
@@ -33,18 +20,10 @@ from ui.tooltip_utils import (
 
 
 def create_forecast_graph_card() -> dbc.Card:
-    """
-    Create the forecast graph card component with customized download filename.
 
-    Returns:
-        Dash Card component with the forecast graph
-    """
-    # Generate the current date for the filename
     current_date = datetime.now().strftime("%Y%m%d")
     default_filename = f"burndown_forecast_{current_date}"
 
-    # Create the card header with tooltip
-    # and Phase 9.2 Progressive Disclosure help button
     header_content = create_card_header_with_tooltip(
         "Forecast Graph",
         tooltip_id="forecast-graph",
@@ -53,44 +32,30 @@ def create_forecast_graph_card() -> dbc.Card:
         help_category="forecast",
     )
 
-    # Create the card body content
     body_content = dcc.Graph(
         id="forecast-graph",
-        style={
-            "height": "700px"
-        },  # Updated from 650px to match the height in apply_layout_settings
+        style={"height": "700px"},
         config={
-            # Only specify the filename; let Plotly handle
-            # the rest of the export settings
             "toImageButtonOptions": {
                 "filename": default_filename,
             },
         },
     )
 
-    # Return the standardized card
     return create_standardized_card(
         header_content=header_content,
         body_content=body_content,
-        body_className="p-2",  # Less padding to maximize graph space
+        body_className="p-2",
         shadow="sm",
     )
 
 
 def create_forecast_info_card() -> dbc.Card:
-    """
-    Create the forecast methodology information card component with concise explanation.
 
-    Returns:
-        Dash Card component with concise forecast methodology explanation
-    """
-    # Generate a unique ID for this collapse component
     collapse_id = "forecast-info-collapse"
 
-    # Create the card body content with optimized layout
     body_content = html.Div(
         [
-            # Concise introduction paragraph with enhanced PERT methodology tooltip
             create_rhythm_text(
                 [
                     html.Strong("PERT Forecast: "),
@@ -108,7 +73,6 @@ def create_forecast_info_card() -> dbc.Card:
                 ],
                 element_type="paragraph",
             ),
-            # Compact list with less styling and more concise descriptions
             html.Div(
                 className="row g-2 mb-2",
                 children=[
@@ -299,7 +263,6 @@ def create_forecast_info_card() -> dbc.Card:
         style={"textAlign": "left"},
     )
 
-    # Return a card with collapsible body content
     return dbc.Card(
         [
             dbc.CardHeader(
@@ -353,36 +316,20 @@ def create_forecast_info_card() -> dbc.Card:
 def create_items_forecast_info_card(
     statistics_df: pd.DataFrame | None = None, pert_data: dict | None = None
 ) -> dbc.Card:
-    """
-    Create a concise forecast information card for the Items per Week tab.
 
-    Args:
-        statistics_df: DataFrame containing the project statistics (optional)
-        pert_data: Dictionary containing PERT analysis data (optional)
-
-    Returns:
-        Dash Card component with items forecast explanation
-    """
-
-    # Extract metrics from statistics if available
     if statistics_df is not None and not statistics_df.empty:
-        # Convert to datetime to ensure proper week grouping
         recent_df = statistics_df.copy()
         recent_df["date"] = pd.to_datetime(recent_df["date"])
         recent_df["week"] = recent_df["date"].dt.isocalendar().week  # type: ignore[attr-defined]
         recent_df["year"] = recent_df["date"].dt.isocalendar().year  # type: ignore[attr-defined]
 
-        # Use tail(10) to focus on recent data
         recent_df = recent_df.tail(10)
 
-    # Generate a unique ID for this collapse component
     collapse_id = "items-forecast-info-collapse"
 
-    # The card content with chart elements and forecast method
     chart_info = html.Div(
         className="row g-3",
         children=[
-            # Column 1: Chart Elements
             html.Div(
                 className="col-12 col-md-6",
                 children=html.Div(
@@ -438,7 +385,6 @@ def create_items_forecast_info_card(
                     ],
                 ),
             ),
-            # Column 2: Forecast Method
             html.Div(
                 className="col-12 col-md-6",
                 children=html.Div(
@@ -539,20 +485,8 @@ def create_items_forecast_info_card(
 def create_points_forecast_info_card(
     statistics_df: pd.DataFrame | None = None, pert_data: dict | None = None
 ) -> dbc.Card:
-    """
-    Create a concise forecast information card for the Points per Week tab.
 
-    Args:
-        statistics_df: DataFrame containing the project statistics (optional)
-        pert_data: Dictionary containing PERT analysis data (optional)
-
-    Returns:
-        Dash Card component with points forecast explanation
-    """
-
-    # Extract metrics from statistics if available
     if statistics_df is not None and not statistics_df.empty:
-        # Convert to datetime to ensure proper week grouping
         recent_df = statistics_df.copy()
         recent_df["date"] = pd.to_datetime(
             recent_df["date"], format="mixed", errors="coerce"
@@ -560,17 +494,13 @@ def create_points_forecast_info_card(
         recent_df["week"] = recent_df["date"].dt.isocalendar().week  # type: ignore[attr-defined]
         recent_df["year"] = recent_df["date"].dt.isocalendar().year  # type: ignore[attr-defined]
 
-        # Use tail(10) to focus on recent data
         recent_df = recent_df.tail(10)
 
-    # Generate a unique ID for this collapse component
     collapse_id = "points-forecast-info-collapse"
 
-    # The card content with chart elements and forecast method
     chart_info = html.Div(
         className="row g-3",
         children=[
-            # Column 1: Chart Elements
             html.Div(
                 className="col-12 col-md-6",
                 children=html.Div(
@@ -627,7 +557,6 @@ def create_points_forecast_info_card(
                     ],
                 ),
             ),
-            # Column 2: Forecast Method
             html.Div(
                 className="col-12 col-md-6",
                 children=html.Div(

@@ -1,10 +1,3 @@
-"""Forecast Analytics - Status and Probability Calculation Helpers.
-
-Provides reusable helper functions for schedule status calculation,
-probability tier mapping, on-track probability card, and pace health
-element builders used by the forecast analytics summary module.
-"""
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -22,17 +15,7 @@ from ui.styles import create_metric_card_header
 def calculate_schedule_status(
     forecast_date_str: str, deadline_date_str: str | None, current_date: datetime
 ) -> dict:
-    """Calculate schedule status for progress bar visualization.
 
-    Args:
-        forecast_date_str: Forecast date in YYYY-MM-DD format
-        deadline_date_str: Deadline in YYYY-MM-DD format
-            (None if no deadline is set)
-        current_date: Current date/time
-
-    Returns:
-        dict with percentage, bar_width, badge_text, color, and status
-    """
     if forecast_date_str == "No data" or not deadline_date_str:
         return {
             "percentage": 0,
@@ -46,11 +29,9 @@ def calculate_schedule_status(
         forecast_date = datetime.strptime(forecast_date_str, "%Y-%m-%d")
         deadline_date = datetime.strptime(deadline_date_str, "%Y-%m-%d")
 
-        # Calculate days
         days_to_forecast = (forecast_date - current_date).days
         days_to_deadline = (deadline_date - current_date).days
 
-        # Avoid division by zero
         if days_to_deadline <= 0:
             return {
                 "percentage": 100,
@@ -60,30 +41,26 @@ def calculate_schedule_status(
                 "status": "overdue",
             }
 
-        # Calculate percentage of deadline timeline used by forecast.
         percentage = max(0.0, (days_to_forecast / days_to_deadline) * 100)
 
-        # Determine status
         if days_to_forecast <= days_to_deadline:
-            # Ahead of schedule
             badge_text = "On Schedule"
             if percentage <= 70:
-                color = "#28a745"  # Green - significantly ahead
+                color = "#28a745"
             elif percentage <= 90:
-                color = "#20c997"  # Teal - slightly ahead
+                color = "#20c997"
             else:
-                color = "#ffc107"  # Yellow - barely ahead
+                color = "#ffc107"
         else:
-            # Behind schedule or on deadline
             badge_text = "Behind Schedule"
             if percentage <= 110:
-                color = "#ffc107"  # Yellow - slightly behind
+                color = "#ffc107"
             else:
-                color = "#dc3545"  # Red - significantly behind
+                color = "#dc3545"
 
         return {
-            "percentage": percentage,  # Actual percentage (can exceed 100%)
-            "bar_width": min(percentage, 100),  # Bar width capped at 100% for CSS
+            "percentage": percentage,
+            "bar_width": min(percentage, 100),
             "badge_text": badge_text,
             "color": color,
             "status": "ahead" if days_to_forecast <= days_to_deadline else "behind",
@@ -99,14 +76,7 @@ def calculate_schedule_status(
 
 
 def _get_probability_tier(prob: float) -> tuple[str, str]:
-    """Return (tier_name, hex_color) for a probability value.
 
-    Args:
-        prob: Probability value (0-100)
-
-    Returns:
-        Tuple of (tier_name, hex_color)
-    """
     if prob >= 70:
         return "Healthy", "#28a745"
     if prob >= 40:
@@ -127,24 +97,7 @@ def _build_on_track_card(
     on_track_tooltip: str,
     row_between_class: str,
 ) -> dbc.Card:
-    """Build the On-Track Probability metric card.
 
-    Args:
-        deadline_prob_items: Items-based deadline probability (0-100)
-        deadline_prob_points: Points-based deadline probability or None
-        items_prob_tier: Tier label for items probability
-        items_prob_color: Hex color for items probability
-        prob_tier: Tier label for primary (points or items) probability
-        prob_color: Hex color for primary probability
-        show_points: Whether points tracking is enabled
-        points_disabled_text: Placeholder text when points disabled
-        no_points_data_text: Placeholder text when no points data
-        on_track_tooltip: Tooltip text for the card header
-        row_between_class: Shared CSS class for row layout
-
-    Returns:
-        dbc.Card component
-    """
     points_track_content: Any
     if show_points and deadline_prob_points is not None and deadline_prob_points > 0:
         points_track_content = html.Div(
@@ -226,7 +179,6 @@ def _build_on_track_card(
             ),
             dbc.CardBody(
                 [
-                    # Items-based probability
                     html.Div(
                         [
                             html.Div(
@@ -292,7 +244,6 @@ def _build_on_track_card(
                         if show_points
                         else {"marginBottom": "0"},
                     ),
-                    # Points-based probability with placeholder when disabled.
                     html.Div(
                         [
                             html.Div(
@@ -343,21 +294,7 @@ def _build_pace_health_element(
     show_points: bool,
     current_date: datetime,
 ) -> dbc.Card | None:
-    """Build the Required Pace to Deadline card element if data is available.
 
-    Args:
-        remaining_items: Current remaining items
-        remaining_points: Current remaining points
-        avg_weekly_items: Current velocity in items/week
-        avg_weekly_points: Current velocity in points/week
-        days_to_deadline: Days remaining to deadline
-        deadline_str: Deadline in YYYY-MM-DD format
-        show_points: Whether points tracking is enabled
-        current_date: Current date for velocity calculation
-
-    Returns:
-        pace_health card html element, or None if insufficient data
-    """
     if not (
         remaining_items is not None
         and avg_weekly_items is not None
@@ -367,9 +304,6 @@ def _build_pace_health_element(
     ):
         return None
 
-    # Calculate required velocities using the actual deadline date.
-    # This ensures exact match with burndown charts calculation.
-    # Use date() to ensure value does not change during the same day (consistency).
     deadline_date = datetime.strptime(deadline_str, "%Y-%m-%d")
     required_items = calculate_required_velocity(
         remaining_items, deadline_date, current_date=current_date, time_unit="week"

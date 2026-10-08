@@ -1,17 +1,3 @@
-"""Executive Summary Module.
-
-This module provides the executive summary section for the dashboard, displaying
-key project health indicators including health score, completion metrics, and
-forecast information.
-
-The executive summary includes:
-- Project health score with status indicator
-- Items completion tracking (completed vs remaining)
-- Points completion tracking (completed vs remaining)
-- Deadline and forecast dates
-- Progress rings with visual indicators
-"""
-
 from __future__ import annotations
 
 import logging
@@ -44,28 +30,7 @@ def create_executive_summary_section(
     settings: dict[str, Any],
     avg_weekly_items: float,
 ) -> dbc.Card:
-    """Create executive summary section with key project health indicators.
 
-        The Data Points slider affects historical metrics
-        but not current remaining work:
-    - Remaining (items/points): Always shows current not-yet-done work (fixed)
-        - Completed (items/points): Shows work completed in the selected window
-            (changes with slider)
-    - Total: Remaining + Completed (changes with slider as Completed changes)
-
-    Args:
-        statistics_df: DataFrame containing project statistics
-        forecast_data: Dictionary containing forecast data
-            (velocity_cv, schedule_variance_days, completion_date)
-        settings: Dictionary containing project settings
-            (total_items, total_points, deadline, show_points,
-            extended_metrics, budget_data)
-        avg_weekly_items: Average weekly items completed
-
-    Returns:
-        dbc.Card containing the executive summary section
-    """
-    # Calculate completed items from the FILTERED statistics DataFrame
     completed_items = (
         statistics_df["completed_items"].sum() if not statistics_df.empty else 0
     )
@@ -73,11 +38,9 @@ def create_executive_summary_section(
         statistics_df["completed_points"].sum() if not statistics_df.empty else 0
     )
 
-    # Use CURRENT remaining from settings (fixed, doesn't change with slider)
     remaining_items = settings.get("total_items", 0)
     remaining_points = settings.get("total_points", 0)
 
-    # Calculate total scope = remaining + completed in window
     total_items = remaining_items + completed_items
     total_points = remaining_points + completed_points
 
@@ -122,28 +85,23 @@ def create_executive_summary_section(
         "or complete items with point estimates."
     )
 
-    # DEBUG: Log completion calculation
     logger.info(
         f"[APP COMPLETION] completed_items={completed_items}, "
         f"remaining_items={remaining_items}, "
         f"total_items={total_items}, completion_pct={completion_percentage:.2f}%"
     )
 
-    # Calculate project health score with DYNAMIC metrics from filtered data
     velocity_cv = forecast_data.get("velocity_cv", 0)
     schedule_variance = forecast_data.get("schedule_variance_days", 0)
 
-    # Calculate trend direction from filtered data
     trend_direction = "stable"
     recent_velocity_change = 0
 
     if not statistics_df.empty and len(statistics_df) >= 6:
-        # Split data into older and recent halves
         mid_point = len(statistics_df) // 2
         older_half = statistics_df.iloc[:mid_point]
         recent_half = statistics_df.iloc[mid_point:]
 
-        # Calculate velocity for each half (items per week)
         if len(older_half) > 0 and len(recent_half) > 0:
             older_weeks = max(1, len(older_half))
             recent_weeks = max(1, len(recent_half))
@@ -156,35 +114,28 @@ def create_executive_summary_section(
                     (recent_velocity - older_velocity) / older_velocity
                 ) * 100
 
-                # Determine trend direction (>10% change is significant)
                 if recent_velocity_change > 10:
                     trend_direction = "improving"
                 elif recent_velocity_change < -10:
                     trend_direction = "declining"
 
-    # Calculate scope change rate from filtered data
     scope_change_rate = 0
     if not statistics_df.empty and "created_items" in statistics_df.columns:
         total_created = statistics_df["created_items"].sum()
         if total_items > 0:
             scope_change_rate = (total_created / total_items) * 100
 
-    # Calculate completion confidence from schedule variance (same as report)
-    # Positive schedule_variance = ahead of schedule (buffer days)
-    # Negative schedule_variance = behind schedule
-    buffer_days = (
-        schedule_variance  # schedule_variance is forecast_days - days_to_deadline
-    )
+    buffer_days = schedule_variance
     if buffer_days >= 28:
-        completion_confidence = 95  # Very high confidence
+        completion_confidence = 95
     elif buffer_days >= 14:
-        completion_confidence = 80  # High confidence
+        completion_confidence = 80
     elif buffer_days >= 0:
-        completion_confidence = 65  # Moderate confidence
+        completion_confidence = 65
     elif buffer_days >= -14:
-        completion_confidence = 45  # Low confidence
+        completion_confidence = 45
     else:
-        completion_confidence = 25  # Very low confidence
+        completion_confidence = 25
 
     health_metrics = {
         "completion_percentage": completion_percentage,
@@ -197,7 +148,6 @@ def create_executive_summary_section(
         "completion_confidence": completion_confidence,
     }
 
-    # DEBUG: Log health metrics to trace 18% vs 13% discrepancy
     logger.info(
         f"[HEALTH CALC] Input metrics: velocity_cv={velocity_cv:.2f}, "
         f"schedule_variance={schedule_variance:.2f}, "
@@ -207,18 +157,14 @@ def create_executive_summary_section(
         f"statistics_rows={len(statistics_df)}"
     )
 
-    # Extract extended metrics from additional_context (calculated in callback)
-    # These are optional. If unavailable,
-    # dashboard-only mode uses adaptive weighting.
     extended_metrics = settings.get("extended_metrics", {})
 
     dora_metrics = extended_metrics.get("dora")
     flow_metrics = extended_metrics.get("flow")
     bug_metrics = extended_metrics.get("bug_analysis")
-    budget_metrics = settings.get("budget_data")  # Budget data passed separately
+    budget_metrics = settings.get("budget_data")
     scope_metrics = {"scope_change_rate": scope_change_rate}
 
-    # Log available extended metrics for v3.0 comprehensive formula
     logger.info(
         f"[HEALTH v3.0] Available extended metrics: "
         f"DORA={'✓' if dora_metrics else '✗'}, "
@@ -275,10 +221,8 @@ def create_executive_summary_section(
                         ],
                         className="mb-4",
                     ),
-                    # Redesigned metrics row with consistent sizing and alignment
                     dbc.Row(
                         [
-                            # Health Score
                             dbc.Col(
                                 html.Div(
                                     [
@@ -386,7 +330,6 @@ def create_executive_summary_section(
                                 md=2,
                                 className="mb-4 mb-md-0",
                             ),
-                            # Items Group
                             dbc.Col(
                                 html.Div(
                                     [
@@ -496,7 +439,6 @@ def create_executive_summary_section(
                                 md=5,
                                 className="mb-4 mb-md-0",
                             ),
-                            # Points Group
                             dbc.Col(
                                 html.Div(
                                     [
@@ -517,7 +459,6 @@ def create_executive_summary_section(
                                                 "color": COLOR_PALETTE["points"],
                                             },
                                         ),
-                                        # Case 1: Points tracking enabled with data
                                         dbc.Row(
                                             [
                                                 dbc.Col(
@@ -568,7 +509,6 @@ def create_executive_summary_section(
                                             ],
                                         )
                                         if points_available
-                                        # Case 2: Points tracking disabled
                                         else (
                                             html.Div(
                                                 [

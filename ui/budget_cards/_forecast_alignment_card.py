@@ -1,14 +1,3 @@
-"""
-Budget Cards - Forecast Alignment Card
-
-Forecast vs Budget Alignment card comparing PERT forecast with budget runway.
-Extracted from timeline_cards.py as part of architectural refactoring.
-
-Functions:
-- _create_card_footer(): DRY helper for consistent card footers
-- create_forecast_alignment_card(): Forecast vs Budget Alignment card
-"""
-
 import math
 from datetime import datetime, timedelta
 
@@ -20,23 +9,7 @@ from ui.styles import create_metric_card_header
 
 
 def _create_card_footer(text: str, icon: str = "fa-info-circle") -> dbc.CardFooter:
-    """Create consistent card footer with info text.
 
-    DRY helper for uniform card footers across budget and dashboard cards.
-
-    Args:
-        text: Footer text to display
-        icon: FontAwesome icon class (default: fa-info-circle)
-
-    Returns:
-        CardFooter component with consistent styling
-
-    Example:
-        >>> footer = _create_card_footer(
-        ...     "Based on last 7 weeks | Flow Distribution classification",
-        ...     "fa-chart-bar"
-        ... )
-    """
     return dbc.CardFooter(
         html.Div(
             [
@@ -58,43 +31,12 @@ def create_forecast_alignment_card(
     last_date: datetime | None = None,
     card_id: str | None = None,
 ) -> dbc.Card:
-    """
-    Create Forecast vs Budget Alignment card showing timeline comparison.
 
-    Displays gap between PERT forecast completion time and budget runway
-    for both items and points tracking with dates.
-    Styled as table matching Cost Breakdown card.
-
-    Args:
-        pert_time_items: PERT forecast days (items-based)
-        pert_time_points: PERT forecast days (points-based)
-        runway_weeks: Budget runway in weeks
-        show_points: Whether points tracking is active
-        last_date: Last statistics date for date calculations
-            (defaults to datetime.now())
-        card_id: Optional HTML ID for the card
-
-    Returns:
-        Dash Bootstrap Card component (full-width table layout)
-
-    Health Status:
-        - Healthy (green): Budget runway >= PERT forecast (gap >= 0)
-        - Warning (yellow): Gap between -2 and 0 weeks
-        - At Risk (red): Budget exhausts >2 weeks before completion
-        - No Data (blue): No budget consumption detected
-
-    Example:
-        >>> card = create_forecast_alignment_card(105.0, 92.4, 12.5, True)
-    """
-
-    # Use last_date for date calculations, fall back to datetime.now()
     reference_date = last_date if last_date else datetime.now()
 
-    # Convert days to weeks
     pert_weeks_items = pert_time_items / 7.0
     pert_weeks_points = pert_time_points / 7.0 if pert_time_points else pert_weeks_items
 
-    # Calculate completion dates
     items_completion_date = reference_date + timedelta(days=pert_time_items)
     points_completion_date = (
         reference_date + timedelta(days=pert_time_points)
@@ -102,12 +44,9 @@ def create_forecast_alignment_card(
         else items_completion_date
     )
 
-    # Calculate runway end date
     runway_end_date = reference_date + timedelta(weeks=runway_weeks)
 
-    # Handle infinity runway (no budget consumption)
     if math.isinf(runway_weeks):
-        # Show informational message when no consumption data
         return dbc.Card(
             [
                 dbc.CardHeader(
@@ -149,26 +88,23 @@ def create_forecast_alignment_card(
             className="metric-card metric-card-large mb-3",
         )
 
-    # Calculate gaps
     gap_items = runway_weeks - pert_weeks_items
     gap_points = runway_weeks - pert_weeks_points
 
-    # Determine overall health (worst case of items/points)
     min_gap = min(gap_items, gap_points) if show_points else gap_items
     if min_gap >= 0:
         overall_health = "Healthy"
-        health_color = "#198754"  # green
+        health_color = "#198754"
         health_icon = "fa-check-circle"
     elif min_gap >= -2:
         overall_health = "Warning"
-        health_color = "#ffc107"  # yellow
+        health_color = "#ffc107"
         health_icon = "fa-exclamation-triangle"
     else:
         overall_health = "At Risk"
-        health_color = "#dc3545"  # red
+        health_color = "#dc3545"
         health_icon = "fa-times-circle"
 
-    # Helper to format gap display
     def format_gap(gap: float) -> tuple[str, str, str]:
         if gap >= 0:
             return f"+{gap:.1f} weeks", "#198754", "fa-arrow-up"
@@ -180,14 +116,11 @@ def create_forecast_alignment_card(
     gap_items_text, gap_items_color, gap_items_icon = format_gap(gap_items)
     gap_points_text, gap_points_color, gap_points_icon = format_gap(gap_points)
 
-    # Build content using card-based layout instead of table
     content_items = []
 
-    # Items-based section
     content_items.append(
         html.Div(
             [
-                # Header row
                 html.Div(
                     [
                         html.I(
@@ -205,10 +138,8 @@ def create_forecast_alignment_card(
                     ],
                     className="mb-3",
                 ),
-                # Content row with 3 columns
                 html.Div(
                     [
-                        # Expected Completion
                         html.Div(
                             [
                                 html.Div(
@@ -230,7 +161,6 @@ def create_forecast_alignment_card(
                             className="text-center",
                             style={"flex": "1"},
                         ),
-                        # Budget Runway
                         html.Div(
                             [
                                 html.Div(
@@ -256,7 +186,6 @@ def create_forecast_alignment_card(
                                 "borderRight": "1px solid #dee2e6",
                             },
                         ),
-                        # Gap
                         html.Div(
                             [
                                 html.Div(
@@ -295,8 +224,6 @@ def create_forecast_alignment_card(
         )
     )
 
-    # Points-based section (conditional rendering)
-    # Case 1: Points tracking disabled - show disabled message
     if not show_points:
         content_items.append(
             html.Div(
@@ -315,7 +242,6 @@ def create_forecast_alignment_card(
                         ],
                         className="mb-3",
                     ),
-                    # Use same d-flex structure as Items-based for consistent height
                     html.Div(
                         [
                             html.I(className="fas fa-toggle-off fa-lg text-secondary"),
@@ -348,7 +274,6 @@ def create_forecast_alignment_card(
                 },
             )
         )
-    # Case 2: Points tracking enabled but no points data
     elif pert_time_points is None or pert_time_points == 0:
         content_items.append(
             html.Div(
@@ -367,7 +292,6 @@ def create_forecast_alignment_card(
                         ],
                         className="mb-3",
                     ),
-                    # Use same d-flex structure as Items-based for consistent height
                     html.Div(
                         [
                             html.I(className="fas fa-database fa-lg text-secondary"),
@@ -401,12 +325,10 @@ def create_forecast_alignment_card(
                 },
             )
         )
-    # Case 3: Points tracking enabled with data - show normal section
     else:
         content_items.append(
             html.Div(
                 [
-                    # Header row
                     html.Div(
                         [
                             html.I(
@@ -424,10 +346,8 @@ def create_forecast_alignment_card(
                         ],
                         className="mb-3",
                     ),
-                    # Content row with 3 columns
                     html.Div(
                         [
-                            # Expected Completion
                             html.Div(
                                 [
                                     html.Div(
@@ -452,7 +372,6 @@ def create_forecast_alignment_card(
                                 className="text-center",
                                 style={"flex": "1"},
                             ),
-                            # Budget Runway
                             html.Div(
                                 [
                                     html.Div(
@@ -481,7 +400,6 @@ def create_forecast_alignment_card(
                                     "borderRight": "1px solid #dee2e6",
                                 },
                             ),
-                            # Gap
                             html.Div(
                                 [
                                     html.Div(
@@ -525,7 +443,6 @@ def create_forecast_alignment_card(
             )
         )
 
-    # Create card with health status badge
     card = dbc.Card(
         [
             create_metric_card_header(

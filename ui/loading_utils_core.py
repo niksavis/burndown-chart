@@ -1,19 +1,6 @@
-"""
-Loading Utilities Core Module
-
-Base loading overlay, spinner, and skeleton functions providing
-the foundational loading state components for the application.
-"""
-
-#######################################################################
-# IMPORTS
-#######################################################################
 import dash_bootstrap_components as dbc
-
-# Third-party library imports
 from dash import html
 
-# Application imports
 from ui._loading_skeleton import create_skeleton_loader  # noqa: F401
 from ui.style_constants import (
     NEUTRAL_COLORS,
@@ -21,34 +8,29 @@ from ui.style_constants import (
     SEMANTIC_COLORS,
 )
 
-#######################################################################
-# CONSTANTS
-#######################################################################
-
-# Loading styles configuration
 LOADING_STYLES = {
     "default": {
         "spinner_color": PRIMARY_COLORS.get("primary"),
         "overlay_color": "rgba(255, 255, 255, 0.8)",
-        "text_color": NEUTRAL_COLORS.get("gray-900"),  # dark text
+        "text_color": NEUTRAL_COLORS.get("gray-900"),
         "size": "md",
     },
     "light": {
         "spinner_color": PRIMARY_COLORS.get("primary"),
         "overlay_color": "rgba(255, 255, 255, 0.9)",
-        "text_color": NEUTRAL_COLORS.get("gray-900"),  # dark text
+        "text_color": NEUTRAL_COLORS.get("gray-900"),
         "size": "md",
     },
     "dark": {
-        "spinner_color": NEUTRAL_COLORS.get("white"),  # white
+        "spinner_color": NEUTRAL_COLORS.get("white"),
         "overlay_color": "rgba(0, 0, 0, 0.7)",
-        "text_color": NEUTRAL_COLORS.get("white"),  # white
+        "text_color": NEUTRAL_COLORS.get("white"),
         "size": "md",
     },
     "transparent": {
         "spinner_color": PRIMARY_COLORS.get("primary"),
         "overlay_color": "rgba(255, 255, 255, 0.4)",
-        "text_color": NEUTRAL_COLORS.get("gray-900"),  # dark text
+        "text_color": NEUTRAL_COLORS.get("gray-900"),
         "size": "md",
     },
     "success": {
@@ -89,7 +71,6 @@ LOADING_STYLES = {
     },
 }
 
-# Spinner size configuration
 SPINNER_SIZES = {
     "xs": {"width": "1rem", "height": "1rem", "border_width": "0.15rem"},
     "sm": {"width": "1.5rem", "height": "1.5rem", "border_width": "0.2rem"},
@@ -98,7 +79,6 @@ SPINNER_SIZES = {
     "xl": {"width": "4rem", "height": "4rem", "border_width": "0.35rem"},
 }
 
-# CSS animation for skeleton loaders
 SKELETON_ANIMATION = (
     "@keyframes skeleton-loading { "
     "0% { background-color: rgba(200, 200, 200, 0.2); } "
@@ -107,22 +87,9 @@ SKELETON_ANIMATION = (
     "}"
 )
 
-#######################################################################
-# LOADING STYLE UTILITIES
-#######################################################################
-
 
 def get_loading_style(style_key="primary", size_key="md"):
-    """
-    Get standardized styling for loading indicators.
 
-    Args:
-        style_key (str): Color style key (primary, secondary, success, etc.)
-        size_key (str): Size key (sm, md, lg)
-
-    Returns:
-        dict: Dictionary of style attributes
-    """
     colors = {
         "primary": PRIMARY_COLORS.get("primary"),
         "secondary": SEMANTIC_COLORS.get("secondary"),
@@ -148,17 +115,7 @@ def get_loading_style(style_key="primary", size_key="md"):
 
 
 def create_spinner_style(style_key="primary", size_key="md", custom_style=None):
-    """
-    Create CSS style for spinner components.
 
-    Args:
-        style_key (str): Color style key
-        size_key (str): Size key (sm, md, lg)
-        custom_style (dict): Additional custom styles to apply
-
-    Returns:
-        dict: Dictionary of CSS styles for the spinner
-    """
     base_style = get_loading_style(style_key, size_key)
 
     spinner_style = {
@@ -185,29 +142,10 @@ def create_spinner_style(style_key="primary", size_key="md", custom_style=None):
     return combined_style
 
 
-#######################################################################
-# SPINNER COMPONENTS
-#######################################################################
-
-
 def create_spinner(
     style_key="primary", size_key="md", text=None, className="", id=None
 ):
-    """
-    Creates a Bootstrap spinner component.
 
-    Args:
-        style_key (str, optional): The color style of the spinner
-            (e.g., "primary", "secondary"). Defaults to "primary".
-        size_key (str, optional): The size of the spinner
-            ("sm", "md", "lg"). Defaults to "md".
-        text (str, optional): Optional text to display alongside
-            the spinner. Defaults to None.
-        className (str, optional): Additional CSS classes to apply. Defaults to "".
-
-    Returns:
-        html.Div: A Div containing the spinner and optional text.
-    """
     spinner_style = create_spinner_style(style_key, size_key)
 
     spinner = html.Div(
@@ -238,20 +176,7 @@ def create_growing_spinner(
     variant="circle",
     className="",
 ):
-    """
-    Create multiple spinner components with a growing effect.
 
-    Args:
-        style_key (str): Style/color variant
-        size_key (str): Size of the spinners (sm, md, lg)
-        grow_size (str): Size of the growing effect (overrides size_key)
-        count (int): Number of spinners to show
-        variant (str): Spinner variant (circle, dot)
-        className (str): Additional CSS classes
-
-    Returns:
-        html.Div: A component with multiple growing spinners
-    """
     size_mapping = {
         "xs": {
             "className": "spinner-grow spinner-grow-sm",
@@ -303,20 +228,7 @@ def create_bootstrap_spinner(
     centered=True,
     className="",
 ):
-    """
-    Create a Bootstrap spinner component.
 
-    Args:
-        spinner_type (str): Type of spinner ('border' or 'grow')
-        color (str): Bootstrap color name
-        size (str): Size ('sm' or None for default)
-        text (str): Optional text to display with the spinner
-        centered (bool): Whether to center the spinner
-        className (str): Additional CSS classes
-
-    Returns:
-        dbc.Spinner or html.Div: Bootstrap spinner component
-    """
     spinner = dbc.Spinner(
         type=spinner_type, color=color, size=size, className=className
     )
@@ -337,11 +249,6 @@ def create_bootstrap_spinner(
         return component
 
 
-#######################################################################
-# LOADING OVERLAYS
-#######################################################################
-
-
 def create_loading_overlay(
     children,
     style_key="primary",
@@ -351,21 +258,7 @@ def create_loading_overlay(
     opacity=0.7,
     className="",
 ):
-    """
-    Create a loading overlay that covers content while loading.
 
-    Args:
-        children: Content to display when not loading
-        style_key (str): Color style for the spinner
-        size_key (str): Size of the spinner
-        text (str): Optional text to display during loading
-        is_loading (bool): Whether to show the loading state
-        opacity (float): Opacity of the overlay background
-        className (str): Additional CSS classes
-
-    Returns:
-        html.Div: A component with loading overlay
-    """
     if not is_loading:
         return html.Div(children, className=className)
 
@@ -386,12 +279,8 @@ def create_loading_overlay(
 
     return html.Div(
         [
-            html.Div(  # Overlay with spinner
-                spinner, style=overlay_style
-            ),
-            html.Div(  # Content (blurred or dimmed during loading)
-                children, style={"filter": "blur(1px)"}
-            ),
+            html.Div(spinner, style=overlay_style),
+            html.Div(children, style={"filter": "blur(1px)"}),
         ],
         style={"position": "relative"},
         className=className,
@@ -407,21 +296,7 @@ def create_fullscreen_loading(
     blur=False,
     id=None,
 ):
-    """
-    Create a fullscreen loading overlay for major loading operations.
 
-    Args:
-        style_key (str): Color style key
-        size_key (str): Size key
-        text (str): Text to display with the spinner
-        show (bool): Whether to display the overlay
-        backdrop_opacity (float): Opacity of the backdrop
-        blur (bool): Whether to apply blur effect to background
-        id (str): Component ID
-
-    Returns:
-        html.Div: A fullscreen loading overlay
-    """
     if not show:
         return html.Div(id=id, style={"display": "none"})
 

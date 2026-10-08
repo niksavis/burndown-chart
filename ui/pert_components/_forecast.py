@@ -1,8 +1,3 @@
-"""PERT Forecast Components
-
-Components for the completion forecast section.
-"""
-
 from dash import html
 
 from configuration import COLOR_PALETTE
@@ -32,27 +27,7 @@ def _create_forecast_card(
     weeks_avg_color,
     weeks_med_color,
 ):
-    """
-    Create a forecast card for either items or points.
 
-    Args:
-        title: Title of the forecast card (e.g., "Items Forecast")
-        metric_type: Type of metric, either "items" or "points"
-        completion_str: Formatted completion date string
-        pert_time: PERT estimate for completion (days)
-        color: Color indicator (green/red) based on meeting deadline
-        avg_completion_str: Average completion date string
-        med_completion_str: Median completion date string
-        weeks_avg: Number of weeks to completion based on average
-        avg_days: Number of days to completion based on average
-        weeks_med: Number of weeks to completion based on median
-        med_days: Number of days to completion based on median
-        weeks_avg_color: Color for average forecast (green/red)
-        weeks_med_color: Color for median forecast (green/red)
-
-    Returns:
-        dash.html.Div: A forecast card component
-    """
     metric_icon_class = (
         "fas fa-tasks me-2" if metric_type == "items" else "fas fa-chart-bar me-2"
     )
@@ -75,7 +50,6 @@ def _create_forecast_card(
 
     return html.Div(
         [
-            # Header with icon
             html.Div(
                 [
                     html.I(
@@ -89,7 +63,6 @@ def _create_forecast_card(
                 ],
                 className="d-flex align-items-center mb-3",
             ),
-            # Table header
             html.Div(
                 className="d-flex mb-2 px-3 py-2 bg-light rounded-top border-bottom",
                 style={"fontSize": "0.8rem"},
@@ -162,7 +135,6 @@ def _create_forecast_card(
                 is_highlighted=True,
                 icon="fas fa-chart-line",
             ),
-            # Average row
             _create_forecast_row(
                 [
                     "Average",
@@ -185,7 +157,6 @@ def _create_forecast_card(
                 ),
                 avg_row_bg,
             ),
-            # Median row
             _create_forecast_row(
                 [
                     "Median",
@@ -240,19 +211,8 @@ def _create_completion_forecast_section(
     weeks_med_points_color,
     show_points=True,
 ):
-    """
-    Create the completion forecast section.
 
-    Args:
-        Multiple parameters for both items and points forecasts
-        show_points: Whether points tracking is enabled (default: True)
-
-    Returns:
-        dash.html.Div: Completion forecast section
-    """
-    # Create the forecast cards list
     forecast_cards = [
-        # Items Forecast Card
         _create_forecast_card(
             "Items Forecast",
             "items",
@@ -270,7 +230,6 @@ def _create_completion_forecast_section(
         ),
     ]
 
-    # Only add points forecast card if points tracking is enabled
     if show_points:
         forecast_cards.append(
             _create_forecast_card(
@@ -292,9 +251,7 @@ def _create_completion_forecast_section(
 
     return html.Div(
         [
-            # Add all forecast cards
             *forecast_cards,
-            # Enhanced footer with methodology explanation and tooltip
             html.Div(
                 html.Small(
                     [

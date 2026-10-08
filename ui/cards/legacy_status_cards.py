@@ -1,20 +1,3 @@
-"""Legacy project status cards (deprecated).
-
-WARNING: This module contains legacy card functions that are deprecated.
-Avoid using these for new features. Use atomic card builders instead
-(see ui.cards.atomic_cards, ui.cards.metric_cards).
-
-DEPRECATION NOTICE:
-These cards predate the unified dashboard design (Feature 010 - Bug Analysis Dashboard).
-They remain for backward compatibility but should be migrated to use:
-- create_unified_metric_card() for individual metrics
-- create_unified_metric_row() for metric groups
-- Standardized design tokens from ui.style_constants
-
-Functions:
-    create_project_status_card: Legacy project status summary (deprecated)
-"""
-
 from __future__ import annotations
 
 import dash_bootstrap_components as dbc
@@ -27,25 +10,11 @@ from ui.tooltip_utils import create_info_tooltip
 
 
 def create_project_status_card(statistics_df, settings) -> dbc.Card:
-    """
-    [DEPRECATED] Create a comprehensive project status card with metrics and indicators.
 
-    WARNING: This function is deprecated. For new features, use the unified metric card
-    pattern from ui.cards.metric_cards.create_unified_metric_card() instead.
-
-    Args:
-        statistics_df: DataFrame containing the project statistics
-        settings: Dictionary with current settings
-
-    Returns:
-        A Dash card component for project status summary
-    """
     try:
-        # Extract key metrics from settings (these represent remaining work)
         remaining_items = settings.get("total_items", 0)
         remaining_points = settings.get("total_points", 0)
 
-        # Calculate completed items and points from statistics
         completed_items = (
             int(statistics_df["completed_items"].sum())
             if not statistics_df.empty
@@ -58,16 +27,10 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
         )
         data_points_count = len(statistics_df) if not statistics_df.empty else 0
 
-        # Calculate true project totals (completed + remaining)
         total_items = remaining_items + completed_items
-        total_points = round(
-            remaining_points + completed_points, 1
-        )  # Round to 1 decimal place
-        remaining_points = round(
-            remaining_points, 1
-        )  # Round remaining points to 1 decimal place
+        total_points = round(remaining_points + completed_points, 1)
+        remaining_points = round(remaining_points, 1)
 
-        # Calculate percentages based on true project totals
         items_percentage = (
             round((completed_items / total_items) * 100, 1) if total_items > 0 else 0
         )
@@ -75,45 +38,35 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
             round((completed_points / total_points) * 100, 1) if total_points > 0 else 0
         )
 
-        # Calculate average weekly velocity and coefficient of variation (last 10 weeks)
-        # Create a copy of the DataFrame to avoid SettingWithCopyWarning
         recent_df = statistics_df.copy() if not statistics_df.empty else pd.DataFrame()
 
-        # Default values if no data is available
         avg_weekly_items = 0
         avg_weekly_points = 0
         stability_status = "Unknown"
         stability_color = "secondary"
         stability_icon = "fa-question-circle"
 
-        # Convert to datetime to ensure proper week grouping
         if not recent_df.empty:
-            # Use proper pandas assignment with .loc to avoid SettingWithCopyWarning
             recent_df.loc[:, "date"] = pd.to_datetime(
                 recent_df["date"], format="mixed", errors="coerce"
             )
 
-            # Add week and year columns
             recent_df.loc[:, "week"] = recent_df["date"].dt.isocalendar().week  # type: ignore[attr-defined]
             recent_df.loc[:, "year"] = recent_df["date"].dt.isocalendar().year  # type: ignore[attr-defined]
 
-            # Group by week to get weekly data
             weekly_data = (
                 recent_df.groupby(["year", "week"])
                 .agg({"completed_items": "sum", "completed_points": "sum"})
                 .reset_index()
-                .tail(10)  # Consider only the last 10 weeks
+                .tail(10)
             )
 
-            # Calculate average weekly velocity
             avg_weekly_items = weekly_data["completed_items"].mean()
             avg_weekly_points = weekly_data["completed_points"].mean()
 
-            # Calculate standard deviation for coefficient of variation
             std_weekly_items = weekly_data["completed_items"].std()
             std_weekly_points = weekly_data["completed_points"].std()
 
-            # Calculate coefficient of variation (CV = std/mean)
             cv_items = (
                 (std_weekly_items / avg_weekly_items * 100)
                 if avg_weekly_items > 0
@@ -125,7 +78,6 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
                 else 0
             )
 
-            # Count zero weeks and high weeks (outliers)
             zero_item_weeks = len(weekly_data[weekly_data["completed_items"] == 0])
             zero_point_weeks = len(weekly_data[weekly_data["completed_points"] == 0])
             high_item_weeks = len(
@@ -135,7 +87,6 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
                 weekly_data[weekly_data["completed_points"] > avg_weekly_points * 2]
             )
 
-            # Calculate overall stability score (0-100)
             stability_score = max(
                 0,
                 100
@@ -148,7 +99,6 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
             )
             stability_score = min(100, max(0, stability_score))
 
-            # Determine velocity consistency status
             if stability_score >= 80:
                 stability_status = "Consistent"
                 stability_color = "success"
@@ -162,7 +112,6 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
                 stability_color = "danger"
                 stability_icon = "fa-times-circle"
 
-        # Calculate days of data available
         if not statistics_df.empty:
             if "date" in statistics_df.columns:
                 earliest_date = pd.to_datetime(
@@ -181,7 +130,6 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
         else:
             days_of_data = 0
 
-        # Create the card component
         return dbc.Card(
             [
                 create_metric_card_header(
@@ -193,10 +141,8 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
                 ),
                 dbc.CardBody(
                     [
-                        # Project Completion Stats Row
                         dbc.Row(
                             [
-                                # Items Completion
                                 dbc.Col(
                                     [
                                         html.H6(
@@ -243,7 +189,6 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
                                             ],
                                             className="text-center mb-2",
                                         ),
-                                        # Progress bar for items
                                         dbc.Progress(
                                             value=items_percentage,
                                             color="info",
@@ -253,7 +198,6 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
                                     ],
                                     md=6,
                                 ),
-                                # Points Completion
                                 dbc.Col(
                                     [
                                         html.H6(
@@ -301,7 +245,6 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
                                             ],
                                             className="text-center mb-2",
                                         ),
-                                        # Progress bar for points
                                         dbc.Progress(
                                             value=points_percentage,
                                             color="warning",
@@ -314,10 +257,8 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
                             ],
                             className="mb-4",
                         ),
-                        # Metrics Row
                         dbc.Row(
                             [
-                                # Weekly Averages
                                 dbc.Col(
                                     [
                                         html.H6(
@@ -385,7 +326,6 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
                                     ],
                                     md=4,
                                 ),
-                                # Velocity Stability
                                 dbc.Col(
                                     [
                                         html.H6(
@@ -435,7 +375,6 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
                                     ],
                                     md=4,
                                 ),
-                                # Dataset Info
                                 dbc.Col(
                                     [
                                         html.H6("Dataset Info", className="mb-3"),
@@ -488,7 +427,6 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
         )
 
     except Exception as e:
-        # Return an error card if something goes wrong
         return dbc.Card(
             [
                 create_metric_card_header(

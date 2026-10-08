@@ -1,14 +1,3 @@
-"""
-Utility Functions for Comprehensive Dashboard
-
-Provides shared helper functions for dashboard sections:
-- Safe mathematical operations
-- Date formatting utilities
-- Project health score calculation
-- Metric card creation
-- Visualization helpers (sparklines, progress rings)
-"""
-
 from __future__ import annotations
 
 import logging
@@ -28,16 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def safe_divide(numerator, denominator, default=0):
-    """Safely divide two numbers, returning default if denominator is zero.
 
-    Args:
-        numerator: Number to divide
-        denominator: Number to divide by
-        default: Value to return if division fails
-
-    Returns:
-        Result of division or default value
-    """
     try:
         return numerator / denominator if denominator != 0 else default
     except TypeError, ZeroDivisionError:
@@ -45,15 +25,7 @@ def safe_divide(numerator, denominator, default=0):
 
 
 def format_date_relative(date_str, reference_date=None):
-    """Format date with relative time context.
 
-    Args:
-        date_str: Date string to format
-        reference_date: Reference date for comparison (defaults to now)
-
-    Returns:
-        Human-readable relative date string
-    """
     if not date_str:
         return "Not set"
 
@@ -84,38 +56,9 @@ def calculate_project_health_score(
     budget_metrics: dict[str, Any] | None = None,
     scope_metrics: dict[str, Any] | None = None,
 ) -> float:
-    """Calculate overall project health score (0-100).
 
-    Uses comprehensive multi-dimensional analysis.
-
-    Formula - Comprehensive with dynamic weighting:
-    Calculates health across 6 dimensions with dynamic weight
-    redistribution when metrics are unavailable:
-    - Delivery Performance (25% max): velocity, throughput, completion rate
-    - Predictability (20% max): velocity CV, forecast confidence, schedule adherence
-    - Quality (20% max): bug density, DORA CFR, bug resolution, MTTR
-    - Efficiency (15% max): flow efficiency, flow time, resource utilization
-    - Sustainability (10% max): scope stability, WIP management, flow distribution
-    - Financial Health (10% max): budget adherence, burn rate, runway
-
-    When extended metrics (DORA, Flow, Bug, Budget) are unavailable,
-    the v3.0 calculator redistributes weights dynamically to
-    available dimensions, ensuring consistent scoring.
-
-    Args:
-        metrics: Dashboard metrics with velocity, completion, schedule data
-        dora_metrics: Optional DORA metrics for quality dimension
-        flow_metrics: Optional flow metrics for efficiency dimension
-        bug_metrics: Optional bug metrics for quality dimension
-        budget_metrics: Optional budget metrics for financial health
-        scope_metrics: Optional scope change metrics for sustainability
-
-    Returns:
-        Health score from 0-100
-    """
     logger.info("[HEALTH v3.0] Using comprehensive multi-dimensional health formula")
 
-    # Prepare metrics for comprehensive calculator using shared function (DRY)
     dashboard_metrics = prepare_dashboard_metrics_for_health(
         completion_percentage=metrics.get("completion_percentage", 0),
         current_velocity_items=metrics.get("current_velocity_items", 0),
@@ -144,7 +87,6 @@ def calculate_project_health_score(
         f"confidence={confidence}"
     )
 
-    # Call comprehensive calculator
     health_result = calculate_comprehensive_project_health(
         dashboard_metrics=dashboard_metrics,
         dora_metrics=dora_metrics,
@@ -163,14 +105,7 @@ def calculate_project_health_score(
 
 
 def get_health_status(score: float) -> dict[str, str]:
-    """Get health status configuration based on score.
 
-    Args:
-        score: Health score from 0-100
-
-    Returns:
-        Dictionary with label, color, icon, and background color
-    """
     if score >= 70:
         return {
             "label": "GOOD",
@@ -202,50 +137,35 @@ def get_health_status(score: float) -> dict[str, str]:
 
 
 def get_brief_health_reason(health_metrics: dict[str, Any]) -> str:
-    """Get brief one-line reason for health score.
 
-    Args:
-        health_metrics: Dictionary with velocity_cv, schedule_variance_days,
-                       scope_change_rate, trend_direction, recent_velocity_change
-
-    Returns:
-        Brief reason string explaining the most concerning metric
-    """
-    # Identify most concerning metric (lowest performer)
     concerns = []
 
-    # Check velocity consistency (CV)
     velocity_cv = health_metrics.get("velocity_cv", 0)
     if velocity_cv >= 40:
-        concerns.append(("Velocity unpredictable (CV ≥ 40%)", 3))  # High priority
+        concerns.append(("Velocity unpredictable (CV ≥ 40%)", 3))
     elif velocity_cv >= 25:
         concerns.append(("Velocity inconsistent (CV ≥ 25%)", 2))
 
-    # Check schedule
     schedule_variance = health_metrics.get("schedule_variance_days", 0)
     if schedule_variance > 30:
         concerns.append((f"Behind schedule ({int(schedule_variance)} days)", 3))
     elif schedule_variance > 14:
         concerns.append((f"Slightly behind ({int(schedule_variance)} days)", 2))
 
-    # Check scope
     scope_change_rate = health_metrics.get("scope_change_rate", 0)
     if scope_change_rate > 30:
         concerns.append((f"High scope growth ({scope_change_rate:.0f}%)", 3))
     elif scope_change_rate > 15:
         concerns.append((f"Scope growing ({scope_change_rate:.0f}%)", 2))
 
-    # Check trend
     trend_direction = health_metrics.get("trend_direction", "stable")
     if trend_direction == "declining":
         concerns.append(("Velocity declining", 2))
 
-    # Check recent performance
     recent_change = health_metrics.get("recent_velocity_change", 0)
     if recent_change < -15:
         concerns.append((f"Recent drop ({recent_change:.0f}%)", 2))
 
-    # Return highest priority concern
     if concerns:
         concerns.sort(key=lambda x: x[1], reverse=True)
         return concerns[0][0]
@@ -264,27 +184,7 @@ def create_metric_card(
     tooltip_text: str | None = None,
     tooltip_id: str | None = None,
 ) -> Any:
-    """Create a standardized metric card using professional system.
 
-    Adapter function that converts old card format to new professional
-    metric_cards.create_metric_card format for visual consistency.
-
-    Args:
-        title: Card title text
-        value: Primary metric value to display
-        subtitle: Descriptive text below the value
-        icon: Font Awesome icon class
-        color: Color for icon and value
-        trend: Optional trend data dict with 'direction' and 'percent'
-        sparkline_data: Optional data for sparkline visualization
-        tooltip_text: Optional help text for info tooltip
-        tooltip_id: Optional unique ID suffix for tooltip
-
-    Returns:
-        Dash HTML Div component with metric card
-    """
-    # Convert old format to professional metric_data format
-    # Extract numeric value from formatted string
     try:
         numeric_value = (
             float(value.replace(",", "").split()[0])
@@ -294,7 +194,6 @@ def create_metric_card(
     except ValueError, IndexError, AttributeError:
         numeric_value = None
 
-    # Determine performance tier color based on value
     if numeric_value is not None:
         if numeric_value > 15:
             tier_color = "green"
@@ -327,7 +226,6 @@ def create_metric_card(
         else 0,
     }
 
-    # Handle baseline case
     if trend and trend.get("direction") == "baseline":
         metric_data["error_state"] = "building_baseline"
         metric_data["error_message"] = trend.get("message", "Building baseline")
@@ -336,16 +234,7 @@ def create_metric_card(
 
 
 def create_mini_sparkline(data: list[float], color: str, height: int = 20) -> html.Div:
-    """Create a mini CSS sparkline.
 
-    Args:
-        data: List of numeric values to visualize
-        color: Color for sparkline bars
-        height: Height of sparkline in pixels
-
-    Returns:
-        Dash HTML Div with sparkline visualization
-    """
     if not data or len(data) < 2:
         return html.Div()
 
@@ -377,17 +266,7 @@ def create_mini_sparkline(data: list[float], color: str, height: int = 20) -> ht
 
 
 def create_progress_ring(percentage: float, color: str, size: int = 80) -> html.Div:
-    """Create accurate circular progress indicator using conic-gradient.
 
-    Args:
-        percentage: Progress percentage (0-100)
-        color: Color for progress arc
-        size: Size of ring in pixels
-
-    Returns:
-        Dash HTML Div with progress ring
-    """
-    # Inner white circle to create ring effect
     inner_size = size - 16
 
     return html.Div(

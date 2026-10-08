@@ -1,9 +1,3 @@
-"""Empty State UI Components.
-
-Provides unified "no data" and "no metrics" states for Flow and DORA dashboards.
-Ensures consistent messaging and visual design across the application.
-"""
-
 from typing import Any
 
 import dash_bootstrap_components as dbc
@@ -11,18 +5,7 @@ from dash import html
 
 
 def _create_info_card_row(cards: list[dict[str, Any]]) -> dbc.Row:
-    """Create a centered row with info cards (DRY helper).
 
-    Args:
-        cards: List of dicts with keys:
-            - icon: Font Awesome icon name (e.g., "calculator", "bolt")
-            - icon_color: Bootstrap color class (e.g., "primary", "success")
-            - title: Card heading text
-            - description: Card body text
-
-    Returns:
-        dbc.Row with centered cards
-    """
     info_icon_class_template = "fas fa-{icon} fa-2x text-{color} mb-3"
 
     cols = [
@@ -58,14 +41,7 @@ def _create_info_card_row(cards: list[dict[str, Any]]) -> dbc.Row:
 
 
 def create_loading_placeholder() -> html.Div:
-    """Create an invisible placeholder matching empty state banner structure.
 
-    This prevents layout shift (CLS) by reserving space before banner load.
-    Uses the same DOM structure as create_no_data_state() but with opacity: 0.
-
-    Returns:
-        html.Div with invisible banner matching exact dimensions
-    """
     return html.Div(
         [
             dbc.Row(
@@ -148,20 +124,13 @@ def create_loading_placeholder() -> html.Div:
                 className="mt-4",
             ),
         ],
-        className="p-5 empty-state-banner",  # Match padding of actual empty state
-        style={"opacity": "0"},  # Completely invisible but takes up space
+        className="p-5 empty-state-banner",
+        style={"opacity": "0"},
     )
 
 
 def create_no_metrics_state(metric_type: str = "Flow") -> html.Div:
-    """Create unified empty state when metrics haven't been calculated.
 
-    Args:
-        metric_type: "Flow" or "DORA" to customize messaging
-
-    Returns:
-        html.Div with empty state UI
-    """
     return html.Div(
         [
             dbc.Row(
@@ -239,16 +208,12 @@ def create_no_metrics_state(metric_type: str = "Flow") -> html.Div:
                 ],
             ),
         ],
-        className="p-5 empty-state-banner",  # Standard padding + animation class
+        className="p-5 empty-state-banner",
     )
 
 
 def create_no_data_state() -> html.Div:
-    """Create unified empty state when no JIRA data is loaded.
 
-    Returns:
-        html.Div with empty state UI
-    """
     return html.Div(
         [
             dbc.Row(
@@ -313,18 +278,12 @@ def create_no_data_state() -> html.Div:
                 ],
             ),
         ],
-        className="p-5 empty-state-banner",  # Standard padding + animation class
+        className="p-5 empty-state-banner",
     )
 
 
 def create_no_bugs_state() -> html.Div:
-    """Create empty state when data is loaded but no bugs are found.
 
-    This is a positive state - data loaded successfully, just no bugs to show.
-
-    Returns:
-        html.Div with celebratory empty state UI
-    """
     return html.Div(
         [
             dbc.Row(
@@ -401,11 +360,7 @@ def create_no_bugs_state() -> html.Div:
 
 
 def create_no_sprints_state() -> html.Div:
-    """Create empty state when no sprint data is detected.
 
-    Returns:
-        html.Div with empty state UI for sprint tracking
-    """
     return html.Div(
         [
             dbc.Row(
@@ -479,14 +434,7 @@ def create_no_sprints_state() -> html.Div:
 
 
 def create_no_active_work_state(parent_field_configured: bool = True) -> html.Div:
-    """Create empty state when no active work items are found.
 
-    Args:
-        parent_field_configured: Whether parent/epic field is configured
-
-    Returns:
-        html.Div with empty state UI for active work timeline
-    """
     if not parent_field_configured:
         return html.Div(
             [
@@ -565,7 +513,6 @@ def create_no_active_work_state(parent_field_configured: bool = True) -> html.Di
             className="p-5 empty-state-banner",
         )
 
-    # Parent field configured but no issues found
     return html.Div(
         [
             dbc.Row(
@@ -643,21 +590,10 @@ def create_no_active_work_state(parent_field_configured: bool = True) -> html.Di
 
 
 def create_metrics_skeleton(num_cards: int = 4) -> dbc.Row:
-    """Create a visible skeleton grid with shimmer effect.
 
-    Shows a loading placeholder that matches the metric cards layout to prevent
-    layout shift (CLS) while content loads.
-
-    Args:
-        num_cards: Number of metric cards to create (default 4 for DORA, use 5 for Flow)
-
-    Returns:
-        dbc.Row with visible skeleton cards with shimmer animation
-    """
     skeleton_card = dbc.Card(
         [
             dbc.CardHeader(
-                # Header with title and badge placeholder
                 html.Div(
                     [
                         html.Div(
@@ -672,45 +608,38 @@ def create_metrics_skeleton(num_cards: int = 4) -> dbc.Row:
             ),
             dbc.CardBody(
                 [
-                    # H2 metric value placeholder (text-center metric-value mb-2)
                     html.H2(
                         html.Div(
                             className="skeleton-shimmer skeleton-bar-value",
                         ),
                         className="text-center metric-value mb-2",
                     ),
-                    # P unit text placeholder (text-muted text-center metric-unit mb-1)
                     html.P(
                         html.Div(
                             className="skeleton-shimmer skeleton-bar-unit",
                         ),
                         className="text-muted text-center metric-unit mb-1",
                     ),
-                    # P relationship hint placeholder (optional, small mb-2)
                     html.P(
                         html.Div(
                             className="skeleton-shimmer skeleton-bar-relationship",
                         ),
                         className="text-muted text-center small mb-2 skeleton-text-sm",
                     ),
-                    # Deployment count placeholder
                     html.Div(
                         html.Div(
                             className="skeleton-shimmer skeleton-bar-deployments",
                         ),
                         className="text-center text-muted small mb-2 skeleton-text-sm",
                     ),
-                    # Forecast section placeholder (mt-2 mb-2 with border-top)
                     html.Div(
                         [
-                            # Forecast value line
                             html.Div(
                                 html.Div(
                                     className="skeleton-shimmer skeleton-bar-forecast",
                                 ),
                                 className="text-center mb-1",
                             ),
-                            # Trend vs forecast line
                             html.Div(
                                 html.Div(
                                     className="skeleton-shimmer skeleton-bar-trend",
@@ -720,12 +649,9 @@ def create_metrics_skeleton(num_cards: int = 4) -> dbc.Row:
                         ],
                         className="mt-2 mb-2 skeleton-divider",
                     ),
-                    # Div metric-trend-section
                     html.Div(
                         [
-                            # HR (my-2)
                             html.Hr(className="my-2"),
-                            # Trend label
                             html.Div(
                                 html.Small(
                                     html.Div(
@@ -735,7 +661,6 @@ def create_metrics_skeleton(num_cards: int = 4) -> dbc.Row:
                                 ),
                                 className="text-center",
                             ),
-                            # Sparkline bars placeholder
                             html.Div(
                                 html.Div(
                                     className="skeleton-shimmer skeleton-bar-sparkline",
@@ -745,7 +670,6 @@ def create_metrics_skeleton(num_cards: int = 4) -> dbc.Row:
                                     "skeleton-sparkline"
                                 ),
                             ),
-                            # "Show Details" button placeholder (mt-2 p-0)
                             html.Div(
                                 html.Div(
                                     className="skeleton-shimmer skeleton-bar-button",
@@ -755,9 +679,7 @@ def create_metrics_skeleton(num_cards: int = 4) -> dbc.Row:
                         ],
                         className="metric-trend-section",
                     ),
-                    # HR (my-2)
                     html.Hr(className="my-2"),
-                    # Bottom info placeholder (text-muted d-block text-center)
                     html.Small(
                         html.Div(
                             className="skeleton-shimmer skeleton-bar-footer",
@@ -766,24 +688,20 @@ def create_metrics_skeleton(num_cards: int = 4) -> dbc.Row:
                     ),
                 ],
             ),
-            # Card footer (matches real card footer structure)
             dbc.CardFooter(
                 html.Div(
-                    "\u00a0",  # Non-breaking space to maintain minimal height
+                    "\u00a0",
                     className="text-center text-muted skeleton-text-xs",
                     style={"opacity": "0"},
                 ),
-                className="bg-light border-top py-2",  # Matches real card footer
+                className="bg-light border-top py-2",
             ),
         ],
-        className="metric-card mb-3 h-100",  # Keep equal card heights
+        className="metric-card mb-3 h-100",
     )
 
-    # Create 2-column grid with specified number of cards
-    # For Flow metrics (num_cards=5), the last card (Work Distribution) spans full width
     cols = []
     for i in range(num_cards):
-        # Last card in 5-card layout spans full width (Work Distribution)
         if num_cards == 5 and i == num_cards - 1:
             cols.append(dbc.Col(skeleton_card, xs=12, lg=12, className="mb-3"))
         else:
@@ -791,6 +709,5 @@ def create_metrics_skeleton(num_cards: int = 4) -> dbc.Row:
 
     return dbc.Row(
         cols,
-        className="metric-cards-skeleton",  # Avoids animation conflict
-        # Removed opacity: 0 - skeleton should be visible with shimmer
+        className="metric-cards-skeleton",
     )

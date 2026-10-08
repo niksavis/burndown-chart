@@ -1,16 +1,3 @@
-"""
-Budget Dashboard Section
-
-Creates budget tracking section for comprehensive dashboard with:
-- Conditional rendering based on budget configuration
-- 7 budget cards in responsive grid
-- Budget exhaustion alert banner
-- Currency icon integration
-- Data points count filter support
-
-Created: January 4, 2026
-"""
-
 import logging
 from typing import Any
 
@@ -39,66 +26,14 @@ def _create_budget_section(
     points_available: bool = False,
     data_points_count: int = 12,
 ) -> html.Div:
-    """
-    Create Budget & Resource Tracking section.
 
-    Conditionally renders based on budget configuration existence.
-    Shows 7 budget cards with exhaustion alert banner when applicable.
-
-    Args:
-        profile_id: Profile identifier
-        query_id: Query identifier
-        week_label: Current ISO week label
-        budget_data: Budget state and metrics (optional, from budget_calculator)
-        points_available: Whether points field is available
-        data_points_count: Number of weeks in view (for trend calculations)
-
-    Returns:
-        html.Div: Budget section or empty div if budget not configured
-
-    Example Budget Data Structure:
-        {
-            "configured": True,
-            "currency_symbol": "€",
-            "consumed_pct": 75.5,
-            "consumed_eur": 37750,
-            "budget_total": 50000,
-            "burn_rate": 4000,
-            "weekly_burn_rates": [3500, 3800, 4100, 4000],
-            "weekly_labels": ["W40", "W41", "W42", "W43"],
-            "burn_trend_pct": 5.2,
-            "runway_weeks": 12.5,
-            "pert_forecast_weeks": 15.0,
-            "cost_per_item": 425.50,
-            "cost_per_point": 85.10,
-            "pert_cost_avg_item": 410.20,
-            "pert_cost_avg_point": 82.40,
-            "forecast_total": 48500,
-            "forecast_low": 45000,
-            "forecast_high": 52000,
-            "breakdown": {
-                "Feature": {"cost": 12500, "count": 25, "percentage": 62.5},
-                "Defect": {"cost": 5000, "count": 10, "percentage": 25.0},
-                "Technical Debt": {"cost": 2500, "count": 5, "percentage": 12.5},
-                "Risk": {"cost": 0, "count": 0, "percentage": 0}
-            },
-            "weekly_breakdowns": [...],  # Historical for sparklines
-            "exhaustion_alert": {
-                "show": True,
-                "exhaustion_week": "2026-W08",
-                "weeks_until": 4
-            }
-        }
-    """
-    # Check if budget is configured
     if not budget_data or not budget_data.get("configured"):
         logger.debug(f"Budget not configured for profile {profile_id}")
-        return html.Div()  # Return empty div if no budget
+        return html.Div()
 
     currency_symbol = budget_data.get("currency_symbol", "€")
     exhaustion_alert = budget_data.get("exhaustion_alert", {})
 
-    # Section header
     section_header = html.Div(
         [
             html.H5(
@@ -114,7 +49,6 @@ def _create_budget_section(
         ]
     )
 
-    # Budget exhaustion alert banner (conditional)
     alert_banner = html.Div()
     if exhaustion_alert.get("show"):
         weeks_until = exhaustion_alert.get("weeks_until", 0)
@@ -166,7 +100,6 @@ def _create_budget_section(
             className="mb-3",
         )
 
-    # Create budget cards with baseline comparison data
     baseline_comparison = budget_data.get("baseline_comparison")
 
     card_1 = create_budget_utilization_card(
@@ -240,8 +173,6 @@ def _create_budget_section(
         card_id="cost-breakdown-card",
     )
 
-    # NEW: Budget Timeline card (card_8)
-
     card_8 = None
     if baseline_comparison:
         card_8 = create_budget_timeline_card(
@@ -251,22 +182,17 @@ def _create_budget_section(
             card_id="budget-timeline-card",
         )
 
-    # Responsive grid layout (updated with timeline card)
     timeline_row = [dbc.Col(card_8, xs=12, className="mb-3")] if card_8 else []
 
     cards_grid = dbc.Row(
         [
-            # Row 1: Utilization, Burn Rate, Runway
             dbc.Col(card_1, xs=12, md=6, lg=4, className="mb-3"),
             dbc.Col(card_2, xs=12, md=6, lg=4, className="mb-3"),
             dbc.Col(card_3, xs=12, md=6, lg=4, className="mb-3"),
-            # Row 2: Cost per Item, Cost per Point, Budget Status
             dbc.Col(card_4, xs=12, md=6, lg=4, className="mb-3"),
             dbc.Col(card_5, xs=12, md=6, lg=4, className="mb-3"),
             dbc.Col(card_6, xs=12, md=6, lg=4, className="mb-3"),
-            # Row 3: Cost Breakdown (full width)
             dbc.Col(card_7, xs=12, className="mb-3"),
-            # Row 4: Budget Timeline (full width, if available)
             *timeline_row,
         ]
     )

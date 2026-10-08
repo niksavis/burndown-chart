@@ -1,15 +1,3 @@
-"""
-Budget Settings Card - Control Helpers
-
-Private helper functions for budget settings control components.
-Used by budget_settings_card.py main builder.
-
-Functions:
-- _create_budget_total_display(): Calculated budget total display (Time x Cost)
-- _create_revision_history_card(): Revision history card with pagination
-- _create_advanced_options_collapse(): Danger zone collapsible section
-"""
-
 import dash_bootstrap_components as dbc
 from dash import html
 
@@ -19,21 +7,7 @@ def _create_budget_total_display(
     team_cost: float | None = None,
     currency_symbol: str = "€",
 ) -> html.Div:
-    """
-    Create calculated budget total display (Time × Cost).
 
-    Args:
-        time_allocated: Current time allocated in weeks
-        team_cost: Current team cost per week
-        currency_symbol: Currency symbol for display
-
-    Returns:
-        html.Div: Budget total calculation display with reactive update
-
-    Component IDs:
-        - budget-total-display-value: Span for calculated total (updated by callback)
-    """
-    # Calculate total budget
     total_budget = 0
     if time_allocated and team_cost:
         total_budget = time_allocated * team_cost
@@ -71,24 +45,11 @@ def _create_budget_total_display(
 
 
 def _create_revision_history_card() -> dbc.Card:
-    """
-    Create revision history card with pagination (same height as Current Budget card).
 
-    Returns:
-        dbc.Card: Revision history card with table and pagination
-
-    Component IDs:
-        - budget-revision-history: Content div for revision table
-        - budget-revision-history-page: Current page number store
-        - budget-revision-history-prev: Previous page button
-        - budget-revision-history-next: Next page button
-        - budget-revision-history-page-info: Page info text
-    """
     return dbc.Card(
         [
             dbc.CardBody(
                 [
-                    # Title
                     html.Div(
                         [
                             html.I(className="fas fa-history text-primary me-2"),
@@ -97,7 +58,6 @@ def _create_revision_history_card() -> dbc.Card:
                         className="fw-bold mb-2",
                         style={"fontSize": "0.9rem"},
                     ),
-                    # Revision history table container
                     html.Div(
                         id="budget-revision-history",
                         children=[
@@ -113,7 +73,6 @@ def _create_revision_history_card() -> dbc.Card:
                             "marginBottom": "0.5rem",
                         },
                     ),
-                    # Pagination controls
                     html.Div(
                         dbc.Row(
                             [
@@ -190,16 +149,7 @@ def _create_revision_history_card() -> dbc.Card:
 
 
 def _create_advanced_options_collapse() -> html.Div:
-    """
-    Create collapsible section for danger zone actions only.
 
-    Returns:
-        html.Div: Collapsible danger zone section
-
-    Component IDs:
-        - budget-danger-zone-toggle: Toggle button
-        - budget-danger-zone-collapse: Collapse container
-    """
     return html.Div(
         [
             dbc.Button(
@@ -222,7 +172,6 @@ def _create_advanced_options_collapse() -> html.Div:
             dbc.Collapse(
                 html.Div(
                     [
-                        # Danger Zone buttons in 2 columns
                         dbc.Row(
                             [
                                 dbc.Col(

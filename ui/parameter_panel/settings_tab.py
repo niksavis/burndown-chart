@@ -1,5 +1,3 @@
-"""Settings tab content component."""
-
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
@@ -22,23 +20,9 @@ def create_settings_tab_content(
     settings: dict,
     id_suffix: str = "",
 ) -> html.Div:
-    """
-    Create settings tab content for data source configuration and import/export.
-
-    This replaces the old Data Import Configuration card, now accessible from
-    the Parameter Panel Settings tab.
-
-    Args:
-        settings: Dictionary containing current settings
-        id_suffix: Suffix for generating unique IDs
-
-    Returns:
-        html.Div: Settings tab content with data source config and import/export
-    """
 
     return html.Div(
         [
-            # Data Source Selection
             html.Div(
                 [
                     html.H6(
@@ -65,7 +49,6 @@ def create_settings_tab_content(
                 ],
                 className="mb-4 pb-3 border-bottom",
             ),
-            # CSV Upload Container
             html.Div(
                 id="csv-upload-container",
                 style={
@@ -113,7 +96,6 @@ def create_settings_tab_content(
                 ],
                 className="mb-4 pb-3 border-bottom",
             ),
-            # JIRA Configuration Container
             html.Div(
                 id="jira-config-container",
                 style={
@@ -122,7 +104,6 @@ def create_settings_tab_content(
                     else "none"
                 },
                 children=[
-                    # JIRA Connection Button
                     html.H6(
                         [
                             html.I(
@@ -139,7 +120,6 @@ def create_settings_tab_content(
                         className="mt-2 mb-3",
                         children=[],
                     ),
-                    # JQL Query Management
                     html.Div(
                         [
                             html.H6(
@@ -173,7 +153,6 @@ def create_settings_tab_content(
                                 ],
                                 className="mb-2",
                             ),
-                            # Query Actions
                             html.Div(
                                 [
                                     create_button(
@@ -214,7 +193,6 @@ def create_settings_tab_content(
                                 className="text-center mt-2 mb-3",
                                 children=[],
                             ),
-                            # Update Data Button
                             create_button(
                                 text="Update Data",
                                 id="update-data-unified",
@@ -233,7 +211,6 @@ def create_settings_tab_content(
                 ],
                 className="mb-4 pb-3 border-bottom",
             ),
-            # Export Options
             html.Div(
                 [
                     html.H6(

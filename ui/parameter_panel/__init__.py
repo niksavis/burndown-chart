@@ -1,9 +1,3 @@
-"""Parameter panel components package.
-
-Refactored from ui/parameter_panel.py to comply with 500-line architectural limit.
-Provides collapsed and expanded parameter panels for dashboard configuration.
-"""
-
 from .collapsed_bar import create_parameter_bar_collapsed
 from .expanded_panel import create_parameter_panel_expanded
 from .mobile_components import (

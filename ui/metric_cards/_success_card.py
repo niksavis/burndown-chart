@@ -1,5 +1,3 @@
-"""Success state card assembly for DORA and Flow metric display."""
-
 from typing import Any
 
 import dash_bootstrap_components as dbc
@@ -19,18 +17,17 @@ from ui.metric_cards._helpers import (
 )
 
 _TIER_COLOR_MAP = {
-    "green": "success",  # Elite/Excellent
-    "blue": "tier-high",  # High/Good  - custom cyan
-    "yellow": "tier-medium",  # Medium/Fair - custom yellow
-    "orange": "tier-orange",  # Low/Slow   - custom orange
-    "red": "danger",  # Critical/Worst
+    "green": "success",
+    "blue": "tier-high",
+    "yellow": "tier-medium",
+    "orange": "tier-orange",
+    "red": "danger",
 }
 
 _CUSTOM_CLASS_COLORS = {"tier-high", "tier-medium", "tier-orange"}
 
 
 def _resolve_flow_load_tier_color(value: float, wip_thresholds: dict[str, Any]) -> str:
-    """Return semaphore tier color for the Flow Load WIP metric."""
     if wip_thresholds and "healthy" in wip_thresholds:
         if value < wip_thresholds["healthy"]:
             return "green"
@@ -39,7 +36,6 @@ def _resolve_flow_load_tier_color(value: float, wip_thresholds: dict[str, Any]) 
         if value < wip_thresholds["high"]:
             return "orange"
         return "red"
-    # Hardcoded fallback thresholds
     if value < 10:
         return "green"
     if value < 20:
@@ -50,7 +46,6 @@ def _resolve_flow_load_tier_color(value: float, wip_thresholds: dict[str, Any]) 
 
 
 def _format_metric_value(metric_name: str, value: float) -> str:
-    """Return formatted display string for a metric value."""
     if metric_name == "items_completed":
         return f"{int(round(value))}"
     if "items_per_week" in metric_name or "items/week" in metric_name:
@@ -68,18 +63,10 @@ def _create_success_card(
     show_details_button: bool = True,
     text_details: list[Any] | None = None,
 ) -> dbc.Card:
-    """Create card for successful metric calculation.
 
-    Includes inline trend sparkline and optional forecast display section.
-
-    Args:
-        text_details: Optional list of html components to display inline
-            (e.g. baseline comparisons).
-    """
     metric_name = metric_data.get("metric_name", "Unknown Metric")
     value = metric_data.get("value")
 
-    # Resolve tier color (WIP needs dynamic thresholds)
     tier_color = metric_data.get("performance_tier_color", "secondary")
     if metric_name == "flow_load" and value is not None:
         tier_color = _resolve_flow_load_tier_color(
@@ -100,12 +87,10 @@ def _create_success_card(
     task_value = metric_data.get("task_value")
     formatted_task_value = f"{task_value:.2f}" if task_value is not None else None
 
-    # Build card container
     card_props: dict[str, Any] = {"className": "metric-card mb-3 h-100"}
     if card_id:
         card_props["id"] = card_id
 
-    # Card header: title + performance badge
     title_element = _build_title_element(
         metric_name, display_name, alternative_name, metric_tooltip
     )
@@ -121,7 +106,6 @@ def _create_success_card(
         ]
     )
 
-    # Core body: value + unit + relationship hint
     card_body_children: list[Any] = [
         html.H2(formatted_value, className="text-center metric-value mb-2"),
         html.P(
@@ -140,7 +124,6 @@ def _create_success_card(
             )
         )
 
-    # Sparkline source (releases for deployment_frequency)
     weekly_labels: list[str] = metric_data.get("weekly_labels", [])
     weekly_values: list[float] = metric_data.get("weekly_values", [])
     if metric_name == "deployment_frequency":
@@ -148,7 +131,6 @@ def _create_success_card(
     else:
         sparkline_values = weekly_values
 
-    # Secondary metric displays
     if metric_name == "deployment_frequency" and formatted_task_value is not None:
         card_body_children.append(
             html.Div(
@@ -198,7 +180,6 @@ def _create_success_card(
                 )
             )
 
-    # Forecast section (Feature 009)
     if forecast_data or trend_vs_forecast:
         forecast_section = create_forecast_section(
             forecast_data=forecast_data,
@@ -209,26 +190,22 @@ def _create_success_card(
         if forecast_section.children:
             card_body_children.append(forecast_section)
 
-    # Progressive blending display (Feature bd-a1vn)
     blend_section = _build_blend_section(
         metric_data.get("blend_metadata"), weekly_values, forecast_data
     )
     if blend_section is not None:
         card_body_children.append(blend_section)
 
-    # Optional inline text details (e.g. baseline comparisons for budget cards)
     if text_details:
         card_body_children.append(html.Hr(className="my-2"))
         card_body_children.extend(text_details)
 
-    # Inline sparkline trend
     sparkline_section = _build_sparkline_section(
         metric_name, weekly_labels, sparkline_values, tier_color, show_details_button
     )
     if sparkline_section is not None:
         card_body_children.append(sparkline_section)
 
-    # Additional info footer row
     card_body_children.extend(
         [
             html.Hr(className="my-2"),
@@ -241,7 +218,6 @@ def _create_success_card(
 
     card_body = dbc.CardBody(card_body_children)
 
-    # Action prompt footer (uniform height across all cards)
     action_prompt = _get_action_prompt(metric_name, value, metric_data)
     if action_prompt:
         card_footer = dbc.CardFooter(
@@ -259,7 +235,7 @@ def _create_success_card(
     else:
         card_footer = dbc.CardFooter(
             html.Div(
-                "\u00a0",  # Non-breaking space to maintain minimal height
+                "\u00a0",
                 className="text-center text-muted",
                 style={"fontSize": "0.75rem", "opacity": "0"},
             ),

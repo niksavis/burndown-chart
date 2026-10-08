@@ -1,9 +1,3 @@
-"""
-Issue Type Configuration Form Component
-
-Provides UI for configuring JIRA issue type mappings for DORA and Flow metrics.
-"""
-
 import logging
 
 import dash_bootstrap_components as dbc
@@ -15,39 +9,20 @@ logger = logging.getLogger(__name__)
 def create_issue_type_config_form(
     devops_task_types=None,
     bug_types=None,
-    story_types=None,  # DEPRECATED: Use flow_type_mappings instead
-    task_types=None,  # DEPRECATED: Use flow_type_mappings instead
+    story_types=None,
+    task_types=None,
     available_issue_types=None,
     flow_type_mappings=None,
     available_effort_categories=None,
-    parent_issue_types=None,  # NEW: Parent types for epic/feature hierarchy
+    parent_issue_types=None,
 ):
-    """
-    Create issue type mapping configuration form.
 
-    Args:
-        devops_task_types: List of DevOps task type names (DORA)
-        bug_types: List of incident type names for production incidents
-            (DORA MTTR) - can include Bug, Incident,
-            Production Issue, etc.
-        story_types: DEPRECATED - Use flow_type_mappings instead
-        task_types: DEPRECATED - Use flow_type_mappings instead
-        available_issue_types: List of available issue type dictionaries from JIRA
-        flow_type_mappings: Dict with Flow type mappings (Feature, Defect, etc.)
-        available_effort_categories: List of effort category values from JIRA
-        parent_issue_types: List of parent issue type names
-            (Epic, Initiative, Feature, etc.)
-
-    Returns:
-        Dash component with issue type configuration UI
-    """
     devops_task_types = devops_task_types or []
     bug_types = bug_types or []
     parent_issue_types = parent_issue_types or []
     available_issue_types = available_issue_types or []
     available_effort_categories = available_effort_categories or []
 
-    # Initialize flow_type_mappings with defaults if not provided
     if flow_type_mappings is None:
         flow_type_mappings = {
             "Feature": {"issue_types": [], "effort_categories": []},
@@ -56,21 +31,17 @@ def create_issue_type_config_form(
             "Risk": {"issue_types": [], "effort_categories": []},
         }
 
-    # Create options for dropdowns - include current values even if metadata not fetched
     issue_type_options = [
         {"label": it.get("name", ""), "value": it.get("name", "")}
         for it in available_issue_types
     ]
 
-    # Add current values to options if not already present (ensures they display)
     existing_types = {it.get("name", "") for it in available_issue_types}
     for issue_type in devops_task_types + bug_types + parent_issue_types:
         if issue_type and issue_type not in existing_types:
             issue_type_options.append({"label": issue_type, "value": issue_type})
 
-    # Add flow type issue types to options
     for _flow_type, config in flow_type_mappings.items():
-        # Skip if config is None (can happen with incomplete mappings)
         if config is None:
             continue
         for issue_type in config.get("issue_types", []):
@@ -88,7 +59,6 @@ def create_issue_type_config_form(
         f"{flow_type_mappings.get('Technical Debt', {}).get('issue_types', [])}"
     )
 
-    # Create effort category options
     effort_category_options = [
         {"label": cat, "value": cat} for cat in available_effort_categories
     ]
@@ -132,10 +102,8 @@ def create_issue_type_config_form(
     tech_debt_subtitle = " - Refactoring and technical improvements (Target: 10-20%)"
     risk_subtitle = " - Security, compliance, and experiments (Target: < 10%)"
 
-    # Add current effort categories to options if not present
     existing_categories = set(available_effort_categories)
     for _flow_type, config in flow_type_mappings.items():
-        # Skip if config is None (can happen with incomplete mappings)
         if config is None:
             continue
         for category in config.get("effort_categories", []):
@@ -145,7 +113,6 @@ def create_issue_type_config_form(
 
     return html.Div(
         [
-            # Parent Issue Types Section - NEW: At top for hierarchy configuration
             dbc.Card(
                 [
                     dbc.CardHeader(
@@ -232,7 +199,6 @@ def create_issue_type_config_form(
                 ],
                 className="mb-3",
             ),
-            # DORA Metrics Section - Card containing all DORA type configs
             dbc.Card(
                 [
                     dbc.CardHeader(
@@ -245,7 +211,6 @@ def create_issue_type_config_form(
                                 dora_intro_text,
                                 className="text-muted small mb-3",
                             ),
-                            # DevOps Task Types
                             dbc.Row(
                                 [
                                     dbc.Col(
@@ -288,7 +253,6 @@ def create_issue_type_config_form(
                                 ],
                                 className="mb-3",
                             ),
-                            # Incident Types
                             dbc.Row(
                                 [
                                     dbc.Col(
@@ -336,7 +300,6 @@ def create_issue_type_config_form(
                 ],
                 className="mb-4",
             ),
-            # Flow Metrics Section - Card containing all Flow type configs
             dbc.Card(
                 [
                     dbc.CardHeader(
@@ -349,7 +312,6 @@ def create_issue_type_config_form(
                                 flow_intro_text,
                                 className="text-muted small mb-3",
                             ),
-                            # Feature Types - Grouped Card
                             dbc.Card(
                                 [
                                     dbc.CardBody(
@@ -460,7 +422,6 @@ def create_issue_type_config_form(
                                 ],
                                 className="mb-3",
                             ),
-                            # Defect Types - Grouped Card
                             dbc.Card(
                                 [
                                     dbc.CardBody(
@@ -569,7 +530,6 @@ def create_issue_type_config_form(
                                 ],
                                 className="mb-3",
                             ),
-                            # Technical Debt Types - Grouped Card
                             dbc.Card(
                                 [
                                     dbc.CardBody(
@@ -680,7 +640,6 @@ def create_issue_type_config_form(
                                 ],
                                 className="mb-3",
                             ),
-                            # Risk Types - Grouped Card
                             dbc.Card(
                                 [
                                     dbc.CardBody(
@@ -794,9 +753,7 @@ def create_issue_type_config_form(
                 ],
                 className="mb-3",
             ),
-            # Validation warnings
             html.Div(id="issue-type-config-validation-warnings", className="mt-3"),
-            # Auto-detection info
             html.Div(
                 id="issue-type-auto-detection-info",
                 className="mt-3 alert alert-info",

@@ -1,8 +1,3 @@
-"""Active Work Timeline UI helpers.
-
-Provides shared components for badges, legend, and compact issue rows.
-"""
-
 from __future__ import annotations
 
 import dash_bootstrap_components as dbc
@@ -14,15 +9,7 @@ from ui.jira_link_helper import create_jira_issue_link
 def create_issue_key_badge(
     issue_key: str, badge_id: str | None = None
 ) -> html.A | html.Span:
-    """Create a clickable issue key badge.
 
-    Args:
-        issue_key: Issue key to link
-        badge_id: Optional DOM id for tooltip targeting
-
-    Returns:
-        Clickable badge link
-    """
     link = create_jira_issue_link(
         issue_key,
         text=issue_key,
@@ -36,15 +23,7 @@ def create_issue_key_badge(
 
 
 def create_points_badge(points: float, show_points: bool) -> html.Span | None:
-    """Create points badge when points should be shown.
 
-    Args:
-        points: Issue or epic points
-        show_points: Whether points display is enabled
-
-    Returns:
-        Badge span or None
-    """
     if not show_points or points <= 0:
         return None
 
@@ -55,14 +34,7 @@ def create_points_badge(points: float, show_points: bool) -> html.Span | None:
 
 
 def create_issue_count_badge(count: int) -> html.Span:
-    """Create badge for issue count.
 
-    Args:
-        count: Number of issues
-
-    Returns:
-        Badge span
-    """
     return html.Span(
         f"{count}",
         className="active-work-count-badge",
@@ -72,16 +44,7 @@ def create_issue_count_badge(count: int) -> html.Span:
 def create_status_indicator_badge(
     status_key: str, color: str, badge_id: str | None = None
 ) -> html.Span:
-    """Create badge for epic status indicator.
 
-    Args:
-        status_key: Status key for icon selection
-        color: Icon color for the badge
-        badge_id: Optional DOM id for tooltip targeting
-
-    Returns:
-        Badge span
-    """
     icon_class = _get_status_icon_class(status_key)
     badge_kwargs = {
         "className": "active-work-status-badge",
@@ -97,14 +60,7 @@ def create_status_indicator_badge(
 
 
 def _get_status_icon_class(status_key: str) -> str:
-    """Map status key to a font-awesome icon class.
 
-    Args:
-        status_key: Status key used by active work logic.
-
-    Returns:
-        Font Awesome class string.
-    """
     status_map = {
         "blocked": "fas fa-xmark",
         "aging": "fas fa-clock",
@@ -119,11 +75,7 @@ def _get_status_icon_class(status_key: str) -> str:
 def create_active_work_legend(
     summary_text: str | None = None, include_toggle: bool = True
 ) -> html.Div:
-    """Create legend for Active Work badges and status groups.
 
-    Returns:
-        Div containing legend badges and tooltips
-    """
     legend_tooltips = [
         dbc.Tooltip(
             "Idle issues: status unchanged for 5+ days",
@@ -406,15 +358,7 @@ def create_active_work_legend(
 
 
 def create_compact_issue_row(issue: dict, show_points: bool = False) -> html.Div:
-    """Create single-line compact issue row.
 
-    Args:
-        issue: Issue dict with health_indicators
-        show_points: Whether to show story points
-
-    Returns:
-        Single-line issue row
-    """
     issue_key = issue.get("issue_key", "Unknown")
     summary = issue.get("summary", "No summary")
     issue_type = issue.get("issue_type", "Task")

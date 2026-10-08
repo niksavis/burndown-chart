@@ -1,36 +1,12 @@
-"""
-Loading Skeleton Private Helper Module
-
-Private implementation of create_skeleton_loader, extracted for size
-compliance. Import via ui.loading_utils_core or ui.loading_utils only.
-"""
-
-# Third-party library imports
 from dash import html
 
-# Application imports
 from ui.style_constants import NEUTRAL_COLORS
 
 
 def create_skeleton_loader(
     type="text", lines=1, width="100%", height=None, className=""
 ):
-    """
-    Creates a skeleton loading placeholder element.
 
-    Args:
-        type (str, optional): The type of skeleton element
-            ("text", "card", "avatar", etc.).
-            Defaults to "text". Determines base styling.
-        lines (int, optional): Number of lines for text-type skeletons. Defaults to 1.
-        width (str, optional): CSS width of the skeleton element. Defaults to "100%".
-        height (str, optional): CSS height of the skeleton element.
-            Defaults to None (auto).
-        className (str, optional): Additional CSS classes to apply. Defaults to "".
-
-    Returns:
-        html.Div: A Div representing the skeleton loader.
-    """
     base_style = {
         "backgroundColor": NEUTRAL_COLORS.get("gray-200"),
         "borderRadius": "0.25rem",
@@ -38,12 +14,10 @@ def create_skeleton_loader(
     }
 
     if type == "text":
-        # Create multiple text lines with varying widths
         items = []
         for i in range(lines):
-            # Make some lines shorter for a more realistic text effect
             line_width = width
-            if i == lines - 1:  # Last line
+            if i == lines - 1:
                 line_width = "70%" if width == "100%" else width
 
             items.append(
@@ -59,13 +33,12 @@ def create_skeleton_loader(
         return html.Div(items, className=className)
 
     elif type == "circle":
-        # Circular skeleton (for avatars, icons)
         return html.Div(
             style={
                 **base_style,
                 "width": width,
-                "height": width,  # Equal width and height
-                "borderRadius": "50%",  # Make it circular
+                "height": width,
+                "borderRadius": "50%",
             },
             className=className,
         )
@@ -73,7 +46,6 @@ def create_skeleton_loader(
     elif type == "card":
         return html.Div(
             [
-                # Card header
                 html.Div(
                     style={
                         **base_style,
@@ -82,7 +54,6 @@ def create_skeleton_loader(
                         "marginBottom": "1rem",
                     }
                 ),
-                # Card content
                 html.Div(
                     [
                         html.Div(
@@ -96,7 +67,6 @@ def create_skeleton_loader(
                         for _ in range(4)
                     ]
                 ),
-                # Card footer
                 html.Div(
                     style={
                         **base_style,
@@ -116,12 +86,10 @@ def create_skeleton_loader(
         )
 
     elif type == "chart":
-        # Chart skeleton with axes and bars/lines
         chart_height = height or "200px"
 
         return html.Div(
             [
-                # Y-axis
                 html.Div(
                     style={
                         **base_style,
@@ -131,7 +99,6 @@ def create_skeleton_loader(
                         "marginRight": "5%",
                     }
                 ),
-                # Chart content
                 html.Div(
                     [
                         html.Div(
@@ -153,7 +120,6 @@ def create_skeleton_loader(
                         "alignItems": "flex-end",
                     },
                 ),
-                # X-axis
                 html.Div(
                     style={
                         **base_style,
@@ -170,7 +136,6 @@ def create_skeleton_loader(
         )
 
     elif type == "image":
-        # Image placeholder
         image_height = height or "200px"
 
         return html.Div(
@@ -194,7 +159,7 @@ def create_skeleton_loader(
             className=className,
         )
 
-    else:  # Default rectangle
+    else:
         return html.Div(
             style={**base_style, "width": width, "height": height or "2rem"},
             className=className,

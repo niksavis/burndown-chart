@@ -1,10 +1,3 @@
-"""
-Generic confirmation modal component.
-
-Provides a reusable modal for delete/confirmation actions following DRY principles.
-Can be configured for different use cases (profile deletion, query deletion, etc.).
-"""
-
 import dash_bootstrap_components as dbc
 from dash import html
 
@@ -24,39 +17,7 @@ def create_confirmation_modal(
     confirm_button_text: str = "Delete",
     confirm_button_color: str = "danger",
 ) -> dbc.Modal:
-    """Create a generic confirmation modal for dangerous operations.
 
-    Args:
-        modal_id: Unique ID for the modal
-        title: Modal title text
-        warning_message: Main warning message to display
-        confirmation_type: Type of confirmation required ("DELETE", "query name", etc.)
-        confirmation_placeholder: Placeholder text for confirmation input
-        danger_alert: Whether to show danger-colored alert banner
-        cancel_button_id: ID for cancel button
-        confirm_button_id: ID for confirm button
-        confirmation_input_id: ID for confirmation text input
-        item_name_id: ID for displaying item name being deleted
-        icon: Font Awesome icon class for title and button
-        confirm_button_text: Text for confirmation button
-        confirm_button_color: Bootstrap color for confirmation button
-
-    Returns:
-        Bootstrap modal configured for confirmation
-
-    Example:
-        >>> modal = create_confirmation_modal(
-        ...     modal_id="delete-profile-modal",
-        ...     title="[!] Delete Profile",
-        ...     warning_message=(
-        ...         "This profile and all its data will be permanently deleted."
-        ...     ),
-        ...     cancel_button_id="cancel-delete-profile",
-        ...     confirm_button_id="confirm-delete-profile",
-        ...     confirmation_input_id="delete-confirmation-input"
-        ... )
-    """
-    # Build confirmation input section
     if confirmation_type == "DELETE":
         confirmation_label = 'Type "DELETE" to confirm:'
         confirmation_default_placeholder = "Type DELETE here..."
@@ -66,7 +27,6 @@ def create_confirmation_modal(
 
     placeholder = confirmation_placeholder or confirmation_default_placeholder
 
-    # Optional item name display (for showing what's being deleted)
     item_display = []
     if item_name_id:
         item_display = [
@@ -79,7 +39,6 @@ def create_confirmation_modal(
             )
         ]
 
-    # Alert section
     alert_content = []
     if danger_alert:
         alert_content = [
@@ -120,7 +79,6 @@ def create_confirmation_modal(
                             ),
                         ]
                     ),
-                    # Error display section (can be updated via callbacks)
                     html.Div(
                         id=f"{modal_id}-error",
                         className="alert alert-danger d-none",
@@ -141,7 +99,7 @@ def create_confirmation_modal(
                         [html.I(className=f"{icon} me-2"), confirm_button_text],
                         id=confirm_button_id,
                         color=confirm_button_color,
-                        disabled=True,  # Disabled until confirmation typed
+                        disabled=True,
                         n_clicks=0,
                     ),
                 ]
@@ -156,11 +114,7 @@ def create_confirmation_modal(
 
 
 def create_profile_deletion_modal() -> dbc.Modal:
-    """Create modal for profile deletion confirmation using unified component.
 
-    Returns:
-        Bootstrap modal for confirming profile deletion
-    """
     return create_confirmation_modal(
         modal_id="delete-profile-modal",
         title="Delete Profile",
@@ -178,11 +132,7 @@ def create_profile_deletion_modal() -> dbc.Modal:
 
 
 def create_query_deletion_modal() -> dbc.Modal:
-    """Create modal for query deletion confirmation using unified component.
 
-    Returns:
-        Bootstrap modal for confirming query deletion
-    """
     return create_confirmation_modal(
         modal_id="delete-jql-query-modal",
         title="Delete JQL Query",

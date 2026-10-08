@@ -1,19 +1,3 @@
-"""Backward-compatible re-export shim for ui.styles.
-
-The implementation has been split into focused modules:
-  - styles_tokens.py     -- design token constants and responsive utilities
-  - styles_components.py -- component style builders (inputs, headings, progress)
-  - styles_cards.py      -- card and metric card component builders
-  - styles_layout.py     -- vertical rhythm, content sections, loading styles
-
-Migration policy: Do NOT migrate callers away from this shim.
-The breadth of callers (all ui/ files) and variety of imported symbols
-make direct imports from canonical modules impractical. This shim is the
-correct aggregation point for the ui.styles domain.
-
-All callers of ``ui.styles`` continue to work unchanged.
-"""
-
 from ui.style_constants import NEUTRAL_COLORS, TYPOGRAPHY  # noqa: F401
 from ui.styles_cards import (  # noqa: F401
     create_card_header_with_tooltip,
@@ -71,7 +55,6 @@ from ui.styles_tokens import (  # noqa: F401
 )
 
 __all__ = [
-    # Tokens
     "BOOTSTRAP_SPACING",
     "BREAKPOINTS",
     "COMPONENT_SPACING",
@@ -81,7 +64,6 @@ __all__ = [
     "SEMANTIC_ICONS",
     "SPACING",
     "VERTICAL_RHYTHM",
-    # Token accessors
     "get_breakpoint_range",
     "get_breakpoint_value",
     "get_color",
@@ -90,11 +72,9 @@ __all__ = [
     "get_media_query",
     "get_spacing",
     "next_breakpoint",
-    # Responsive utilities
     "create_responsive_container",
     "create_responsive_style",
     "create_responsive_text",
-    # Component styles
     "create_card_style",
     "create_datepicker_style",
     "create_form_feedback_style",
@@ -106,11 +86,9 @@ __all__ = [
     "create_progress_bar_style",
     "create_slider_style",
     "create_text_style",
-    # Card builders
     "create_card_header_with_tooltip",
     "create_metric_card_header",
     "create_standardized_card",
-    # Layout / rhythm
     "FORM_VALIDATION_STATES",
     "LOADING_STYLES",
     "SKELETON_ANIMATION",

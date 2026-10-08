@@ -1,9 +1,3 @@
-"""
-Environment Configuration Form Component
-
-Provides UI for configuring production environment identifiers (multi-value support).
-"""
-
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
@@ -11,17 +5,7 @@ from dash import dcc, html
 def create_environment_config_form(
     production_environment_values=None, available_environment_values=None
 ):
-    """
-    Create environment value configuration form.
 
-    Args:
-        production_environment_values: List of production identifier values
-        available_environment_values: List of available environment values
-            from JIRA field
-
-    Returns:
-        Dash component with environment configuration UI
-    """
     production_environment_values = production_environment_values or []
     available_environment_values = available_environment_values or []
     has_available_environment_values = bool(available_environment_values)
@@ -62,10 +46,8 @@ def create_environment_config_form(
         else html.Div()
     )
 
-    # Create options for dropdown - include current values even if metadata not fetched
     env_options = [{"label": val, "value": val} for val in available_environment_values]
 
-    # Add current values to options if not already present (ensures they display)
     existing_values = set(available_environment_values)
     for env_val in production_environment_values:
         if env_val and env_val not in existing_values:
@@ -73,7 +55,6 @@ def create_environment_config_form(
 
     return html.Div(
         [
-            # DORA Metrics Environment Classification Card
             dbc.Card(
                 [
                     dbc.CardHeader(
@@ -90,7 +71,6 @@ def create_environment_config_form(
                                 "calculation.",
                                 className="text-muted small mb-3",
                             ),
-                            # Production Identifiers
                             dbc.Row(
                                 [
                                     dbc.Col(
@@ -152,9 +132,7 @@ def create_environment_config_form(
                 ],
                 className="mb-3",
             ),
-            # Validation warnings
             html.Div(id="environment-config-validation-warnings", className="mt-3"),
-            # Auto-detection info
             html.Div(
                 id="environment-auto-detection-info",
                 className="mt-3 alert alert-info",

@@ -1,20 +1,3 @@
-"""
-Integrated Query Management Component
-
-Unified UI for JQL editing and query management. Combines JQL editor (primary)
-with query selector and management actions (secondary). Implements JQL-first
-workflow with smart naming and clear state management.
-
-Features:
-- Always-visible JQL editor with syntax highlighting
-- Query dropdown for loading saved queries
-- Unsaved changes indicator
-- Save/Revert action buttons
-- Delete query action
-- Real-time name suggestion
-- Keyboard shortcuts (Ctrl+S, Ctrl+Z)
-"""
-
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
@@ -22,19 +5,7 @@ from ui.jql_editor import create_jql_editor
 
 
 def create_integrated_query_management() -> dbc.Card:
-    """
-    Create integrated query management component.
 
-    Layout hierarchy:
-    1. JQL Editor (top, prominent, always editable)
-    2. Real-time name suggestion (below editor)
-    3. Query selector dropdown (load saved queries)
-    4. Action buttons (Save, Revert, Delete)
-    5. State indicators (unsaved changes badge, last saved time)
-
-    Returns:
-        dbc.Card containing complete query management UI
-    """
     return dbc.Card(
         [
             dbc.CardHeader(
@@ -48,7 +19,6 @@ def create_integrated_query_management() -> dbc.Card:
                                 ],
                                 className="mb-0 d-inline-block",
                             ),
-                            # Unsaved changes badge
                             html.Span(
                                 [
                                     html.I(className="fas fa-exclamation-circle me-1"),
@@ -65,7 +35,6 @@ def create_integrated_query_management() -> dbc.Card:
             ),
             dbc.CardBody(
                 [
-                    # 1. JQL Editor (Primary)
                     html.Div(
                         [
                             html.Label(
@@ -82,7 +51,6 @@ def create_integrated_query_management() -> dbc.Card:
                                 ),
                                 rows=5,
                             ),
-                            # Performance tip about DevOps projects
                             html.Div(
                                 [
                                     html.I(className="fas fa-rocket text-success me-2"),
@@ -109,7 +77,6 @@ def create_integrated_query_management() -> dbc.Card:
                                 ),
                                 style={"fontSize": "0.875rem"},
                             ),
-                            # Keyboard shortcuts hint
                             html.Small(
                                 [
                                     html.I(className="fas fa-keyboard me-1"),
@@ -120,7 +87,6 @@ def create_integrated_query_management() -> dbc.Card:
                         ],
                         className="mb-3",
                     ),
-                    # 2. Real-time Name Suggestion
                     html.Div(
                         [
                             html.Small(
@@ -140,7 +106,6 @@ def create_integrated_query_management() -> dbc.Card:
                         style={"display": "none"},
                     ),
                     html.Hr(className="my-3"),
-                    # 3. Query Selector (Secondary)
                     html.Div(
                         [
                             html.Label(
@@ -188,7 +153,6 @@ def create_integrated_query_management() -> dbc.Card:
                                                 size="md",
                                                 className="w-100",
                                                 disabled=True,
-                                                # Enabled when query loaded
                                             ),
                                         ],
                                         xs=12,
@@ -201,7 +165,6 @@ def create_integrated_query_management() -> dbc.Card:
                         className="mb-3",
                     ),
                     html.Hr(className="my-3"),
-                    # 4. Action Buttons
                     dbc.Row(
                         [
                             dbc.Col(
@@ -215,7 +178,7 @@ def create_integrated_query_management() -> dbc.Card:
                                         color="primary",
                                         size="lg",
                                         className="w-100",
-                                        disabled=True,  # Enabled when JQL has content
+                                        disabled=True,
                                     ),
                                 ],
                                 xs=12,
@@ -234,9 +197,7 @@ def create_integrated_query_management() -> dbc.Card:
                                         outline=True,
                                         size="lg",
                                         className="w-100",
-                                        style={
-                                            "display": "none"
-                                        },  # Shown when has unsaved changes
+                                        style={"display": "none"},
                                     ),
                                 ],
                                 xs=12,
@@ -245,7 +206,6 @@ def create_integrated_query_management() -> dbc.Card:
                         ],
                         className="g-2 mb-3",
                     ),
-                    # 5. State Indicators
                     html.Div(
                         [
                             html.Small(
@@ -265,7 +225,6 @@ def create_integrated_query_management() -> dbc.Card:
                         ],
                         className="text-center",
                     ),
-                    # Hidden stores for state management
                     dcc.Store(
                         id="query-state-store",
                         data={
@@ -278,7 +237,6 @@ def create_integrated_query_management() -> dbc.Card:
                             "suggestedName": "",
                         },
                     ),
-                    # Store for pending query switch (when unsaved changes exist)
                     dcc.Store(id="pending-query-switch-store", data=None),
                 ]
             ),

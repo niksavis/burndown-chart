@@ -1,5 +1,3 @@
-"""Active Work epic timeline UI components."""
-
 from __future__ import annotations
 
 import dash_bootstrap_components as dbc
@@ -16,14 +14,12 @@ from ui.active_work_components import (
 
 
 def _get_empty_epic_message(epic_key: str) -> str:
-    """Return empty-state copy for expanded epic sections."""
     if epic_key != "No Parent":
         return "No tickets assigned to this epic."
     return "No issues"
 
 
 def _create_empty_epic_note(epic_key: str) -> html.Div:
-    """Render a styled empty-state note for epic detail sections."""
     message = _get_empty_epic_message(epic_key)
     return html.Div(
         [
@@ -62,18 +58,7 @@ def create_nested_epic_timeline(
     summary_text: str | None = None,
     completed_section: html.Div | None = None,
 ) -> html.Div:
-    """Create nested epic timeline with compact issue lists under each epic.
 
-    Args:
-        timeline: List of epic dicts with child_issues
-        show_points: Whether to show story points
-        parent_field_configured: Whether parent field is configured
-        summary_text: Optional summary text for legend
-        completed_section: Optional completed items section to insert after legend
-
-    Returns:
-        Nested timeline div
-    """
     if not timeline:
         return html.Div(
             [
@@ -82,7 +67,6 @@ def create_nested_epic_timeline(
             ]
         )
 
-    # Create search UI components (builder-first approach)
     search_ui = html.Div(
         [
             html.Div(
@@ -408,13 +392,11 @@ def create_nested_epic_timeline(
             )
         )
 
-    # Stores for client-side filtering
     timeline_store = dcc.Store(id="active-work-issues-store", data=timeline)
     metadata_store = dcc.Store(id="active-work-search-metadata-store")
     builder_query_store = dcc.Store(id="active-work-builder-query-store", data="")
     applied_query_store = dcc.Store(id="active-work-applied-query-store", data="")
 
-    # Wrap only epic cards in filterable container (completed section stays static)
     filtered_content = html.Div(
         epic_cards,
         id="active-work-filtered-content",
@@ -443,14 +425,7 @@ def create_nested_epic_timeline(
 
 
 def _render_filtered_timeline(timeline: list[dict], show_points: bool = False) -> list:
-    """Render epic cards from timeline data (for server-side filtering).
 
-        timeline: List of epic dicts with child_issues
-        show_points: Whether to show story points
-
-    Returns:
-        List of epic card components
-    """
     if not timeline:
         return [
             html.Div(
@@ -688,17 +663,7 @@ def _render_filtered_timeline(timeline: list[dict], show_points: bool = False) -
 def _create_status_section(
     title: str, issues: list[dict], show_points: bool, color: str
 ) -> html.Div:
-    """Create a section for a group of issues by status.
 
-    Args:
-        title: Section title
-        issues: List of issues in this status
-        show_points: Whether to show story points
-        color: Bootstrap color for section
-
-    Returns:
-        Section div with issues
-    """
     if not issues:
         return html.Div()
 

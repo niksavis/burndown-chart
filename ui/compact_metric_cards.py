@@ -1,9 +1,3 @@
-"""Compact metric overview cards for DORA and Flow dashboards.
-
-Provides small, information-dense cards showing current metric values
-at the top of dashboards for quick overview without scrolling.
-"""
-
 from typing import Any
 
 import dash_bootstrap_components as dbc
@@ -19,56 +13,38 @@ def create_compact_overview_card(
     secondary_value: Any = None,
     secondary_unit: str = "",
 ) -> dbc.Card:
-    """Create a small, compact metric overview card.
 
-    Args:
-        metric_name: Display name of the metric
-        value: Current metric value
-        unit: Unit of measurement
-        performance_color: Bootstrap color class (success, info, warning, danger)
-        icon: Font Awesome icon name
-        secondary_value: Optional secondary value for comparison (e.g., days equivalent)
-        secondary_unit: Unit for secondary value
-
-    Returns:
-        Compact card component
-    """
-    # Map performance colors to Bootstrap/custom colors (semaphore style)
     color_map = {
-        "green": "success",  # Elite/Excellent
-        "blue": "tier-high",  # High/Good - custom cyan
-        "yellow": "tier-medium",  # Medium/Fair - custom yellow
-        "orange": "tier-orange",  # Low/Slow - custom orange
-        "red": "danger",  # Critical/Worst
-        # Legacy fallbacks
+        "green": "success",
+        "blue": "tier-high",
+        "yellow": "tier-medium",
+        "orange": "tier-orange",
+        "red": "danger",
         "primary": "primary",
         "success": "success",
-        "info": "tier-high",  # Map old info to tier-high
-        "warning": "tier-medium",  # Map old warning to tier-medium
+        "info": "tier-high",
+        "warning": "tier-medium",
         "danger": "danger",
     }
 
     bootstrap_color = color_map.get(performance_color, "primary")
 
-    # Map Bootstrap color to CSS variable for border
     border_color_map = {
-        "success": "#198754",  # var(--tier-elite)
-        "tier-high": "#0dcaf0",  # var(--tier-high)
-        "tier-medium": "#ffc107",  # var(--tier-medium)
-        "tier-orange": "#fd7e14",  # var(--tier-low-orange)
-        "danger": "#dc3545",  # var(--tier-critical)
-        "primary": "#0d6efd",  # Default
+        "success": "#198754",
+        "tier-high": "#0dcaf0",
+        "tier-medium": "#ffc107",
+        "tier-orange": "#fd7e14",
+        "danger": "#dc3545",
+        "primary": "#0d6efd",
     }
 
     border_color = border_color_map.get(bootstrap_color, "#0d6efd")
 
-    # Format value display
     if isinstance(value, float):
         value_display = f"{value:.2f}"
     else:
         value_display = str(value) if value is not None else "—"
 
-    # Format secondary value display if provided
     secondary_display = None
     if secondary_value is not None:
         if isinstance(secondary_value, float):
@@ -76,7 +52,6 @@ def create_compact_overview_card(
         else:
             secondary_display = str(secondary_value)
 
-    # Build card body content
     card_content = [
         html.Div(
             [
@@ -96,7 +71,6 @@ def create_compact_overview_card(
         ),
     ]
 
-    # Add secondary value row if provided
     if secondary_display:
         card_content.append(
             html.Div(
@@ -121,17 +95,9 @@ def create_compact_overview_card(
 
 
 def create_dora_metrics_overview(metrics_data: dict[str, Any]) -> html.Div:
-    """Create compact overview cards for DORA metrics.
 
-    Args:
-        metrics_data: Dictionary of DORA metrics with values and metadata
-
-    Returns:
-        Row of compact metric cards
-    """
     cards = []
 
-    # Deployment Frequency
     if "deployment_frequency" in metrics_data:
         df_metric = metrics_data["deployment_frequency"]
         cards.append(
@@ -152,21 +118,16 @@ def create_dora_metrics_overview(metrics_data: dict[str, Any]) -> html.Div:
             )
         )
 
-    # Lead Time for Changes
     if "lead_time_for_changes" in metrics_data:
         lt_metric = metrics_data["lead_time_for_changes"]
         lt_unit = lt_metric.get("unit", "days")
 
-        # Determine secondary value:
-        # show days if primary is hours, show hours if primary is days
         secondary_value = None
         secondary_unit = ""
         if lt_unit == "hours":
-            # Primary is hours, show days as secondary
             secondary_value = lt_metric.get("value_days")
             secondary_unit = "days"
         elif lt_unit == "days":
-            # Primary is days, show hours as secondary
             secondary_value = lt_metric.get("value_hours")
             secondary_unit = "hours"
 
@@ -190,7 +151,6 @@ def create_dora_metrics_overview(metrics_data: dict[str, Any]) -> html.Div:
             )
         )
 
-    # Change Failure Rate
     if "change_failure_rate" in metrics_data:
         cfr_metric = metrics_data["change_failure_rate"]
         cards.append(
@@ -211,21 +171,16 @@ def create_dora_metrics_overview(metrics_data: dict[str, Any]) -> html.Div:
             )
         )
 
-    # Mean Time to Recovery
     if "mean_time_to_recovery" in metrics_data:
         mttr_metric = metrics_data["mean_time_to_recovery"]
         mttr_unit = mttr_metric.get("unit", "hours")
 
-        # Determine secondary value:
-        # show days if primary is hours, show hours if primary is days
         secondary_value = None
         secondary_unit = ""
         if mttr_unit == "hours":
-            # Primary is hours, show days as secondary
             secondary_value = mttr_metric.get("value_days")
             secondary_unit = "days"
         elif mttr_unit == "days":
-            # Primary is days, show hours as secondary
             secondary_value = mttr_metric.get("value_hours")
             secondary_unit = "hours"
 
@@ -254,23 +209,15 @@ def create_dora_metrics_overview(metrics_data: dict[str, Any]) -> html.Div:
 
     return html.Div(
         [
-            dbc.Row(cards, className="g-2"),  # Removed mb-3 for tighter bottom spacing
+            dbc.Row(cards, className="g-2"),
         ]
     )
 
 
 def create_flow_metrics_overview(metrics_data: dict[str, Any]) -> html.Div:
-    """Create compact overview cards for Flow metrics.
 
-    Args:
-        metrics_data: Dictionary of Flow metrics with values and metadata
-
-    Returns:
-        Row of compact metric cards
-    """
     cards = []
 
-    # Flow Velocity
     if "flow_velocity" in metrics_data:
         velocity_metric = metrics_data["flow_velocity"]
         cards.append(
@@ -291,7 +238,6 @@ def create_flow_metrics_overview(metrics_data: dict[str, Any]) -> html.Div:
             )
         )
 
-    # Flow Time
     if "flow_time" in metrics_data:
         time_metric = metrics_data["flow_time"]
         cards.append(
@@ -312,7 +258,6 @@ def create_flow_metrics_overview(metrics_data: dict[str, Any]) -> html.Div:
             )
         )
 
-    # Flow Efficiency
     if "flow_efficiency" in metrics_data:
         efficiency_metric = metrics_data["flow_efficiency"]
         cards.append(
@@ -333,7 +278,6 @@ def create_flow_metrics_overview(metrics_data: dict[str, Any]) -> html.Div:
             )
         )
 
-    # Flow Load (WIP)
     if "flow_load" in metrics_data:
         load_metric = metrics_data["flow_load"]
         cards.append(
@@ -359,6 +303,6 @@ def create_flow_metrics_overview(metrics_data: dict[str, Any]) -> html.Div:
 
     return html.Div(
         [
-            dbc.Row(cards, className="g-2"),  # Removed mb-3 for tighter bottom spacing
+            dbc.Row(cards, className="g-2"),
         ]
     )

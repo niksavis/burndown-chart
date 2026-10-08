@@ -1,18 +1,3 @@
-"""
-Throughput Analytics Module for Comprehensive Dashboard
-
-Provides team throughput analytics section with trend analysis:
-- Items per week velocity calculation
-- Points per week velocity calculation
-- Average item size analysis
-- Trend detection (comparing older vs recent performance)
-- Visual sparklines and performance indicators
-
-CRITICAL: Project Dashboard calculates velocity ad-hoc from project_statistics
-to work WITHOUT changelog data. This is different from DORA/Flow metrics which
-use metric snapshots (requires changelog).
-"""
-
 from __future__ import annotations
 
 import logging
@@ -40,28 +25,11 @@ def create_throughput_analytics_section(
     data_points_count: int | None = None,
     additional_context: dict[str, Any] | None = None,
 ) -> html.Div:
-    """Create throughput analytics section.
 
-    CRITICAL: Project Dashboard calculates velocity ad-hoc from project_statistics
-    to work WITHOUT changelog data. This is different from DORA/Flow metrics which
-    use metric snapshots (requires changelog).
-
-    Args:
-        statistics_df: DataFrame with filtered statistics (fallback only)
-        forecast_data: Dictionary with forecast data
-        settings: Settings dictionary containing show_points flag
-        data_points_count: Number of weeks for velocity calculation
-        additional_context: Dict with profile_id, query_id, current_week_label
-
-    Returns:
-        Dash HTML Div containing throughput analytics section
-    """
     show_points = settings.get("show_points", True)
     if statistics_df.empty:
         return html.Div()
 
-    # Calculate velocity ad-hoc from project_statistics (works without changelog)
-    # This ensures Project Dashboard functions independently of DORA/Flow metrics
     avg_items = None
     avg_points = None
 
@@ -89,20 +57,17 @@ def create_throughput_analytics_section(
             f"Points per Week: {avg_points:.2f} (data_points_count={data_points_count})"
         )
     else:
-        # Fallback to simple statistics mean
         avg_items = statistics_df["completed_items"].mean()
         avg_points = statistics_df["completed_points"].mean()
         logger.info(
             f"[DASHBOARD] Using statistics fallback for Items per Week: {avg_items:.2f}"
         )
 
-    # Calculate trends by comparing older vs recent halves of filtered data
     items_trend = None
     points_trend = None
     weeks_available = len(statistics_df)
 
     if weeks_available >= 8:
-        # Have enough data for full trend comparison (4 weeks vs 4 weeks)
         mid_point = weeks_available // 2
         older_half = statistics_df.iloc[:mid_point]
         recent_half = statistics_df.iloc[mid_point:]
@@ -133,8 +98,6 @@ def create_throughput_analytics_section(
             else 0,
         }
     elif weeks_available >= 4:
-        # Have baseline data but not enough for trend comparison
-        # Show a message indicating we're building baseline
         items_trend = {
             "direction": "baseline",
             "percent": 0,
@@ -146,11 +109,9 @@ def create_throughput_analytics_section(
             "message": f"Building baseline ({weeks_available} of 8 weeks)",
         }
     else:
-        # Not enough data yet
         items_trend = None
         points_trend = None
 
-    # PROGRESSIVE BLENDING: Calculate blend_metadata for current week (Feature bd-a1vn)
     items_blend_metadata = None
     points_blend_metadata = None
 
@@ -160,16 +121,11 @@ def create_throughput_analytics_section(
         and not statistics_df.empty
         and len(statistics_df) >= 2
     ):
-        # Check if last week in dataframe is the current week
         last_week_label = None
         if "week_label" in statistics_df.columns and len(statistics_df) > 0:
             last_week_label = statistics_df["week_label"].iloc[-1]
         current_week_label = additional_context["current_week_label"]
 
-        # Determine if current week already has a row in the data.
-        # On Monday before Update Data runs, the new ISO week is not yet
-        # in the database, so last_week_label is the previous week.
-        # We still want to show blending using actual=0 (nothing done yet).
         current_week_in_data = last_week_label == current_week_label
         logger.info(
             "[Blending-Dashboard] current_week_in_data=%s (last_week=%s, current=%s)",
@@ -181,12 +137,9 @@ def create_throughput_analytics_section(
         items_values = list(statistics_df["completed_items"])
 
         if current_week_in_data and len(items_values) >= 2:
-            # Current week row exists: last value is the partial actual
             current_week_actual = items_values[-1]
             prior_weeks = items_values[:-1]
         elif not current_week_in_data and len(items_values) >= 2:
-            # Current week not yet in data (e.g., Monday before Update Data)
-            # No items completed yet this week; all rows are prior history
             current_week_actual = 0.0
             prior_weeks = items_values
         else:
@@ -195,7 +148,6 @@ def create_throughput_analytics_section(
         if prior_weeks:
             forecast_weeks = prior_weeks[-4:] if len(prior_weeks) >= 4 else prior_weeks
 
-            # Calculate items forecast
             if len(forecast_weeks) >= 2:
                 try:
                     items_forecast_data: dict[str, Any] | None = calculate_forecast(
@@ -223,7 +175,6 @@ def create_throughput_analytics_section(
                         "Failed to calculate items forecast for blending: %s", e
                     )
 
-        # Calculate points blend metadata
         if show_points and "completed_points" in statistics_df.columns:
             points_values = list(statistics_df["completed_points"])
 
@@ -409,7 +360,6 @@ def create_throughput_analytics_section(
                                     "trend_percent": items_trend.get("percent", 0)
                                     if items_trend
                                     else 0,
-                                    # Progressive blending (bd-a1vn)
                                     "blend_metadata": items_blend_metadata,
                                 }
                             )
@@ -479,7 +429,6 @@ def create_throughput_analytics_section(
                                     and avg_points
                                     and avg_points > 0
                                     else 0,
-                                    # Progressive blending (bd-a1vn)
                                     "blend_metadata": points_blend_metadata,
                                 }
                             )

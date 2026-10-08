@@ -1,9 +1,3 @@
-"""Forecast Analytics - Section Assembly.
-
-Orchestrates forecast cards, trend chart, and pace health into the
-Delivery Forecast dashboard section.
-"""
-
 from __future__ import annotations
 
 from datetime import datetime, timedelta
@@ -40,7 +34,6 @@ def create_forecast_analytics_section(
     days_to_deadline: int | None = None,
     deadline_str: str | None = None,
 ) -> html.Div:
-    """Create forecasting section with multiple prediction methods."""
     current_date = pert_data.get("last_date", datetime.now())
 
     items_forecast_days = pert_data.get("pert_time_items", 0)

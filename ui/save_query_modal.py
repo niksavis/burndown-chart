@@ -1,28 +1,9 @@
-"""
-Enhanced Save Query Modal
-
-Modal for saving JQL queries with smart naming and clear update vs. save-as-new options.
-Shows data loss warnings when updating existing queries.
-"""
-
 import dash_bootstrap_components as dbc
 from dash import html
 
 
 def create_save_query_modal() -> dbc.Modal:
-    """
-    Create enhanced save query modal with update/save-as-new options.
 
-    Features:
-    - JQL preview
-    - Auto-suggested name (editable)
-    - Radio buttons: Update existing vs Save as new
-    - Prominent data loss warning for updates
-    - Data preservation message for save-as-new
-
-    Returns:
-        dbc.Modal component
-    """
     return dbc.Modal(
         [
             dbc.ModalHeader(
@@ -31,7 +12,6 @@ def create_save_query_modal() -> dbc.Modal:
             ),
             dbc.ModalBody(
                 [
-                    # JQL Preview
                     html.H6("Query:", className="mb-2 fw-bold"),
                     html.Div(
                         id="save-query-jql-preview",
@@ -45,7 +25,6 @@ def create_save_query_modal() -> dbc.Modal:
                             "wordBreak": "break-all",
                         },
                     ),
-                    # Query Name Input
                     html.H6("Query Name:", className="mb-2 fw-bold"),
                     dbc.Input(
                         id="save-query-name-input",
@@ -58,24 +37,21 @@ def create_save_query_modal() -> dbc.Modal:
                         id="save-query-name-validation",
                         className="text-danger small mb-3",
                     ),
-                    # Save Options (Update vs. Save as New)
                     html.Div(
                         [
                             html.H6("Save Options:", className="mb-3 fw-bold"),
-                            # Update Existing Option
                             dbc.RadioItems(
                                 id="save-query-mode-radio",
                                 options=[
                                     {
                                         "label": "",
                                         "value": "update",
-                                    },  # Label added dynamically
+                                    },
                                     {"label": "", "value": "new"},
                                 ],
-                                value="update",  # Default to update
+                                value="update",
                                 className="mb-0",
                             ),
-                            # Dynamic labels and warnings container
                             html.Div(id="save-query-mode-labels"),
                         ],
                         id="save-query-mode-container",
@@ -113,19 +89,8 @@ def create_save_mode_content(
     query_name: str = "",
     is_new_query: bool = True,
 ) -> html.Div:
-    """
-    Create content for save mode radio options with warnings.
 
-    Args:
-        mode: Current mode ("update" or "new")
-        query_name: Name of query being updated (if applicable)
-        is_new_query: Whether this is a new query (no update option)
-
-    Returns:
-        html.Div with radio labels and warning messages
-    """
     if is_new_query:
-        # New query - only "Save as new" option
         return html.Div(
             [
                 html.Div(
@@ -142,10 +107,8 @@ def create_save_mode_content(
             ]
         )
 
-    # Existing query - show both options
     return html.Div(
         [
-            # Update Existing Option
             html.Div(
                 [
                     html.Div(
@@ -167,7 +130,6 @@ def create_save_mode_content(
                         ],
                         className="d-flex align-items-center mb-2",
                     ),
-                    # Data Loss Warning (shown when update selected)
                     html.Div(
                         dbc.Alert(
                             [
@@ -201,7 +163,6 @@ def create_save_mode_content(
                 ],
                 className="mb-3",
             ),
-            # Save as New Option
             html.Div(
                 [
                     html.Div(
@@ -219,7 +180,6 @@ def create_save_mode_content(
                         ],
                         className="d-flex align-items-center mb-2",
                     ),
-                    # Data Preservation Message (shown when new selected)
                     html.Div(
                         dbc.Alert(
                             [

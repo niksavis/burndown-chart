@@ -1,14 +1,3 @@
-"""
-Budget Settings Card - Display Helpers
-
-Private helper functions for the current budget display card.
-Used by budget_settings_card.py and callbacks that update card content.
-
-Functions:
-- _create_current_budget_card_content(): Card body content (used by callbacks)
-- _create_current_budget_card(): Full card with header and footer
-"""
-
 from datetime import datetime
 from typing import Any
 
@@ -21,21 +10,8 @@ def _create_current_budget_card_content(
     live_metrics: dict[str, Any] | None = None,
     show_placeholder: bool = True,
 ) -> list:
-    """
-    Create content for current budget card (without the Card wrapper).
 
-    This is used by callbacks to update the card's children.
-
-    Args:
-        budget_data: Current budget settings
-        live_metrics: Live metrics from dashboard (optional)
-        show_placeholder: Whether to show placeholder when no data exists
-
-    Returns:
-        list: Content elements for CardBody
-    """
     if not budget_data or show_placeholder:
-        # Placeholder state - no budget configured
         return [
             html.H6(
                 [
@@ -51,7 +27,6 @@ def _create_current_budget_card_content(
             ),
         ]
 
-    # Active budget state
     currency = budget_data.get("currency_symbol", "€")
     total = budget_data.get("budget_total_eur", 0)
     time_allocated = budget_data.get("time_allocated_weeks", 0)
@@ -60,7 +35,6 @@ def _create_current_budget_card_content(
     created_at = budget_data.get("created_at", "")
     week_label = budget_data.get("week_label", "")
 
-    # Format timestamps
     updated_str = "Not set"
     created_str = "Not set"
 
@@ -160,7 +134,6 @@ def _create_current_budget_card_content(
         ),
     ]
 
-    # Add live metrics if available
     if live_metrics:
         consumed_pct = live_metrics.get("consumed_pct", 0)
         consumed_eur = live_metrics.get("consumed_eur", 0)
@@ -218,34 +191,11 @@ def _create_current_budget_card(
     live_metrics: dict[str, Any] | None = None,
     show_placeholder: bool = True,
 ) -> dbc.Card:
-    """
-    Create always-visible card showing active budget state with live metrics.
 
-    Args:
-        budget_data: Current budget settings (time_allocated_weeks, budget_total_eur,
-                     team_cost_per_week_eur, currency_symbol, updated_at)
-        live_metrics: Live metrics from dashboard (consumed_pct, consumed_eur,
-                      burn_rate, runway_weeks) - Optional
-        show_placeholder: Whether to show placeholder when no data exists
-
-    Returns:
-        dbc.Card: Always-visible current budget card with metrics
-
-    Example budget_data:
-        {
-            "time_allocated_weeks": 12,
-            "budget_total_eur": 50000,
-            "team_cost_per_week_eur": 4000,
-            "currency_symbol": "€",
-            "updated_at": "2026-01-05T10:00:00Z",
-            "week_label": "2026-W01"
-        }
-    """
     content = _create_current_budget_card_content(
         budget_data, live_metrics, show_placeholder
     )
 
-    # Determine card styling based on content
     if not budget_data or show_placeholder:
         card_color = "light"
     else:

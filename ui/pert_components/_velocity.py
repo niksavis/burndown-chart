@@ -1,8 +1,3 @@
-"""PERT Velocity Components
-
-Components for the weekly velocity section.
-"""
-
 import dash_bootstrap_components as dbc
 from dash import html
 
@@ -18,22 +13,7 @@ from ui.tooltip_utils import (
 def _create_velocity_metric_card(
     title, value, trend, trend_icon, trend_color, color, is_mini=False
 ):
-    """
-    Create a velocity metric card (average or median).
 
-    Args:
-        title: Title of the card (Average or Median)
-        value: Value to display
-        trend: Trend percentage
-        trend_icon: Icon for trend direction
-        trend_color: Color for trend indicator
-        color: Color for the value
-        is_mini: Whether this is the mini version for the sparklines
-
-    Returns:
-        dash.html.Div: A velocity metric card
-    """
-    # Generate demo data for sparklines.
     sparkline_bars = []
     for i in range(10):
         if title == "Average" and not is_mini:
@@ -58,7 +38,6 @@ def _create_velocity_metric_card(
             )
         )
 
-    # Create card styles.
     style_dict = {
         "flex": "1",
         "minWidth": "150px",
@@ -80,7 +59,6 @@ def _create_velocity_metric_card(
 
     return html.Div(
         [
-            # Header row with label and trend
             html.Div(
                 [
                     html.Span(
@@ -100,7 +78,6 @@ def _create_velocity_metric_card(
                                     ),
                                 ],
                             ),
-                            # Phase 9.2 Progressive Disclosure Help Button
                             html.Span(
                                 [
                                     html.Span(
@@ -167,16 +144,14 @@ def _create_velocity_metric_card(
                 ],
                 className="d-flex justify-content-between align-items-center mb-2",
             ),
-            # Value
             html.Div(
                 html.Span(
-                    f"{float(value):.1f}",  # Display with 1 decimal place
+                    f"{float(value):.1f}",
                     className="fs-3 fw-bold",
                     style={"color": color},
                 ),
                 className="text-center mb-2" if not is_mini else "text-center mb-1",
             ),
-            # Mini sparkline trend
             html.Div(
                 [
                     html.Div(
@@ -211,24 +186,7 @@ def _create_velocity_metric_section(
     med_trend_icon,
     med_trend_color,
 ):
-    """
-    Create a velocity metric section (items or points).
 
-    Args:
-        metric_type: Type of metric, either "items" or "points"
-        avg_weekly_value: Average weekly value
-        med_weekly_value: Median weekly value
-        avg_trend: Average trend percentage
-        med_trend: Median trend percentage
-        avg_trend_icon: Icon for average trend
-        avg_trend_color: Color for average trend
-        med_trend_icon: Icon for median trend
-        med_trend_color: Color for median trend
-
-    Returns:
-        dash.html.Div: Velocity metric section
-    """
-    # Set colors based on metric type
     is_items = metric_type == "items"
     avg_color = "#0d6efd" if is_items else "#fd7e14"
     med_color = "#6c757d"
@@ -244,7 +202,6 @@ def _create_velocity_metric_section(
 
     return html.Div(
         [
-            # Header with icon - align left instead of center
             html.Div(
                 [
                     html.I(
@@ -265,10 +222,8 @@ def _create_velocity_metric_section(
                 ],
                 className="d-flex align-items-center mb-3",
             ),
-            # Velocity metrics - using flex layout with improved gap spacing
             html.Div(
                 [
-                    # Average Items/Points
                     html.Div(
                         _create_velocity_metric_card(
                             "Average",
@@ -282,7 +237,6 @@ def _create_velocity_metric_section(
                         className="px-2",
                         style={"flex": "1", "minWidth": "150px"},
                     ),
-                    # Median Items/Points
                     html.Div(
                         _create_velocity_metric_card(
                             "Median",
@@ -330,21 +284,8 @@ def _create_weekly_velocity_section(
     data_points_count=None,
     total_data_points=None,
 ):
-    """
-    Create the weekly velocity section.
 
-    Args:
-        Multiple parameters for velocity metrics
-        show_points: Whether points tracking is enabled (default: True)
-        data_points_count: Number of data points used for calculations
-        total_data_points: Total data points available
-
-    Returns:
-        dash.html.Div: Weekly velocity section
-    """
-    # Create the velocity cards list
     velocity_cards = [
-        # Items Velocity Card
         _create_velocity_metric_section(
             "items",
             avg_weekly_items,
@@ -358,7 +299,6 @@ def _create_weekly_velocity_section(
         ),
     ]
 
-    # Only add points velocity card if points tracking is enabled
     if show_points:
         velocity_cards.append(
             _create_velocity_metric_section(
@@ -374,7 +314,6 @@ def _create_weekly_velocity_section(
             )
         )
 
-    # Footer content
     footer_text = "Based on 10-week rolling average for forecasting accuracy"
     tooltip_key = "velocity-ten-week-calculation"
     tooltip_text = VELOCITY_HELP_TEXTS["ten_week_calculation"]
@@ -394,9 +333,7 @@ def _create_weekly_velocity_section(
 
     return html.Div(
         [
-            # Add all velocity cards
             *velocity_cards,
-            # Enhanced footer with data period explanation and tooltip
             html.Div(
                 html.Div(
                     [

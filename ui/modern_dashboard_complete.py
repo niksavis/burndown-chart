@@ -1,18 +1,3 @@
-"""
-Modern Dashboard UI Module - Complete Enhanced Version
-
-This is the COMPLETE working version with:
-- All metrics from old dashboard
-    (Project Overview, Completion Forecast, Weekly Velocity)
-- Enhanced features: sparklines, collapsible details, progress bars
-- All forecast methods: PERT, Average, Median
-- Subtle animations
-- Proper card alignment
-"""
-
-#######################################################################
-# IMPORTS
-#######################################################################
 from datetime import datetime, timedelta
 
 import dash_bootstrap_components as dbc
@@ -21,13 +6,8 @@ from dash import html
 
 from ui.style_constants import COLOR_PALETTE
 
-#######################################################################
-# HELPER FUNCTIONS
-#######################################################################
-
 
 def _create_sparkline_bars(data_series, color="#0d6efd", height=40):
-    """Create CSS-based sparkline bar chart from data series."""
     if not data_series or len(data_series) == 0:
         return html.Div(
             "No data",
@@ -40,14 +20,11 @@ def _create_sparkline_bars(data_series, color="#0d6efd", height=40):
             },
         )
 
-    # Take last 10 data points
     recent_data = list(data_series)[-10:]
 
-    # Normalize values
     max_val = max(recent_data) if max(recent_data) > 0 else 1
     normalized = [v / max_val for v in recent_data]
 
-    # Create bars with fade effect
     bars = []
     for i, norm_val in enumerate(normalized):
         bar_height = max(norm_val * height, 3)
@@ -75,7 +52,6 @@ def _create_sparkline_bars(data_series, color="#0d6efd", height=40):
 
 
 def _calculate_velocity_trend(statistics_df, metric_type="items"):
-    """Calculate velocity trend percentage and direction."""
     if statistics_df.empty or len(statistics_df) < 4:
         return {
             "percent": 0,
@@ -132,7 +108,6 @@ def _calculate_velocity_trend(statistics_df, metric_type="items"):
 
 
 def _create_progress_bar(completed, total, color="#0d6efd"):
-    """Create a progress bar showing completion percentage."""
     if total == 0:
         percent = 0
     else:
@@ -155,11 +130,6 @@ def _create_progress_bar(completed, total, color="#0d6efd"):
     )
 
 
-#######################################################################
-# ENHANCED METRIC CARD
-#######################################################################
-
-
 def create_enhanced_dashboard_card(
     title,
     icon,
@@ -169,22 +139,10 @@ def create_enhanced_dashboard_card(
     details=None,
     card_id=None,
 ):
-    """
-    Create an enhanced dashboard card with all features.
 
-    Args:
-        title: Card title
-        icon: FontAwesome icon
-        icon_color: Icon color
-        primary_metric: Dict with {" value", "label"}
-        sparkline_data: List of values for sparkline
-        details: List of dicts with {"label", "value"} for additional metrics
-        card_id: Optional card ID
-    """
     details = details or []
 
     card_content = [
-        # Header
         html.Div(
             [
                 html.I(
@@ -197,7 +155,6 @@ def create_enhanced_dashboard_card(
             ],
             className="d-flex align-items-center mb-3 pb-2 border-bottom",
         ),
-        # Primary metric
         html.Div(
             [
                 html.Div(
@@ -211,7 +168,6 @@ def create_enhanced_dashboard_card(
         ),
     ]
 
-    # Add sparkline if provided
     if sparkline_data:
         card_content.append(
             html.Div(
@@ -227,7 +183,6 @@ def create_enhanced_dashboard_card(
             )
         )
 
-    # Add details
     if details:
         detail_items = []
         for detail in details:
@@ -261,11 +216,6 @@ def create_enhanced_dashboard_card(
     )
 
 
-#######################################################################
-# MAIN DASHBOARD LAYOUT
-#######################################################################
-
-
 def create_modern_dashboard_content(
     statistics_df,
     pert_time_items,
@@ -280,24 +230,11 @@ def create_modern_dashboard_content(
     deadline_str,
     show_points=True,
 ):
-    """
-    Create complete modern dashboard with all metrics and enhancements.
 
-    This includes everything from the old dashboard plus:
-    - Sparkline velocity charts
-    - Progress bars
-    - All forecast methods (PERT, Average, Median)
-    - Trend indicators
-    """
-    # Use last statistics date as forecast starting point (aligns with report)
-    # Statistics are weekly-based (Mondays),
-    # so forecast should start from last data point.
-    # NOT datetime.now() which could be any day of the week
     current_date = (
         statistics_df["date"].iloc[-1] if not statistics_df.empty else datetime.now()
     )
 
-    # Calculate completed and remaining
     completed_items = (
         statistics_df["completed_items"].sum() if not statistics_df.empty else 0
     )
@@ -319,7 +256,6 @@ def create_modern_dashboard_content(
         f"({remaining_points:,.1f} remaining)"
     )
 
-    # PERT forecast dates
     items_pert_date = current_date + timedelta(days=pert_time_items)
     items_pert_str = items_pert_date.strftime("%b %d, %Y")
     items_on_track = pert_time_items <= days_to_deadline
@@ -334,7 +270,6 @@ def create_modern_dashboard_content(
         pert_time_points <= days_to_deadline if pert_time_points else False
     )
 
-    # Calculate Average and Median forecast dates
     items_avg_days = (
         (remaining_items / avg_weekly_items * 7)
         if avg_weekly_items > 0
@@ -361,7 +296,6 @@ def create_modern_dashboard_content(
         points_avg_days = float("inf")
         points_med_days = float("inf")
 
-    # Format dates
     def format_forecast_date(days):
         if days == float("inf") or days > 3650:
             return "∞"
@@ -373,13 +307,11 @@ def create_modern_dashboard_content(
     points_avg_str = format_forecast_date(points_avg_days) if show_points else "N/A"
     points_med_str = format_forecast_date(points_med_days) if show_points else "N/A"
 
-    # Get velocity trends
     items_trend = _calculate_velocity_trend(statistics_df, "items")
     points_trend = (
         _calculate_velocity_trend(statistics_df, "points") if show_points else None
     )
 
-    # Extract sparkline data (last 10 weeks)
     items_sparkline = (
         list(statistics_df["completed_items"].tail(10))
         if not statistics_df.empty
@@ -391,7 +323,6 @@ def create_modern_dashboard_content(
         else []
     )
 
-    # Project Overview Section
     overview_section = html.Div(
         [
             html.H5(
@@ -407,7 +338,6 @@ def create_modern_dashboard_content(
             dbc.Card(
                 dbc.CardBody(
                     [
-                        # Progress bars
                         html.Div(
                             [
                                 html.H6("Items Progress", className="mb-2"),
@@ -444,7 +374,6 @@ def create_modern_dashboard_content(
                             ],
                             className="mb-3",
                         ),
-                        # Deadline
                         dbc.Alert(
                             [
                                 html.I(className="fas fa-calendar-day me-2"),
@@ -475,7 +404,6 @@ def create_modern_dashboard_content(
         className="mb-4",
     )
 
-    # Metric Cards Row
     items_trend_text = f"{abs(items_trend['percent']):.0f}% {items_trend['direction']}"
     points_trend_text = (
         f"{abs(points_trend['percent']):.0f}% {points_trend['direction']}"
@@ -484,7 +412,6 @@ def create_modern_dashboard_content(
     )
     cards = dbc.Row(
         [
-            # Items Forecast Card
             dbc.Col(
                 create_enhanced_dashboard_card(
                     title="Items Forecast",
@@ -514,7 +441,6 @@ def create_modern_dashboard_content(
                 lg=3,
                 className="mb-3",
             ),
-            # Points Forecast Card
             dbc.Col(
                 create_enhanced_dashboard_card(
                     title="Points Forecast",
@@ -548,7 +474,6 @@ def create_modern_dashboard_content(
                 lg=3,
                 className="mb-3",
             ),
-            # Items Velocity Card
             dbc.Col(
                 create_enhanced_dashboard_card(
                     title="Items Velocity",
@@ -582,7 +507,6 @@ def create_modern_dashboard_content(
                 lg=3,
                 className="mb-3",
             ),
-            # Points Velocity Card
             dbc.Col(
                 create_enhanced_dashboard_card(
                     title="Points Velocity",
@@ -628,10 +552,8 @@ def create_modern_dashboard_content(
         className="g-3",
     )
 
-    # Complete dashboard layout
     return html.Div(
         [
-            # Header
             html.Div(
                 [
                     html.H4(
@@ -651,11 +573,8 @@ def create_modern_dashboard_content(
                 ],
                 className="mb-4",
             ),
-            # Project Overview
             overview_section,
-            # Metric Cards
             cards,
-            # Footer help
             html.Div(
                 html.Small(
                     [

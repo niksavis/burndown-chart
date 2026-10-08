@@ -1,9 +1,3 @@
-"""Sub-component builders extracted from the success card assembly.
-
-These functions encapsulate discrete visual sections of the metric card,
-keeping _create_success_card focused on orchestration rather than detail.
-"""
-
 from typing import Any
 
 import dash_bootstrap_components as dbc
@@ -20,7 +14,6 @@ def _build_title_element(
     alternative_name: str | None,
     metric_tooltip: str | None,
 ) -> html.Span:
-    """Build the card title span with inline tooltip."""
     if metric_tooltip:
         help_text = metric_tooltip
     else:
@@ -64,15 +57,11 @@ def _build_card_badge(
     card_id: str | None,
     metric_data: dict[str, Any],
 ) -> Any:
-    """Build performance or WIP badge with tooltip for card header.
 
-    Returns the badge wrapped in a tooltip container, or None if no badge applies.
-    """
     badge_element = None
     badge_tooltip_text = None
 
     if metric_name == "flow_load" and value is not None:
-        # WIP-specific badge with dynamic thresholds
         wip_thresholds = metric_data.get("wip_thresholds", {})
 
         if wip_thresholds and "healthy" in wip_thresholds:
@@ -103,7 +92,6 @@ def _build_card_badge(
                     "Critical WIP - Severely overloaded, immediate action required"
                 )
         else:
-            # Fallback to hardcoded thresholds
             if value < 10:
                 badge_text = "Healthy (<10)"
                 badge_tooltip_text = (
@@ -143,7 +131,6 @@ def _build_card_badge(
                 id=badge_id,
             )
     else:
-        # Regular performance tier badge for DORA and Flow metrics
         perf_tier = metric_data.get("performance_tier")
 
         if perf_tier:
@@ -208,10 +195,7 @@ def _build_blend_section(
     weekly_values: list[float],
     forecast_data: Any | None,
 ) -> html.Div | None:
-    """Build the blend metadata display section.
 
-    Returns a Div to append to card_body_children, or None if nothing to show.
-    """
     if blend_metadata and blend_metadata.get("is_blended"):
         return html.Div(
             [
@@ -340,19 +324,16 @@ def _build_sparkline_section(
     tier_color: str,
     show_details_button: bool,
 ) -> html.Div | None:
-    """Build the inline sparkline trend section with optional expandable chart.
 
-    Returns a Div to append to card_body_children, or None if insufficient data.
-    """
     if not (weekly_labels and sparkline_values and len(weekly_labels) > 1):
         return None
 
     sparkline_color = {
-        "green": "#198754",  # Elite/Excellent (Bootstrap success)
-        "blue": "#0dcaf0",  # High/Good (cyan)
-        "yellow": "#ffc107",  # Medium/Fair (yellow)
-        "orange": "#fd7e14",  # Low/Slow (orange)
-        "red": "#dc3545",  # Critical (Bootstrap danger)
+        "green": "#198754",
+        "blue": "#0dcaf0",
+        "yellow": "#ffc107",
+        "orange": "#fd7e14",
+        "red": "#dc3545",
     }.get(tier_color, "#6c757d")
 
     mini_sparkline = _create_mini_bar_sparkline(

@@ -1,10 +1,3 @@
-"""Insights Engine - Delivery Signal Group Scoring.
-
-Builds insight dictionaries for delivery-oriented signal groups:
-velocity trend, budget health, scope change, velocity consistency,
-and throughput efficiency.
-"""
-
 from __future__ import annotations
 
 from typing import Any
@@ -23,7 +16,6 @@ from data.recommendations.velocity_signals import (
 def _build_delivery_insights(
     statistics_df: pd.DataFrame, budget_data: dict[str, Any] | None
 ) -> list[dict[str, Any]]:
-    """Build velocity, budget, scope, consistency, and throughput insights."""
     insights: list[dict[str, Any]] = []
 
     velocity_signals = build_velocity_trend_signals(statistics_df)

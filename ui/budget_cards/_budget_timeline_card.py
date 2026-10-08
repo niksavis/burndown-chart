@@ -1,13 +1,3 @@
-"""
-Budget Cards - Budget Timeline Card
-
-Budget Timeline card showing key project milestone dates.
-Extracted from timeline_cards.py as part of architectural refactoring.
-
-Functions:
-- create_budget_timeline_card(): Budget Timeline visual milestone card
-"""
-
 import logging
 from datetime import datetime
 from typing import Any
@@ -27,30 +17,7 @@ def create_budget_timeline_card(
     last_date: datetime | None = None,
     card_id: str | None = None,
 ) -> dbc.Card:
-    """
-    Create Budget Timeline card showing key project dates.
 
-    Displays timeline milestones in a clear table format:
-    - Start date, current date, baseline end, forecast, runway end
-    - Shows time elapsed and remaining for each milestone
-    - Color-coded status indicators
-
-    Args:
-        baseline_data: Dict from get_budget_baseline_vs_actual()
-        pert_forecast_weeks: Optional PERT forecast weeks for completion date
-        last_date: Optional last statistics date for forecast alignment
-            (defaults to datetime.now())
-        card_id: Optional HTML ID for the card
-
-    Returns:
-        Dash Bootstrap Card component
-
-    Example:
-        >>> card = create_budget_timeline_card(
-        ...     baseline_data, 15.0, last_date=datetime(2026, 1, 6)
-        ... )
-    """
-    # Extract data
     start_date_str = baseline_data["baseline"]["start_date"]
     allocated_end_str = baseline_data["baseline"]["allocated_end_date"]
     runway_end_str = baseline_data["actual"]["runway_end_date"]
@@ -58,9 +25,7 @@ def create_budget_timeline_card(
     allocated_weeks = baseline_data["baseline"]["time_allocated_weeks"]
     runway_vs_baseline_weeks = baseline_data["variance"]["runway_vs_baseline_weeks"]
 
-    # Parse dates
     try:
-        # Validate required date strings
         if not start_date_str or not allocated_end_str:
             logger.error(
                 "Missing required timeline dates: "
@@ -73,7 +38,6 @@ def create_budget_timeline_card(
         allocated_end = datetime.fromisoformat(allocated_end_str)
         current_date = datetime.now()
 
-        # Parse runway end
         if runway_end_str and runway_end_str not in [
             "N/A (no consumption)",
             "Over budget",
@@ -97,11 +61,8 @@ def create_budget_timeline_card(
             className="metric-card mb-3 h-100",
         )
 
-    # Calculate time metrics
     baseline_weeks_remaining = (allocated_end - current_date).days / 7.0
 
-    # Build visual timeline
-    # Collect all dates with their metadata
     timeline_markers = [
         {
             "date": start_date,
@@ -134,40 +95,31 @@ def create_budget_timeline_card(
             }
         )
 
-    # Sort by date and find range
     timeline_markers.sort(key=lambda x: x["date"])
     min_date = timeline_markers[0]["date"]
     max_date = timeline_markers[-1]["date"]
     date_range = (max_date - min_date).days
 
-    # Calculate initial positions based on actual dates
     if date_range > 0:
-        # Calculate raw positions
         for marker in timeline_markers:
             days_from_start = (marker["date"] - min_date).days
             marker["raw_position"] = (days_from_start / date_range) * 100
     else:
-        # All dates are the same - distribute evenly
         spacing = 100 / (len(timeline_markers) + 1)
         for i, marker in enumerate(timeline_markers):
             marker["raw_position"] = spacing * (i + 1)
 
-    # Apply collision detection and adjustment
-    # Minimum spacing needed (percentage) to prevent label overlap
-    min_spacing = 12  # Approximately 12% of timeline width
+    min_spacing = 12
 
     adjusted_positions = []
     for i, marker in enumerate(timeline_markers):
         if i == 0:
-            # First marker - ensure it's not too close to edge
             pos = max(8, marker["raw_position"])
         else:
-            # Ensure minimum spacing from previous marker
             prev_pos = adjusted_positions[-1]
             desired_pos = marker["raw_position"]
 
             if desired_pos - prev_pos < min_spacing:
-                # Too close - push it out
                 pos = prev_pos + min_spacing
             else:
                 pos = desired_pos
@@ -175,30 +127,22 @@ def create_budget_timeline_card(
         adjusted_positions.append(pos)
         marker["position"] = pos
 
-    # Check if any markers overflow past the right edge (92%)
-    # If so, redistribute all markers evenly to prevent overlap
     if any(pos > 92 for pos in adjusted_positions):
-        # Redistribute evenly across available space
-        spacing = 84 / (len(timeline_markers) + 1)  # 84% = 92% - 8% (margins)
+        spacing = 84 / (len(timeline_markers) + 1)
         for i, marker in enumerate(timeline_markers):
             marker["position"] = 8 + spacing * (i + 1)
     else:
-        # Apply right edge constraint
         for _i, marker in enumerate(timeline_markers):
             marker["position"] = min(marker["position"], 92)
 
-    # Calculate positions (0-100%)
     def calc_position(date):
-        # This function is now only used as fallback
         if date_range > 0:
             days_from_start = (date - min_date).days
             return (days_from_start / date_range) * 100
         return 50
 
-    # Build timeline visualization
     timeline_visual = html.Div(
         [
-            # Timeline bar with lower z-index
             html.Div(
                 style={
                     "position": "absolute",
@@ -211,12 +155,10 @@ def create_budget_timeline_card(
                     "zIndex": "1",
                 }
             ),
-            # Markers overlaying the timeline
             html.Div(
                 [
                     html.Div(
                         [
-                            # Label overlapping timeline (above)
                             html.Div(
                                 marker["label"],
                                 style={
@@ -231,7 +173,6 @@ def create_budget_timeline_card(
                                     "zIndex": "3",
                                 },
                             ),
-                            # Dot on timeline
                             html.Div(
                                 style={
                                     "position": "absolute",
@@ -246,7 +187,6 @@ def create_budget_timeline_card(
                                     "zIndex": "3",
                                 }
                             ),
-                            # Icon below timeline
                             html.Div(
                                 html.I(
                                     className=f"fas {marker['icon']}",
@@ -261,7 +201,6 @@ def create_budget_timeline_card(
                                     "zIndex": "3",
                                 },
                             ),
-                            # Date at bottom (below icon)
                             html.Div(
                                 marker["date"].strftime("%Y-%m-%d"),
                                 style={
@@ -301,7 +240,6 @@ def create_budget_timeline_card(
         },
     )
 
-    # Build timeline table rows
     timeline_rows = [
         html.Tr(
             [
@@ -372,7 +310,6 @@ def create_budget_timeline_card(
         ),
     ]
 
-    # Add runway row if available
     if runway_end:
         runway_color = "#20c997" if runway_vs_baseline_weeks >= 0 else "#e83e8c"
         runway_text_color = "#198754" if runway_vs_baseline_weeks >= 0 else "#dc3545"
@@ -433,7 +370,6 @@ def create_budget_timeline_card(
         className="mb-0",
     )
 
-    # Build card
     card = dbc.Card(
         [
             create_metric_card_header(title="Budget Timeline"),

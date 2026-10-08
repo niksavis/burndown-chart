@@ -1,17 +1,3 @@
-"""
-Budget Settings Component - Redesigned
-
-Profile-level budget configuration UI with lean/agile budgeting methodology:
-- Always-visible current budget state with live metrics
-- Explicit Budget Total calculation modes (auto vs manual)
-- Simplified update flow (no reconfigure mode)
-- Progressive disclosure for advanced features
-- Unified terminology aligned with reports
-
-Created: January 4, 2026
-Last Updated: January 5, 2026 - Redesign per budget_analysis_and_proposal.md
-"""
-
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
@@ -27,25 +13,11 @@ from ui._budget_settings_card_display import (  # noqa: F401
 
 
 def create_budget_settings_card() -> html.Div:
-    """
-    Create budget settings configuration card with redesigned UX.
 
-    Redesign principles:
-    - Always-visible current budget state
-    - Explicit Budget Total calculation modes (auto vs manual)
-    - Simplified update flow (no separate reconfigure mode)
-    - Progressive disclosure for advanced features
-    - Unified terminology aligned with reports
-
-    Returns:
-        html.Div: Budget settings configuration content
-    """
     return html.Div(
         [
-            # Hidden stores for budget state
             dcc.Store(id="budget-settings-store", data={}),
-            dcc.Store(id="budget-revision-history-page", data=1),  # Pagination state
-            # Section header
+            dcc.Store(id="budget-revision-history-page", data=1),
             html.Div(
                 [
                     html.I(className="fas fa-coins me-2 text-primary"),
@@ -53,7 +25,6 @@ def create_budget_settings_card() -> html.Div:
                 ],
                 className="d-flex align-items-center mb-2",
             ),
-            # Current Budget + Revision History Row (side by side)
             dbc.Row(
                 [
                     dbc.Col(
@@ -74,11 +45,8 @@ def create_budget_settings_card() -> html.Div:
                 className="mb-2",
             ),
             html.Hr(className="my-3"),
-            # Main Budget Configuration Row
-            # Time Allocated, Team Cost, Effective Date, Reason
             dbc.Row(
                 [
-                    # Time Allocated (col 1)
                     dbc.Col(
                         [
                             html.Label(
@@ -133,7 +101,6 @@ def create_budget_settings_card() -> html.Div:
                         lg=2,
                         className="mb-3",
                     ),
-                    # Team Cost (col 2)
                     dbc.Col(
                         [
                             html.Label(
@@ -202,7 +169,6 @@ def create_budget_settings_card() -> html.Div:
                         lg=3,
                         className="mb-3",
                     ),
-                    # Effective Date (col 3)
                     dbc.Col(
                         [
                             html.Label(
@@ -245,7 +211,6 @@ def create_budget_settings_card() -> html.Div:
                         lg=2,
                         className="mb-3",
                     ),
-                    # Reason (col 4)
                     dbc.Col(
                         [
                             html.Label(
@@ -284,10 +249,8 @@ def create_budget_settings_card() -> html.Div:
                     ),
                 ],
             ),
-            # Combined Budget Summary: Total Budget + Baseline Velocity (compact layout)
             html.Div(
                 [
-                    # Total Budget
                     html.Div(
                         [
                             html.I(
@@ -313,7 +276,6 @@ def create_budget_settings_card() -> html.Div:
                         ],
                         className="mb-2",
                     ),
-                    # Baseline Velocity
                     html.Div(
                         [
                             html.I(
@@ -340,7 +302,6 @@ def create_budget_settings_card() -> html.Div:
                 className="mb-3 p-3 bg-light rounded border border-info",
                 style={"borderWidth": "1px", "borderStyle": "dashed"},
             ),
-            # Action button
             html.Div(
                 dbc.Button(
                     [
@@ -353,7 +314,6 @@ def create_budget_settings_card() -> html.Div:
                 ),
                 className="mb-3",
             ),
-            # Delete History Confirmation Modal
             dbc.Modal(
                 [
                     dbc.ModalHeader(
@@ -372,7 +332,6 @@ def create_budget_settings_card() -> html.Div:
                                 "budget revision history?",
                                 className="mb-3",
                             ),
-                            # Data Loss Warning
                             dbc.Alert(
                                 [
                                     html.Div(
@@ -409,7 +368,6 @@ def create_budget_settings_card() -> html.Div:
                                 color="danger",
                                 className="mb-2",
                             ),
-                            # Info about what remains
                             dbc.Alert(
                                 [
                                     html.I(
@@ -448,7 +406,6 @@ def create_budget_settings_card() -> html.Div:
                 centered=True,
                 size="md",
             ),
-            # Modal for deleting complete budget
             dbc.Modal(
                 [
                     dbc.ModalHeader(
@@ -467,7 +424,6 @@ def create_budget_settings_card() -> html.Div:
                                 "budget configuration?",
                                 className="mb-3",
                             ),
-                            # Data Loss Warning
                             dbc.Alert(
                                 [
                                     html.Div(
