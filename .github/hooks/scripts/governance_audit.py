@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
-"""Governance audit hook for GitHub Copilot Chat.
 
-Reads JSON context from stdin, scans for threat patterns, and appends JSONL
-entries to logs/copilot/governance/audit.log.
-
-Usage:
-    python .github/hooks/scripts/governance_audit.py session_start
-    python .github/hooks/scripts/governance_audit.py user_prompt_submit
-    python .github/hooks/scripts/governance_audit.py session_end
-"""
 
 from __future__ import annotations
 

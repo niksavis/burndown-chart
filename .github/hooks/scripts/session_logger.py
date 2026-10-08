@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
-"""Session logger hook for GitHub Copilot Chat.
 
-Reads JSON context from stdin and appends a JSONL entry to logs/copilot/session.log.
-Invoked by .github/hooks/session-logger-lite/hooks.json for SessionStart and Stop
-events.
-
-Usage:
-    python .github/hooks/scripts/session_logger.py session_start
-    python .github/hooks/scripts/session_logger.py session_end
-"""
 
 from __future__ import annotations
 
