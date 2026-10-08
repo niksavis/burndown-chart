@@ -1,12 +1,3 @@
-"""
-Visualization Helper Functions
-
-This module contains helper functions extracted from visualization.py
-to improve maintainability and adhere to the 500-line file limit.
-
-All Dash callbacks remain in visualization.py for proper registration order.
-"""
-
 from callbacks.visualization_helpers.burndown_tab import _render_burndown_tab
 from callbacks.visualization_helpers.dashboard_tab import _render_dashboard_tab
 from callbacks.visualization_helpers.data_checks import (

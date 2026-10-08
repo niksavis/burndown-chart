@@ -1,16 +1,3 @@
-"""
-JIRA Configuration Callbacks
-
-This module handles all callback logic for the JIRA configuration modal.
-It provides callbacks for opening/closing the modal, loading/saving configuration,
-and testing JIRA connections.
-
-Feature: 003-jira-config-separation
-"""
-
-#######################################################################
-# IMPORTS
-#######################################################################
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -31,10 +18,6 @@ from ui.toast_notifications import (
     create_warning_toast,
 )
 
-#######################################################################
-# CALLBACK: OPEN MODAL
-#######################################################################
-
 
 @callback(
     Output("jira-config-modal", "is_open"),
@@ -42,24 +25,11 @@ from ui.toast_notifications import (
     prevent_initial_call=True,
 )
 def open_jira_config_modal(n_clicks):
-    """
-    Open JIRA configuration modal when user clicks the configuration button.
 
-    Args:
-        n_clicks: Number of times the button has been clicked
-
-    Returns:
-        True to open the modal, no_update otherwise
-    """
     if n_clicks:
         logger.info("Opening JIRA configuration modal")
         return True
     return no_update
-
-
-#######################################################################
-# CALLBACK: LOAD CONFIGURATION
-#######################################################################
 
 
 @callback(
@@ -73,15 +43,7 @@ def open_jira_config_modal(n_clicks):
     Input("jira-config-modal", "is_open"),
 )
 def load_jira_config(is_open):
-    """
-    Load and display existing JIRA configuration when modal opens.
 
-    Args:
-        is_open: Whether the modal is currently open
-
-    Returns:
-        Tuple of (base_url, api_version, token, cache_size, max_results)
-    """
     if not is_open:
         raise PreventUpdate
 
@@ -98,13 +60,7 @@ def load_jira_config(is_open):
         )
     except Exception as e:
         logger.error(f"Error loading JIRA configuration: {e}")
-        # Return defaults on error
         return ("", "v3", "", 100, 100)
-
-
-#######################################################################
-# CALLBACK: TEST CONNECTION
-#######################################################################
 
 
 @callback(
@@ -121,23 +77,10 @@ def load_jira_config(is_open):
     prevent_initial_call=True,
 )
 def test_jira_connection_callback(n_clicks, base_url, api_version, token):
-    """
-    Test JIRA connection and display result feedback.
 
-    Args:
-        n_clicks: Number of times test button has been clicked
-        base_url: JIRA base URL
-        api_version: API version (v2 or v3)
-        token: Personal access token
-
-    Returns:
-        Tuple of (inline_status, toast_notification)
-    """
     if not n_clicks:
         raise PreventUpdate
 
-    # Validate required fields (base_url required;
-    # token optional for public servers).
     if not base_url:
         toast = create_warning_toast(
             "Please fill in the JIRA Base URL before testing.",
@@ -145,13 +88,11 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
         )
         return "", toast
 
-    # Call test function (token is optional)
     logger.info(f"Testing JIRA connection to {base_url} (authenticated: {bool(token)})")
     result = test_jira_connection(
         base_url.strip(), token.strip() if token else "", api_version
     )
 
-    # Save test result to configuration (T025 - User Story 2)
     try:
         config = load_jira_configuration()
         config["last_test_timestamp"] = result.get("timestamp")
@@ -172,7 +113,6 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
         version = server_info.get("version", "unknown")
         response_time = result.get("response_time_ms", 0)
 
-        # Toast notification with key details
         toast = create_success_toast(
             f"Server: {server_title} | Version: {version} | "
             f"Response: {response_time}ms. "
@@ -183,7 +123,6 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
 
         return "", toast
     else:
-        # Check if this is an API version mismatch error
         error_code = result.get("error_code", "")
         is_version_mismatch = error_code == "api_version_mismatch"
 
@@ -206,16 +145,11 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
         return "", toast
 
 
-#######################################################################
-# CALLBACK: SAVE CONFIGURATION
-#######################################################################
-
-
 @callback(
     [
         Output("jira-config-modal", "is_open", allow_duplicate=True),
         Output("jira-save-status", "children"),
-        Output("jira-config-save-trigger", "data"),  # Trigger metadata refresh
+        Output("jira-config-save-trigger", "data"),
         Output("app-notifications", "children", allow_duplicate=True),
     ],
     Input("jira-config-save-button", "n_clicks"),
@@ -225,7 +159,7 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
         State("jira-token-input", "value"),
         State("jira-cache-size-input", "value"),
         State("jira-max-results-input", "value"),
-        State("jira-config-save-trigger", "data"),  # Current trigger value
+        State("jira-config-save-trigger", "data"),
     ],
     prevent_initial_call=True,
 )
@@ -238,31 +172,15 @@ def save_jira_configuration_callback(
     max_results,
     current_trigger,
 ):
-    """
-    Validate and save JIRA configuration to app_settings.json.
 
-    Args:
-        n_clicks: Number of times save button has been clicked
-        base_url: JIRA base URL
-        api_version: API version (v2 or v3)
-        token: Personal access token
-        cache_size: Cache size limit in MB
-        max_results: Maximum results per API call
-        current_trigger: Current trigger value for incrementing
-
-    Returns:
-        Tuple of (modal_is_open, status_message, trigger_value)
-    """
     if not n_clicks:
         raise PreventUpdate
 
-    # Prevent race condition from multiple rapid clicks
     ctx_triggered = ctx.triggered_id
     if ctx_triggered != "jira-config-save-button":
         raise PreventUpdate
 
     try:
-        # Build configuration object
         config = {
             "base_url": base_url.strip() if base_url else "",
             "api_version": api_version,
@@ -272,18 +190,16 @@ def save_jira_configuration_callback(
             "configured": True,
         }
 
-        # Validate configuration
         is_valid, error_msg = validate_jira_config(config)
         if not is_valid:
             logger.warning(f"Invalid JIRA configuration: {error_msg}")
             return (
                 no_update,
                 "",
-                no_update,  # Don't trigger metadata refresh on validation error
+                no_update,
                 create_error_toast(error_msg, header="Validation Error"),
             )
 
-        # Warn about high cache sizes (T026 - User Story 2)
         cache_warning_toast = None
         if config["cache_size_mb"] > 500:
             cache_warning_toast = create_warning_toast(
@@ -295,47 +211,40 @@ def save_jira_configuration_callback(
                 f"Warning: High cache size configured: {config['cache_size_mb']}MB"
             )
 
-        # Preserve existing fields not in form (T027 - User Story 2)
         try:
             existing_config = load_jira_configuration()
-            # Preserve fields like last_test_timestamp, last_test_success
             for key in ["last_test_timestamp", "last_test_success", "points_field"]:
                 if key in existing_config and key not in config:
                     config[key] = existing_config[key]
         except Exception as e:
             logger.debug(f"Could not preserve existing fields: {e}")
 
-        # Save configuration
         success = save_jira_configuration(config)
 
         if success:
             logger.info("JIRA configuration saved successfully")
-            # Show success toast notification
             toast = create_success_toast(
                 "JIRA settings have been saved successfully.",
                 header="Configuration Saved",
             )
 
-            # Trigger metadata refresh by incrementing counter
             new_trigger = (current_trigger or 0) + 1
 
-            # Show cache warning toast if present (will appear after success toast)
             if cache_warning_toast:
-                # Return both toasts in a div, close modal on success
                 return (
-                    False,  # Close modal
+                    False,
                     "",
                     new_trigger,
                     html.Div([toast, cache_warning_toast]),
                 )
             else:
-                return (False, "", new_trigger, toast)  # Close modal
+                return (False, "", new_trigger, toast)
         else:
             logger.error("Failed to save JIRA configuration")
             return (
                 no_update,
                 "",
-                no_update,  # Don't trigger metadata refresh on save failure
+                no_update,
                 create_error_toast(
                     "An error occurred while saving the configuration. "
                     "Please try again.",
@@ -348,14 +257,9 @@ def save_jira_configuration_callback(
         return (
             no_update,
             "",
-            no_update,  # Don't trigger metadata refresh on exception
+            no_update,
             create_error_toast(f"Error: {str(e)}", header="Unexpected Error"),
         )
-
-
-#######################################################################
-# CALLBACK: CANCEL CONFIGURATION
-#######################################################################
 
 
 @callback(
@@ -364,24 +268,11 @@ def save_jira_configuration_callback(
     prevent_initial_call=True,
 )
 def cancel_jira_config(n_clicks):
-    """
-    Close the JIRA configuration modal without saving changes.
 
-    Args:
-        n_clicks: Number of times cancel button has been clicked
-
-    Returns:
-        False to close the modal, no_update otherwise
-    """
     if n_clicks:
         logger.info("JIRA configuration modal cancelled")
         return False
     return no_update
-
-
-#######################################################################
-# CALLBACK: UPDATE CONFIGURATION STATUS INDICATOR
-#######################################################################
 
 
 @callback(
@@ -391,31 +282,18 @@ def cancel_jira_config(n_clicks):
         Input("jira-config-save-button", "n_clicks"),
         Input("profile-selector", "value"),
     ],
-    prevent_initial_call=False,  # Run on page load to show initial status
+    prevent_initial_call=False,
 )
 def update_jira_config_status(modal_is_open, save_clicks, profile_id):
-    """
-    Update the JIRA configuration status indicator to show whether JIRA is configured.
 
-    Args:
-        modal_is_open: Whether the modal is currently open
-        save_clicks: Number of times save button has been clicked (triggers refresh)
-        profile_id: Active profile ID (triggers refresh on profile switch)
-
-    Returns:
-        Status indicator component showing configuration state
-    """
     import time  # noqa: PLC0415
 
     try:
-        # If triggered by profile switch, wait briefly for switch to complete
         if ctx.triggered and ctx.triggered[0]["prop_id"] == "profile-selector.value":
-            time.sleep(0.1)  # 100ms delay to let profile switch complete
+            time.sleep(0.1)
 
         jira_config = load_jira_configuration()
 
-        # Check if JIRA is configured (base_url required;
-        # token optional for public servers).
         is_configured = (
             jira_config.get("configured", False)
             and jira_config.get("base_url", "").strip() != ""
@@ -425,8 +303,6 @@ def update_jira_config_status(modal_is_open, save_clicks, profile_id):
             base_url = jira_config.get("base_url", "")
             api_version = jira_config.get("api_version", "v2")
             token = jira_config.get("token", "")
-
-            # Test the connection to verify API version actually works
 
             logger.info(
                 "Status indicator: Testing connection to "
@@ -439,7 +315,6 @@ def update_jira_config_status(modal_is_open, save_clicks, profile_id):
                 f"error_code={test_result.get('error_code', 'none')}"
             )
 
-            # If connection test failed due to API version mismatch, show warning
             if (
                 not test_result["success"]
                 and test_result.get("error_code") == "api_version_mismatch"
@@ -459,7 +334,6 @@ def update_jira_config_status(modal_is_open, save_clicks, profile_id):
                     className="d-flex align-items-center",
                 )
 
-            # If connection test failed for other reasons, show error
             if not test_result["success"]:
                 return html.Div(
                     [
@@ -473,8 +347,6 @@ def update_jira_config_status(modal_is_open, save_clicks, profile_id):
                     className="d-flex align-items-center",
                 )
 
-            # Connection successful - show green status with shortened URL
-            # Extract domain from URL for more compact display
             try:
                 parsed = urlparse(base_url)
                 domain = parsed.netloc if parsed.netloc else base_url
@@ -519,25 +391,12 @@ def update_jira_config_status(modal_is_open, save_clicks, profile_id):
         )
 
 
-#######################################################################
-# CALLBACK: TEST CONNECTION
-#######################################################################
-
-
 @callback(
     Output("jira-last-test-display", "children"),
     Input("jira-config-modal", "is_open"),
 )
 def display_last_test_info(is_open):
-    """
-    Display last connection test timestamp and result.
 
-    Args:
-        is_open: Whether the modal is currently open
-
-    Returns:
-        Component showing last test information or empty div
-    """
     if not is_open:
         raise PreventUpdate
 
@@ -547,9 +406,7 @@ def display_last_test_info(is_open):
         last_test_success = config.get("last_test_success")
 
         if last_test_timestamp is None:
-            return html.Div()  # No test history yet
-
-        # Format the timestamp
+            return html.Div()
 
         try:
             dt = datetime.fromisoformat(last_test_timestamp.replace("Z", "+00:00"))
@@ -557,7 +414,6 @@ def display_last_test_info(is_open):
         except Exception:
             formatted_time = last_test_timestamp
 
-        # Determine status icon and color
         if last_test_success:
             icon = "fas fa-check-circle"
             color = "success"
@@ -587,12 +443,7 @@ def display_last_test_info(is_open):
         )
     except Exception as e:
         logger.debug(f"Could not load last test info: {e}")
-        return html.Div()  # Silently return empty if error
-
-
-#######################################################################
-# CALLBACK: SHOW API VERSION WARNING
-#######################################################################
+        return html.Div()
 
 
 @callback(
@@ -601,16 +452,7 @@ def display_last_test_info(is_open):
     State("jira-config-modal", "is_open"),
 )
 def show_api_version_warning(selected_version, is_open):
-    """
-    Display warning when user changes API version.
 
-    Args:
-        selected_version: Currently selected API version (v2 or v3)
-        is_open: Whether the modal is currently open
-
-    Returns:
-        Warning alert or empty div
-    """
     if not is_open:
         raise PreventUpdate
 
@@ -618,7 +460,6 @@ def show_api_version_warning(selected_version, is_open):
         config = load_jira_configuration()
         current_version = config.get("api_version", "v3")
 
-        # Show warning if version changed from saved config
         if selected_version != current_version:
             opposite_version = "v2" if selected_version == "v3" else "v3"
 
@@ -648,13 +489,7 @@ def show_api_version_warning(selected_version, is_open):
                 className="small",
             )
         else:
-            return html.Div()  # No change, no warning
+            return html.Div()
     except Exception as e:
         logger.debug(f"Could not load config for version warning: {e}")
         return html.Div()
-
-
-#######################################################################
-# NOTE: Auto-dismiss alerts (4-second duration) provide clean UX
-#       without needing explicit clear-on-close callback
-#######################################################################

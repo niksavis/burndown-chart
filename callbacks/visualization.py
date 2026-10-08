@@ -1,18 +1,7 @@
-"""
-Visualization Callbacks Module
-
-This module handles callbacks related to visualization updates and interactions.
-"""
-
-#######################################################################
-# IMPORTS
-#######################################################################
-# Standard library imports
 import json
 import logging
 from datetime import datetime
 
-# Third-party library imports
 import pandas as pd
 from dash import (
     Input,
@@ -24,7 +13,6 @@ from dash import (
 )
 from dash.exceptions import PreventUpdate
 
-# Application imports
 from callbacks.active_work_timeline import _render_active_work_timeline_content
 from callbacks.bug_analysis import _render_bug_analysis_content
 from callbacks.sprint_tracker import _render_sprint_tracker_content
@@ -45,28 +33,11 @@ from ui.loading_utils import create_content_placeholder
 from visualization import create_forecast_plot
 from visualization.charts import apply_mobile_optimization
 
-# Setup logging
 logger = logging.getLogger("burndown_chart")
-
-#######################################################################
-# CALLBACKS
-#######################################################################
-
-
-#######################################################################
-# CALLBACKS
-#######################################################################
 
 
 def register(app):
-    """
-    Register all visualization-related callbacks.
 
-    Args:
-        app: Dash application instance
-    """
-
-    # Client-side callback for dynamic viewport detection
     app.clientside_callback(
         """
         function(n_intervals, init_complete) {
@@ -88,11 +59,6 @@ def register(app):
         Output("app-init-complete", "data"), [Input("chart-tabs", "active_tab")]
     )
     def mark_initialization_complete(active_tab):
-        """
-        Mark the application as fully initialized after the tabs are rendered.
-        This prevents saving during initial load
-        and avoids triggering callbacks prematurely.
-        """
         return True
 
     @app.callback(
@@ -118,70 +84,53 @@ def register(app):
         statistics,
         viewport_size,
     ):
-        """Update the forecast graph when settings or statistics change."""
-        # Get context to see which input triggered the callback
         ctx = callback_context
         if not ctx.triggered:
             raise PreventUpdate
 
-        # Only proceed if we're on the burndown tab
         if active_tab != "tab-burndown":
-            raise PreventUpdate  # Don't update when not on burndown tab
+            raise PreventUpdate
 
-        # Validate inputs
         if settings is None or statistics is None:
             raise PreventUpdate
 
-        # Get triggered input ID
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
-        # If triggered by calculation_results but data is None, prevent update
         if trigger_id == "calculation-results" and calc_results is None:
             raise PreventUpdate
 
-        # Detect viewport size for mobile optimization
         viewport_size = viewport_size or "desktop"
         is_mobile = viewport_size == "mobile"
         is_tablet = viewport_size == "tablet"
 
-        # Process the settings and statistics data
         df = pd.DataFrame(statistics)
-        if len(df) > 0:  # Check if there's any data
+        if len(df) > 0:
             df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
             df = df.sort_values("date")
 
-        # Get necessary values
         total_items = settings.get("total_items", 100)
         total_points = settings.get("total_points", 500)
         pert_factor = settings.get("pert_factor", 3)
         deadline = settings.get("deadline", None)
-        data_points_count = int(
-            settings.get("data_points_count", len(df))
-        )  # Get selected data points count (ensure int)
+        data_points_count = int(settings.get("data_points_count", len(df)))
 
-        # Get milestone settings
         show_milestone = settings.get("show_milestone", False)
         milestone = settings.get("milestone", None) if show_milestone else None
 
-        # Process data for calculations
         if not df.empty:
             df = compute_cumulative_values(df, total_items, total_points)
 
-        # Create forecast plot and get PERT values
         fig, _ = create_forecast_plot(
             df=df,
             total_items=total_items,
             total_points=total_points,
             pert_factor=pert_factor,
             deadline_str=deadline,
-            milestone_str=milestone,  # Pass milestone parameter
+            milestone_str=milestone,
             data_points_count=data_points_count,
-            show_points=settings.get(
-                "show_points", False
-            ),  # Pass show_points parameter
+            show_points=settings.get("show_points", False),
         )
 
-        # Apply mobile optimization to chart
         fig, _ = apply_mobile_optimization(
             fig,
             is_mobile=is_mobile,
@@ -191,7 +140,6 @@ def register(app):
 
         return fig
 
-    # Performance-optimized tab content callback with lazy loading and caching
     @app.callback(
         [
             Output("tab-content", "children"),
@@ -204,11 +152,9 @@ def register(app):
             Input("current-statistics", "modified_timestamp"),
             Input("calculation-results", "data"),
             Input("date-range-weeks", "data"),
-            Input("points-toggle", "value"),  # Updated to new parameter panel component
-            Input(
-                "budget-settings-store", "data"
-            ),  # Trigger refresh when budget changes
-            Input("metrics-refresh-trigger", "data"),  # Trigger refresh after import
+            Input("points-toggle", "value"),
+            Input("budget-settings-store", "data"),
+            Input("metrics-refresh-trigger", "data"),
         ],
         [
             State("current-settings", "data"),
@@ -224,42 +170,15 @@ def register(app):
         statistics_ts,
         calc_results,
         date_range_weeks,
-        show_points,  # Added parameter
-        budget_store,  # Added parameter
-        import_trigger,  # Added parameter
+        show_points,
+        budget_store,
+        import_trigger,
         settings,
         statistics,
         chart_cache,
         ui_state,
         viewport_size,
     ):
-        """
-        Render the appropriate content based on the selected tab
-        with lazy loading and caching.
-        Only generates charts for the active tab to improve performance.
-        Target: <500ms chart rendering,
-        immediate skeleton loading, <100ms cached responses.
-        """
-        # TECH LEAD FIX: The previous "CRITICAL FIX" code was causing
-        # the bug, not fixing it.
-        #
-        # The bug: That code tried to work around stale active_tab
-        # by using ui_state["last_tab"]
-        # when the trigger wasn't from tab change. But this is backwards logic!
-        #
-        # What actually happens:
-        # 1. User clicks scope tab ->
-        #    active_tab="tab-scope-tracking", last_tab="tab-scope-tracking"
-        # 2. User clicks burndown tab -> Dash correctly passes active_tab="tab-burndown"
-        # 3. If any other input changes (settings, statistics, etc),
-        #    the old code would
-        #    IGNORE the correct active_tab and use the stale last_tab instead!
-        # 4. This caused scope content to render on every tab after visiting it once
-        #
-        # THE FIX: Trust Dash! The active_tab parameter is ALWAYS correct.
-        # Dash automatically provides the current tab state,
-        # even when other inputs trigger the callback.
-        # We should NEVER override it with stored state.
 
         ctx = callback_context
         trigger_info = ctx.triggered[0]["prop_id"] if ctx.triggered else "initial"
@@ -269,7 +188,6 @@ def register(app):
             f"cache_size={len(chart_cache) if chart_cache else 0}"
         )
 
-        # CRITICAL DEBUG: Log statistics data to diagnose query switching issue
         if statistics:
             logger.info(
                 "[VISUALIZATION] render_tab_content received "
@@ -292,7 +210,6 @@ def register(app):
                 "[VISUALIZATION] render_tab_content received EMPTY statistics!"
             )
 
-        # Handle initial load: if active_tab is None or empty, default to burndown
         if not active_tab:
             logger.debug(
                 "[CTO DEBUG] active_tab was empty/None, defaulting to tab-burndown"
@@ -309,13 +226,11 @@ def register(app):
             )
             return error_content, chart_cache, ui_state
 
-        # Initialize cache and UI state if None
         if chart_cache is None:
             chart_cache = {}
         if ui_state is None:
             ui_state = {"loading": False, "last_tab": None}
 
-        # Detect viewport size for mobile optimization (Phase 7: User Story 5)
         viewport_size = viewport_size or "desktop"
         is_mobile = viewport_size == "mobile"
         is_tablet = viewport_size == "tablet"
@@ -324,17 +239,10 @@ def register(app):
             f"(mobile={is_mobile}, tablet={is_tablet})"
         )
 
-        # Convert checklist value to boolean (points-toggle returns list, not boolean)
         show_points = bool(
             show_points and (show_points is True or "show" in show_points)
         )
 
-        # CTO FIX: Clear old cache entries to prevent memory bloat (keep last 5)
-        # BUT: If we're switching tabs (trigger is from chart-tabs), clear ALL cache
-        # to prevent any possibility of cross-tab contamination
-        # ALSO: Clear ALL cache when budget changes to ensure fresh render
-        # ALSO: Clear ALL cache when statistics change (table edits)
-        # to ensure immediate reactivity
         trigger_info = ctx.triggered[0]["prop_id"] if ctx.triggered else ""
         if "chart-tabs" in trigger_info:
             logger.debug(
@@ -366,7 +274,6 @@ def register(app):
                 if old_key in chart_cache:
                     del chart_cache[old_key]
 
-        # Create simplified cache key - only essential data for chart generation
         data_hash = hash(
             str(statistics)
             + str(settings)
@@ -378,9 +285,7 @@ def register(app):
         use_cache_for_tab = active_tab != "tab-active-work-timeline"
         logger.debug(f"[CTO DEBUG] Cache key generated: {cache_key}")
 
-        # Check if we have cached content for this exact state
         if use_cache_for_tab and cache_key in chart_cache:
-            # Return cached content immediately for <100ms response time
             logger.debug(
                 "[CTO DEBUG] Returning CACHED content for "
                 f"active_tab='{active_tab}', cache_key={cache_key}"
@@ -389,16 +294,12 @@ def register(app):
             ui_state["last_tab"] = active_tab
             return chart_cache[cache_key], chart_cache, ui_state
 
-        # Set loading state for new tab content generation
         ui_state["loading"] = True
         ui_state["last_tab"] = active_tab
 
         try:
-            data_points_count = int(
-                settings.get("data_points_count", 12)
-            )  # Ensure int, default 12
+            data_points_count = int(settings.get("data_points_count", 12))
 
-            # Convert statistics to DataFrame
             df = pd.DataFrame(statistics)
 
             if active_tab == "tab-dashboard":
@@ -444,89 +345,57 @@ def register(app):
                 return scope_tab_content, chart_cache, ui_state
 
             elif active_tab == "tab-bug-analysis":
-                # Generate bug analysis tab content directly (no placeholder loading)
-                # Import the actual rendering function from bug_analysis callback
+                data_points_count = int(settings.get("data_points_count", 12))
 
-                # Get data_points_count from settings
-                data_points_count = int(
-                    settings.get("data_points_count", 12)
-                )  # Ensure int
-
-                # Check if points data exists in the filtered time period
                 has_points_data = False
                 if show_points:
                     has_points_data = check_has_points_in_period(
                         statistics, data_points_count
                     )
 
-                # Render the actual content immediately
                 bug_analysis_content = _render_bug_analysis_content(
                     data_points_count, show_points, has_points_data
                 )
 
-                # Cache the result for next time
                 chart_cache[cache_key] = bug_analysis_content
                 ui_state["loading"] = False
                 return bug_analysis_content, chart_cache, ui_state
 
             elif active_tab == "tab-dora-metrics":
-                # Generate DORA metrics dashboard
-                # Callback will populate with metrics (prevent_initial_call=False)
-
                 dora_content = create_dora_dashboard()
 
-                # Cache the result for next time
                 chart_cache[cache_key] = dora_content
                 ui_state["loading"] = False
                 return dora_content, chart_cache, ui_state
 
             elif active_tab == "tab-flow-metrics":
-                # Generate Flow metrics dashboard
-                # Callback will populate with metrics (prevent_initial_call=False)
-
                 flow_content = create_flow_dashboard()
 
-                # Cache the result for next time
                 chart_cache[cache_key] = flow_content
                 ui_state["loading"] = False
                 return flow_content, chart_cache, ui_state
 
             elif active_tab == "tab-statistics-data":
-                # Load statistics from DB and render table
-
                 statistics_content = create_statistics_data_card(statistics)
 
-                # Cache the result for next time
                 chart_cache[cache_key] = statistics_content
                 ui_state["loading"] = False
                 return statistics_content, chart_cache, ui_state
 
             elif active_tab == "tab-sprint-tracker":
-                # Generate Sprint Tracker content directly (no placeholder loading)
+                data_points_count = int(settings.get("data_points_count", 12))
 
-                # Get data_points_count from settings
-                data_points_count = int(
-                    settings.get("data_points_count", 12)
-                )  # Ensure int
-
-                # Render the actual content immediately
                 sprint_tracker_content = _render_sprint_tracker_content(
                     data_points_count, show_points
                 )
 
-                # Cache the result for next time
                 chart_cache[cache_key] = sprint_tracker_content
                 ui_state["loading"] = False
                 return sprint_tracker_content, chart_cache, ui_state
 
             elif active_tab == "tab-active-work-timeline":
-                # Generate Active Work Timeline content directly
-                # (no placeholder loading)
-
-                # Get data_points_count from settings
                 data_points_count = int(settings.get("data_points_count", 12))
 
-                # Render the actual content immediately
                 timeline_content = _render_active_work_timeline_content(
                     show_points, data_points_count
                 )
@@ -536,7 +405,6 @@ def register(app):
                 ui_state["loading"] = False
                 return timeline_content, chart_cache, ui_state
 
-            # Default fallback (should not reach here)
             fallback_content = create_content_placeholder(
                 type="chart", text="Select a tab to view data", height="400px"
             )
@@ -561,8 +429,6 @@ def register(app):
             ui_state["loading"] = False
             return error_content, chart_cache, ui_state
 
-    # Enhance the existing update_date_range callback
-    # to immediately trigger chart updates
     @app.callback(
         Output("date-range-weeks", "data"),
         [
@@ -570,58 +436,35 @@ def register(app):
         ],
     )
     def update_date_range(value):
-        """
-        Update the date range based on whichever slider was most recently changed.
-        This uses a pattern-matching callback to handle sliders across different tabs.
-        """
-        # Get the ID of the component that triggered the callback
         ctx = callback_context
         if not ctx.triggered:
             raise PreventUpdate
 
-        # Get the ID and value of the slider that was changed
         trigger = ctx.triggered[0]
         value = trigger["value"]
 
-        # If no valid value, use default
         if value is None:
             return 24
 
         return value
 
-    # Add callback for export project data button (JSON export)
     @app.callback(
         Output("export-project-data-download", "data"),
         Input("export-project-data-button", "n_clicks"),
         prevent_initial_call=True,
     )
     def export_project_data(n_clicks):
-        """
-        Export complete project data as JSON when the export button is clicked.
 
-        Includes:
-        - project_data: Statistics, issues, burndown calculations
-        - metrics_snapshots: DORA/Flow metrics pre-calculated snapshots
-
-        Args:
-            n_clicks: Number of button clicks
-
-        Returns:
-            Dictionary with JSON download data
-        """
         if not n_clicks:
             raise PreventUpdate
 
         try:
             current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-            # Load the complete unified project data
             project_data = load_unified_project_data()
 
-            # Load metrics snapshots (DORA/Flow metrics)
             metrics_snapshots = load_snapshots()
 
-            # Combine into single export package
             export_package = {
                 "export_timestamp": current_time,
                 "project_data": project_data,
@@ -629,26 +472,21 @@ def register(app):
                 "format_version": "1.0",
             }
 
-            # Create filename with timestamp
             filename = f"project_data_{current_time}.json"
 
-            # Convert to JSON string with pretty formatting
             json_content = json.dumps(export_package, indent=2, ensure_ascii=False)
 
             logger.info(
                 f"Exported project data with {len(metrics_snapshots)} metric snapshots"
             )
 
-            # Return JSON data for download
             return dict(
                 content=json_content, filename=filename, type="application/json"
             )
 
         except Exception as e:
             logger.error(f"Error exporting project data: {e}")
-            # Define current_time for the error case
             current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-            # Return error JSON
             error_data = {"error": f"Failed to export project data: {str(e)}"}
             error_json = json.dumps(error_data, indent=2)
             return dict(
@@ -657,17 +495,11 @@ def register(app):
                 type="application/json",
             )
 
-    # Chart toggle callbacks removed - burnup functionality deprecated
 
-
-# Collapsible forecast info card callbacks
 def toggle_items_forecast_info_collapse(n_clicks, is_open):
-    """Toggle the collapse state of the items forecast information card."""
     if n_clicks is None:
-        # Initial state - collapsed
         return False
 
-    # Toggle the state when button is clicked
     return not is_open
 
 
@@ -677,12 +509,9 @@ def toggle_items_forecast_info_collapse(n_clicks, is_open):
     State("points-forecast-info-collapse", "is_open"),
 )
 def toggle_points_forecast_info_collapse(n_clicks, is_open):
-    """Toggle the collapse state of the points forecast information card."""
     if n_clicks is None:
-        # Initial state - collapsed
         return False
 
-    # Toggle the state when button is clicked
     return not is_open
 
 
@@ -692,10 +521,7 @@ def toggle_points_forecast_info_collapse(n_clicks, is_open):
     State("forecast-info-collapse", "is_open"),
 )
 def toggle_forecast_info_collapse(n_clicks, is_open):
-    """Toggle the collapse state of the forecast information card."""
     if n_clicks is None:
-        # Initial state - collapsed
         return False
 
-    # Toggle the state when button is clicked
     return not is_open

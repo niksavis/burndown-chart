@@ -1,13 +1,3 @@
-"""
-Core Settings Callbacks
-
-This module handles core settings management callbacks including:
-- Total points calculation
-- Settings reload after import/profile switch
-- UI sync with settings store
-- Settings persistence
-"""
-
 import time
 from datetime import date, datetime
 
@@ -33,7 +23,6 @@ from .helpers import normalize_show_points
 
 
 def _normalize_date_picker_value(value) -> str | None:
-    """Normalize DatePicker values to YYYY-MM-DD strings or None."""
     if value in (None, ""):
         return None
 
@@ -42,7 +31,6 @@ def _normalize_date_picker_value(value) -> str | None:
         if not normalized:
             return None
 
-        # Handle datetime strings by keeping date component.
         if "T" in normalized:
             normalized = normalized.split("T", 1)[0]
         elif " " in normalized:
@@ -69,12 +57,6 @@ def _normalize_date_picker_value(value) -> str | None:
 
 
 def register(app):
-    """
-    Register core settings callbacks.
-
-    Args:
-        app: Dash application instance
-    """
 
     @app.callback(
         [
@@ -102,19 +84,7 @@ def register(app):
         calc_results,
         current_total_points_display,
     ):
-        """
-        Update total points using estimated values or historical data.
 
-        Uses the same extrapolation formula as JIRA scope calculator:
-        remaining_total_points = estimated_points
-        + (avg_points_per_item × unestimated_items)
-
-        This ensures consistency between JIRA and manual data entry workflows.
-        Manual changes to inputs will always trigger recalculation,
-        allowing users to
-        adjust forecasts even when working with JIRA data.
-        """
-        # Input validation
         if None in [total_items, estimated_items, estimated_points]:
             return (
                 f"{calc_results.get('total_points', DEFAULT_TOTAL_POINTS):.1f}",
@@ -122,7 +92,6 @@ def register(app):
                 or {"total_points": DEFAULT_TOTAL_POINTS, "avg_points_per_item": 0},
             )
 
-        # Handle invalid inputs by converting to numbers
         try:
             total_items = int(total_items)
             estimated_items = int(estimated_items)
@@ -134,7 +103,6 @@ def register(app):
                 or {"total_points": DEFAULT_TOTAL_POINTS, "avg_points_per_item": 0},
             )
 
-        # Calculate total points and average
         estimated_total_points, avg_points_per_item = calculate_total_points(
             total_items,
             estimated_items,
@@ -143,7 +111,6 @@ def register(app):
             use_fallback=False,
         )
 
-        # Update the calculation results store
         updated_calc_results = {
             "total_points": estimated_total_points,
             "avg_points_per_item": avg_points_per_item,
@@ -159,7 +126,6 @@ def register(app):
         Input("calculation-results", "data"),
     )
     def update_remaining_points_formula(calc_results):
-        """Update formula display with the actual average coefficient used."""
         if not calc_results:
             return "= Est. Points + (avg × unestimated)."
 
@@ -181,13 +147,6 @@ def register(app):
         prevent_initial_call=True,
     )
     def reload_settings_after_import_or_switch(metrics_trigger, profile_trigger):
-        """
-        Reload settings from database after import or profile switch.
-
-        This ensures that imported profile settings (show_points, pert_factor, etc.)
-        are loaded into the UI, fixing the bug where imported settings
-        were not displayed.
-        """
 
         logger.info(
             f"[Settings] reload_settings_after_import_or_switch triggered: "
@@ -195,13 +154,11 @@ def register(app):
         )
 
         try:
-            # Check if we have an active profile
             active_profile = get_active_profile()
             if not active_profile:
                 logger.info("[Settings] No active profile, skipping settings reload")
                 raise PreventUpdate
 
-            # Load settings from database
             settings = load_app_settings()
 
             if not settings:
@@ -210,7 +167,6 @@ def register(app):
                 )
                 raise PreventUpdate
 
-            # Normalize show_points to boolean for consistency
             settings["show_points"] = normalize_show_points(
                 settings.get("show_points", True)
             )
@@ -257,28 +213,19 @@ def register(app):
     def sync_ui_inputs_with_settings(
         settings_timestamp, settings, current_deadline, current_milestone
     ):
-        """
-        Update UI input components when current-settings store changes.
 
-        This ensures that when settings are reloaded from database
-        (after import/profile switch),
-        the visible UI inputs reflect the loaded values.
-        """
         if not settings:
             raise PreventUpdate
 
-        # Convert show_points boolean back to checklist format
         show_points = settings.get("show_points", True)
         points_toggle_value = ["show"] if show_points else []
 
-        # Date pickers use clearable=True
         deadline = _normalize_date_picker_value(settings.get("deadline"))
         milestone = _normalize_date_picker_value(settings.get("milestone"))
 
         current_deadline_normalized = _normalize_date_picker_value(current_deadline)
         current_milestone_normalized = _normalize_date_picker_value(current_milestone)
 
-        # Avoid pushing redundant date props; this prevents clobbering manual typing.
         deadline_output = (
             dash.no_update if deadline == current_deadline_normalized else deadline
         )
@@ -330,17 +277,12 @@ def register(app):
         calc_results,
         jql_query,
     ):
-        """
-        Update current settings and save to disk when changed.
-        Handles both legacy inputs and new parameter panel inputs.
-        """
         ctx = dash.callback_context
 
         deadline = _normalize_date_picker_value(deadline)
         milestone = _normalize_date_picker_value(milestone)
         show_milestone = milestone is not None
 
-        # Skip if not initialized or critical values are None
         if (
             not init_complete
             or not ctx.triggered
@@ -352,14 +294,12 @@ def register(app):
             int(data_points_count) if data_points_count is not None else 12
         )
 
-        # Initialize with fallback values
         total_points = (
             calc_results.get("total_points", DEFAULT_TOTAL_POINTS)
             if calc_results
             else DEFAULT_TOTAL_POINTS
         )
 
-        # Load current remaining work from project_scope
         try:
             active_profile = get_active_profile()
             if not active_profile:
@@ -382,7 +322,6 @@ def register(app):
                 f"[Settings] Error loading current remaining work: {e}", exc_info=True
             )
 
-        # Use fallback values
         input_values = {
             "estimated_items": estimated_items,
             "estimated_points": estimated_points,
@@ -405,11 +344,7 @@ def register(app):
             "show_points": normalize_show_points(show_points),
         }
 
-        # Save app-level settings
-
         existing_settings = load_app_settings()
-
-        # Preserve values that might not have been updated yet
 
         if ctx.triggered:
             triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]

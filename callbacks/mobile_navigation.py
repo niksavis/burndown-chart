@@ -1,13 +1,3 @@
-"""
-Mobile Navigation Callbacks
-
-This module provides callbacks for mobile navigation functionality including
-drawer navigation, bottom navigation, and swipe gestures.
-"""
-
-#######################################################################
-# IMPORTS
-#######################################################################
 from dash import (
     Input,
     Output,
@@ -16,10 +6,6 @@ from dash import (
     clientside_callback,
     no_update,
 )
-
-#######################################################################
-# MOBILE NAVIGATION CALLBACKS
-#######################################################################
 
 
 @callback(
@@ -37,7 +23,6 @@ from dash import (
     prevent_initial_call=True,
 )
 def handle_mobile_drawer(menu_clicks, close_clicks, overlay_clicks, nav_state):
-    """Handle mobile drawer open/close actions."""
     if not nav_state:
         nav_state = {
             "drawer_open": False,
@@ -45,11 +30,9 @@ def handle_mobile_drawer(menu_clicks, close_clicks, overlay_clicks, nav_state):
             "swipe_enabled": True,
         }
 
-    # Determine if we should toggle the drawer
     total_clicks = (menu_clicks or 0) + (close_clicks or 0) + (overlay_clicks or 0)
 
     if total_clicks > 0:
-        # Toggle drawer state
         drawer_open = not nav_state.get("drawer_open", False)
         nav_state["drawer_open"] = drawer_open
 
@@ -65,7 +48,6 @@ def handle_mobile_drawer(menu_clicks, close_clicks, overlay_clicks, nav_state):
     return no_update, no_update, no_update
 
 
-# Clientside callback to handle mobile navigation tab switching
 clientside_callback(
     """
     function(
@@ -121,8 +103,6 @@ clientside_callback(
 )
 
 
-# Use clientside callback to update mobile navigation styling
-# without recreating elements.
 clientside_callback(
     """
     function(nav_state, active_tab) {
@@ -172,7 +152,6 @@ clientside_callback(
 )
 
 
-# Clientside callback to sync JavaScript state with active tab
 clientside_callback(
     """
     function(active_tab) {
@@ -194,7 +173,6 @@ clientside_callback(
 )
 
 
-# Clientside callback for touch feedback
 clientside_callback(
     """
     function() {
@@ -232,7 +210,6 @@ clientside_callback(
 )
 
 
-# Callback to handle overflow menu open/close
 @callback(
     [
         Output("mobile-overflow-menu", "style"),
@@ -247,25 +224,20 @@ clientside_callback(
     prevent_initial_call=True,
 )
 def handle_overflow_menu(more_clicks, overlay_clicks, header_clicks, menu_style):
-    """Handle overflow menu open/close actions."""
-    # Check if menu is currently open
     is_open = menu_style and menu_style.get("transform") == "translateY(0)"
 
     if is_open:
-        # Close the menu
         return (
             {"transform": "translateY(100%)"},
             {"display": "none"},
         )
     else:
-        # Open the menu
         return (
             {"transform": "translateY(0)"},
             {"display": "block"},
         )
 
 
-# Clientside callback to handle overflow menu navigation
 clientside_callback(
     """
     function(active_work_clicks, sprint_clicks, data_clicks) {
@@ -325,13 +297,5 @@ clientside_callback(
 )
 
 
-#######################################################################
-# REGISTRATION FUNCTION
-#######################################################################
-
-
 def register(app):
-    """Register mobile navigation callbacks with the app."""
-    # All callbacks are already defined with @callback decorators
-    # This function is called by the callback registration system
     pass

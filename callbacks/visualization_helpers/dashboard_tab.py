@@ -1,13 +1,3 @@
-"""
-Dashboard Tab Renderer
-
-Renders the tab-dashboard content including budget, DORA metrics,
-flow metrics, and bug analysis data preparation.
-
-All business logic delegated to data/ modules; this module coordinates
-the data loading and hands off to ui.dashboard for rendering.
-"""
-
 import logging
 from datetime import datetime, timedelta
 
@@ -37,20 +27,6 @@ def _render_dashboard_tab(
     settings: dict,
     show_points: bool,
 ) -> object:
-    """
-    Render the dashboard tab content.
-
-    Loads budget, DORA, flow, and bug metrics then delegates
-    to create_comprehensive_dashboard for rendering.
-
-    Args:
-        df: Raw statistics DataFrame (unfiltered, not yet cumulative).
-        settings: Current application settings dictionary.
-        show_points: Whether story-points tracking is enabled.
-
-    Returns:
-        Rendered dashboard content (html.Div).
-    """
 
     pert_factor = settings.get("pert_factor", 1.2)
     deadline = settings.get("deadline") or None
@@ -190,17 +166,7 @@ def _load_budget_data(
     data_points_count: int,
     pert_data: dict,
 ) -> tuple[str, str, str, dict | None]:
-    """
-    Load budget metrics for the dashboard.
 
-    Args:
-        data_points_count: Number of weeks to include.
-        pert_data: PERT forecast data dict from create_forecast_plot.
-
-    Returns:
-        Tuple of (profile_id, query_id, current_week_label, budget_data).
-        budget_data is None when not configured or on error.
-    """
     import math  # noqa: PLC0415
 
     budget_data = None

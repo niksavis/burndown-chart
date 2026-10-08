@@ -1,14 +1,3 @@
-"""
-Version Update Notification Callback
-
-Shows toast notifications for:
-1. New version available (update check)
-2. Successfully updated (version change on startup)
-
-Triggered after page initialization completes to avoid being
-cleared by other page load callbacks.
-"""
-
 import logging
 
 from dash import Input, Output, callback, html, no_update
@@ -28,38 +17,13 @@ logger = logging.getLogger(__name__)
     prevent_initial_call=True,
 )
 def show_version_update_toast(app_init_complete, toast_already_shown):
-    """
-    Show version update notifications after app initialization completes.
 
-    Handles two types of notifications:
-    1. "Successfully updated to vX.Y.Z" - shown when version changed since last run
-    2. "Update available" - shown when new version is available for download
-
-    This callback fires after page load callbacks finish, ensuring the
-    toast notification is not cleared by other callbacks that output
-    to app-notifications.
-
-    Only shows once per browser session
-    (tracked via dcc.Store with storage_type='session').
-
-    Args:
-        app_init_complete: Flag indicating app initialization is complete
-        toast_already_shown: Boolean flag tracking
-            if toast was already shown this session
-
-    Returns:
-        Tuple of (Toast component or no_update, toast_shown_flag)
-    """
-    # Don't show if already shown this session
     if toast_already_shown:
         return no_update, no_update
 
-    # Only show toast when app is initialized
     if not app_init_complete:
         return no_update, no_update
 
-    # Check if version changed - tracked for logging only
-    # Success toast is shown by update_reconnect.js after reconnect
     version_changed, previous_version, current_version = check_and_update_version()
 
     if version_changed and previous_version:
@@ -72,11 +36,8 @@ def show_version_update_toast(app_init_complete, toast_already_shown):
                 "current_version": current_version,
             },
         )
-        # Return early - success toast already shown by JavaScript during reconnect
-        # Prevents checking VERSION_CHECK_RESULT which is cleared after update
         return no_update, no_update
 
-    # Import app module to access VERSION_CHECK_RESULT
     import app  # noqa: PLC0415
 
     if not app.VERSION_CHECK_RESULT:
@@ -84,7 +45,6 @@ def show_version_update_toast(app_init_complete, toast_already_shown):
 
     progress = app.VERSION_CHECK_RESULT
 
-    # Handle manual update required (source code deployment)
     if progress.state == UpdateState.MANUAL_UPDATE_REQUIRED:
         logger.info(
             "Manual update required - displaying instructions after init",
@@ -121,7 +81,6 @@ def show_version_update_toast(app_init_complete, toast_already_shown):
 
         return toast, True
 
-    # Handle automatic update available (executable mode)
     if progress.state == UpdateState.AVAILABLE:
         logger.info(
             "Update available - displaying toast after init",
@@ -153,11 +112,10 @@ def show_version_update_toast(app_init_complete, toast_already_shown):
             ],
             toast_type="info",
             header="Update Available",
-            duration=20000,  # 20 seconds - enough time to read and click
+            duration=20000,
             icon="arrow-circle-up",
         )
 
         return toast, True
 
-    # No update available or other state
     return no_update, no_update

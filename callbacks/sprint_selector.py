@@ -1,8 +1,3 @@
-"""Sprint Tracker Dropdown Callback
-
-Handles sprint selection changes in the Sprint Tracker tab.
-"""
-
 import logging
 
 import dash_bootstrap_components as dbc
@@ -41,17 +36,7 @@ logger = logging.getLogger(__name__)
     prevent_initial_call=True,
 )
 def update_sprint_selection(selected_sprint: str, show_points_list: list):
-    """Update Sprint Tracker when sprint selection or points toggle changes.
 
-    Args:
-        selected_sprint: Sprint name/ID selected from dropdown
-        show_points_list: Story points toggle state
-
-    Returns:
-        Tuple of (updated data container, dropdown value)
-    """
-
-    # Log which input triggered this callback
     triggered = callback_context.triggered[0] if callback_context.triggered else None
     trigger_id = triggered["prop_id"].split(".")[0] if triggered else "unknown"
     logger.info(
@@ -64,15 +49,8 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
 
     logger.info(f"Sprint selection changed to: {selected_sprint}")
 
-    # Determine if story points should be shown (checklist uses "show" as value)
     show_points = "show" in (show_points_list or [])
 
-    # Return the same sprint value
-    # to trigger dependent callbacks (like chart update)
-    # This ensures chart updates when points toggle changes, without creating a cascade
-
-    # Re-render the entire sprint tracker with the selected sprint
-    # We need to reload data and filter to the selected sprint
     try:
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")
@@ -110,10 +88,8 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
                 return no_update
             selected_sprint = fallback["name"]
 
-        # Get selected sprint data
         sprint_data = sprint_snapshots[selected_sprint]
 
-        # Load flow status configuration - same lists used for metrics and visualization
         flow_start_statuses = settings.get("flow_start_statuses", [])
         flow_wip_statuses = settings.get("wip_statuses", [])
         flow_end_statuses = settings.get("flow_end_statuses", [])
@@ -124,7 +100,6 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
         if not flow_end_statuses:
             flow_end_statuses = ["Done", "Closed", "Resolved"]
 
-        # Get sprint dates for the selected sprint
         sprint_dates = get_sprint_dates(selected_sprint, tracked_issues, sprint_field)
         sprint_start_date = sprint_dates.get("start_date") if sprint_dates else None
         sprint_end_date = sprint_dates.get("end_date") if sprint_dates else None
@@ -144,7 +119,6 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
             sprint_data, flow_end_statuses, flow_wip_statuses
         )
 
-        # Calculate sprint scope changes
         scope_changes = calculate_sprint_scope_changes(sprint_data, scope_window_start)
         scope_change_points = calculate_sprint_scope_change_points(
             sprint_data,
@@ -158,20 +132,15 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
             sprint_end_date=sprint_end_date,
         )
 
-        # Extract sprint_changes with issue lists for progress bars
         sprint_changes = {
             "added": sprint_data.get("added_issues", []),
             "removed": sprint_data.get("removed_issues", []),
         }
 
-        # Create UI components
-
-        # Build summary card data
         summary_card_data = create_sprint_summary_card(
             progress_data, show_points, flow_wip_statuses
         )
 
-        # Create components
         summary_cards = create_sprint_summary_cards(
             selected_sprint,
             summary_card_data,
@@ -194,7 +163,6 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
             issue_states=all_issue_states,
         )
 
-        # Create visualizations
         progress_bars = create_sprint_progress_bars(
             sprint_data,
             status_changelog,
@@ -204,12 +172,11 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
             flow_start_statuses=flow_start_statuses,
             flow_wip_statuses=flow_wip_statuses,
             flow_end_statuses=flow_end_statuses,
-            sprint_changes=sprint_changes,  # Pass issue lists for icon indicators
+            sprint_changes=sprint_changes,
             sprint_state=sprint_state,
-            scope_changes=scope_changes,  # Pass scope changes for inline badges
+            scope_changes=scope_changes,
         )
 
-        # Return only the data container content (not the controls)
         return html.Div(
             [
                 summary_cards,

@@ -1,21 +1,3 @@
-"""JQL Query Profile Management Callbacks.
-
-This module handles all callbacks related to JQL query profiles:
-- Save modal (open/close)
-- Profile creation and saving
-- Profile selection and synchronization
-- Profile editing
-- Profile deletion
-- Default query loading
-- Query status display
-- Character count display (clientside)
-
-Related modules:
-- data.jira.query_profiles: Query profile CRUD operations
-- data.persistence: App settings persistence
-- callbacks.settings.helpers: Utility functions
-"""
-
 from __future__ import annotations
 
 import logging
@@ -45,16 +27,10 @@ from data.query_manager import (
     switch_query,
 )
 
-# Get logger
 logger = logging.getLogger(__name__)
 
 
 def register(app: Any) -> None:
-    """Register JQL query profile management callbacks.
-
-    Args:
-        app: Dash application instance
-    """
 
     @app.callback(
         Output("save-jql-query-modal", "is_open"),
@@ -77,18 +53,7 @@ def register(app: Any) -> None:
         jql_value: str,
         is_open: bool,
     ) -> tuple:
-        """Handle opening and closing of the save query modal.
 
-        Args:
-            save_clicks: Number of clicks on save button
-            cancel_clicks: Number of clicks on cancel button
-            confirm_clicks: Number of clicks on confirm button
-            jql_value: Current JQL query value
-            is_open: Current modal state
-
-        Returns:
-            Tuple of (modal_state, jql_preview)
-        """
         ctx = callback_context
 
         if not ctx.triggered:
@@ -96,12 +61,10 @@ def register(app: Any) -> None:
 
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
-        # Open modal when save button clicked
         if trigger_id == "save-jql-query-button" and save_clicks:
             jql_preview = jql_value or "No JQL query entered"
             return True, jql_preview
 
-        # Close modal when cancel or confirm clicked
         elif trigger_id in ["cancel-save-query-button", "confirm-save-query-button"]:
             return False, no_update
 
@@ -136,22 +99,10 @@ def register(app: Any) -> None:
         jql_value: str,
         set_as_default: list,
     ) -> tuple:
-        """Save a new JQL query profile and select it in the dropdown.
 
-        Args:
-            save_clicks: Number of clicks on save button
-            query_name: Name for the query profile
-            description: Description for the query profile
-            jql_value: JQL query string
-            set_as_default: Checkbox value for setting as default
-
-        Returns:
-            Tuple of 8 outputs (options, values, validation messages)
-        """
         if not save_clicks:
             raise PreventUpdate
 
-        # Validate inputs
         if not query_name or not query_name.strip():
             return (
                 no_update,
@@ -177,7 +128,6 @@ def register(app: Any) -> None:
             )
 
         try:
-            # Save the profile
             saved_profile = _save_jira_query_profile(
                 name=query_name.strip(),
                 jql=jql_value.strip(),
@@ -186,10 +136,8 @@ def register(app: Any) -> None:
             if set_as_default and saved_profile:
                 set_default_query(saved_profile["id"])
 
-            # Reload options
             updated_options = _build_profile_options()
 
-            # Get the saved profile ID to select it
             saved_profile_id = saved_profile["id"] if saved_profile else None
 
             logger.info(
@@ -201,16 +149,15 @@ def register(app: Any) -> None:
                 f"{[opt['label'] for opt in updated_options]}"
             )
 
-            # Clear form, hide validation, and select the newly saved query
             return (
-                updated_options,  # Desktop dropdown options
-                updated_options,  # Mobile dropdown options
-                saved_profile_id,  # Desktop dropdown value
-                saved_profile_id,  # Mobile dropdown value
-                "",  # Clear query name input
-                "",  # Clear description input
-                "",  # Clear validation message
-                {"display": "none"},  # Hide validation
+                updated_options,
+                updated_options,
+                saved_profile_id,
+                saved_profile_id,
+                "",
+                "",
+                "",
+                {"display": "none"},
             )
 
         except Exception as e:
@@ -244,19 +191,9 @@ def register(app: Any) -> None:
     def sync_dropdowns_and_show_buttons(
         desktop_profile_id: str, mobile_profile_id: str
     ) -> tuple:
-        """Sync dropdowns, show/hide profile action buttons, and persist selection.
 
-        Args:
-            desktop_profile_id: Selected profile ID from desktop dropdown
-            mobile_profile_id: Selected profile ID from mobile dropdown
-
-        Returns:
-            Tuple of (desktop_value, mobile_value, edit_style, load_default_style,
-                      delete_style, delete_query_name)
-        """
         ctx = callback_context
 
-        # Handle initial call (no trigger) - use desktop dropdown value
         if not ctx.triggered:
             logger.info(
                 "DEBUG: sync_dropdowns_and_show_buttons - initial call, "
@@ -267,13 +204,11 @@ def register(app: Any) -> None:
         else:
             trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
-            # Determine which dropdown value to use based on trigger
             if trigger_id == "jira-query-profile-selector-mobile":
                 selected_profile_id = mobile_profile_id
             elif trigger_id == "jira-query-profile-selector":
                 selected_profile_id = desktop_profile_id
             else:
-                # Unknown trigger, don't sync
                 logger.info(
                     f"[Settings] DEBUG: Unknown trigger: {trigger_id}, skipping sync"
                 )
@@ -291,11 +226,9 @@ def register(app: Any) -> None:
             f"profile_id: {selected_profile_id}"
         )
 
-        # Persist the selected profile ID and JQL to app_settings.json
         if trigger_id is not None:
             _persist_profile_selection(selected_profile_id)
 
-        # Base button styles
         hidden_style = {"display": "none"}
         visible_style = {"display": "inline-block"}
 
@@ -330,20 +263,17 @@ def register(app: Any) -> None:
             )
 
             if selected_profile:
-                # User-created profile - show edit and delete buttons
                 logger.info(
                     "DEBUG: Showing buttons for user profile: "
                     f"{selected_profile['name']}"
                 )
 
-                # Show load default button if there's a default query that's not current
                 load_default_style = (
                     visible_style
                     if default_query and default_query.get("id") != selected_profile_id
                     else hidden_style
                 )
 
-                # On initial call, don't update dropdown values
                 desktop_value = no_update if trigger_id is None else selected_profile_id
                 mobile_value = no_update if trigger_id is None else selected_profile_id
 
@@ -356,13 +286,10 @@ def register(app: Any) -> None:
                     selected_profile["name"],
                 )
             else:
-                # Profile not found - hide action buttons
                 logger.info("[Settings] DEBUG: Profile not found, hiding buttons")
 
-                # Show load default button if there's a default query
                 load_default_style = visible_style if default_query else hidden_style
 
-                # On initial call, don't update dropdown values
                 desktop_value = no_update if trigger_id is None else selected_profile_id
                 mobile_value = no_update if trigger_id is None else selected_profile_id
 
@@ -392,14 +319,7 @@ def register(app: Any) -> None:
         prevent_initial_call=True,
     )
     def handle_delete_query_modal_cancel(cancel_clicks: int | None) -> bool:
-        """Close modal when cancel button clicked.
 
-        Args:
-            cancel_clicks: Number of clicks on cancel button
-
-        Returns:
-            False to close modal
-        """
         if not cancel_clicks:
             raise PreventUpdate
         return False
@@ -417,27 +337,15 @@ def register(app: Any) -> None:
     def delete_query_profile(
         delete_clicks: int | None, current_profile_id: str, query_name: str
     ) -> tuple[list[dict], str | None]:
-        """Delete the selected query profile.
 
-        Args:
-            delete_clicks: Number of clicks on delete button
-            current_profile_id: ID of profile to delete
-            query_name: Name of query (for logging)
-
-        Returns:
-            Tuple of (updated_options, new_default_value)
-        """
         if not delete_clicks or not current_profile_id:
             raise PreventUpdate
 
         try:
-            # Delete the profile
             _delete_jira_query_profile(current_profile_id)
 
-            # Reload options
             updated_options = _build_profile_options()
 
-            # Set to first profile or None if none exist
             profiles = load_query_profiles()
             default_value = profiles[0]["id"] if profiles else None
 
@@ -466,16 +374,7 @@ def register(app: Any) -> None:
     def delete_query_from_selector(
         delete_clicks: int | None, current_query_id: str, query_name: str
     ) -> tuple:
-        """Delete the selected query from query selector.
 
-        Args:
-            delete_clicks: Number of clicks on delete button
-            current_query_id: ID of query to delete
-            query_name: Name of query (for logging)
-
-        Returns:
-            Tuple of (options, value, jql_editor, name_input, legacy_jql, modal_closed)
-        """
         if not delete_clicks or not current_query_id:
             raise PreventUpdate
 
@@ -483,18 +382,15 @@ def register(app: Any) -> None:
             profile_id = get_active_profile_id()
             active_query_id = get_active_query_id()
 
-            # If deleting active query, switch to different query first
             if current_query_id == active_query_id:
                 queries = list_queries_for_profile(profile_id)
                 other_queries = [q for q in queries if q.get("id") != current_query_id]
 
                 if other_queries:
-                    # Switch to the first available query
                     new_active_query_id = other_queries[0].get("id")
                     if new_active_query_id:
                         switch_query(new_active_query_id)
 
-            # Delete the query
             delete_query(profile_id, current_query_id, allow_cascade=True)
 
             logger.info(
@@ -502,7 +398,6 @@ def register(app: Any) -> None:
                 f"'{current_query_id}' from profile '{profile_id}' via modal"
             )
 
-            # Reload query selector options and get active query data
             updated_queries = list_queries_for_profile(profile_id)
             options = [{"label": "→ Create New Query", "value": "__create_new__"}]
             active_value = ""
@@ -531,14 +426,7 @@ def register(app: Any) -> None:
         prevent_initial_call=True,
     )
     def update_jql_from_profile(selected_profile_id: str) -> str:
-        """Update JQL textarea when a profile is selected.
 
-        Args:
-            selected_profile_id: ID of selected profile
-
-        Returns:
-            JQL query string
-        """
         if not selected_profile_id:
             raise PreventUpdate
 
@@ -563,16 +451,7 @@ def register(app: Any) -> None:
         prevent_initial_call=True,
     )
     def update_query_status_message(desktop_value: str, mobile_value: str) -> str:
-        """Update the query status message based on selected profile.
 
-        Args:
-            desktop_value: Selected profile from desktop dropdown
-            mobile_value: Selected profile from mobile dropdown
-
-        Returns:
-            Status message string
-        """
-        # Use whichever dropdown has a value
         selected_profile_id = desktop_value or mobile_value
 
         if not selected_profile_id:
@@ -618,28 +497,10 @@ def register(app: Any) -> None:
         jql_value: str,
         current_profile_id: str,
     ) -> tuple:
-        """Update existing JQL query profile and refresh the editor.
 
-        Args:
-            edit_clicks: Number of clicks on edit button
-            query_name: Updated query name
-            description: Updated description
-            jql_value: Updated JQL query
-            current_profile_id: ID of profile to update
-
-        Returns:
-            Tuple of (
-                desktop_options,
-                mobile_options,
-                jql_value,
-                validation_msg,
-                validation_style,
-            )
-        """
         if not edit_clicks or not current_profile_id or current_profile_id == "custom":
             raise PreventUpdate
 
-        # Validate inputs
         if not query_name or not query_name.strip():
             return (
                 no_update,
@@ -659,7 +520,6 @@ def register(app: Any) -> None:
             )
 
         try:
-            # Update the profile
             updated_profile = _save_jira_query_profile(
                 name=query_name.strip(),
                 jql=jql_value.strip(),
@@ -670,7 +530,6 @@ def register(app: Any) -> None:
             if updated_profile:
                 logger.info(f"Updated query profile: {updated_profile['name']}")
 
-                # Reload options
                 updated_options = _build_profile_options()
 
                 return (
@@ -708,14 +567,7 @@ def register(app: Any) -> None:
         prevent_initial_call=True,
     )
     def load_default_query(load_default_clicks: int | None) -> tuple[str, str]:
-        """Load the default query profile.
 
-        Args:
-            load_default_clicks: Number of clicks on load default button
-
-        Returns:
-            Tuple of (profile_id, jql_query)
-        """
         if not load_default_clicks:
             raise PreventUpdate
 
@@ -732,7 +584,6 @@ def register(app: Any) -> None:
             logger.error(f"Error loading default query: {e}")
             raise PreventUpdate from e
 
-    # JQL Character Count Callback (Clientside for performance)
     app.clientside_callback(
         """
         function(jql_value) {
@@ -767,15 +618,7 @@ def register(app: Any) -> None:
     )
 
 
-# Helper functions
-
-
 def _build_profile_options() -> list[dict[str, str]]:
-    """Build dropdown options from query profiles.
-
-    Returns:
-        List of option dictionaries with label and value
-    """
 
     options = []
     profiles = load_query_profiles()
@@ -788,18 +631,12 @@ def _build_profile_options() -> list[dict[str, str]]:
 
 
 def _persist_profile_selection(selected_profile_id: str) -> None:
-    """Persist selected profile ID and JQL to app settings.
 
-    Args:
-        selected_profile_id: ID of selected profile
-    """
     try:
         app_settings = load_app_settings()
         current_profile_id = app_settings.get("active_jql_profile_id", "")
 
-        # Only save if different from current
         if selected_profile_id != current_profile_id:
-            # Get the JQL from the selected profile
             jql_to_save = app_settings.get("jql_query", "")
             if selected_profile_id:
                 profile = get_query_profile_by_id(selected_profile_id)

@@ -1,10 +1,3 @@
-"""
-Budget settings - danger zone toggles and delete callbacks.
-
-Handles alert/danger zone section toggles and the two destructive
-delete actions (history-only and complete budget deletion).
-"""
-
 import logging
 
 from dash import Input, Output, State, callback, ctx, html, no_update
@@ -22,16 +15,7 @@ logger = logging.getLogger(__name__)
     prevent_initial_call=True,
 )
 def toggle_budget_alert_details(n_clicks, is_open):
-    """
-    Toggle budget alert detail collapse.
 
-    Args:
-        n_clicks: Button click count
-        is_open: Current collapse state
-
-    Returns:
-        bool: New collapse state
-    """
     if n_clicks:
         return not is_open
     return is_open
@@ -47,16 +31,7 @@ def toggle_budget_alert_details(n_clicks, is_open):
     prevent_initial_call=True,
 )
 def toggle_danger_zone(n_clicks, is_open):
-    """
-    Toggle danger zone collapse.
 
-    Args:
-        n_clicks: Button click count
-        is_open: Current collapse state
-
-    Returns:
-        Tuple of (is_open, chevron_class)
-    """
     if n_clicks:
         new_state = not is_open
         chevron_class = (
@@ -77,18 +52,7 @@ def toggle_danger_zone(n_clicks, is_open):
     prevent_initial_call=True,
 )
 def toggle_delete_history_modal(delete_clicks, cancel_clicks, confirm_clicks, is_open):
-    """
-    Toggle delete history modal.
 
-    Args:
-        delete_clicks: Delete button clicks
-        cancel_clicks: Cancel button clicks
-        confirm_clicks: Confirm button clicks
-        is_open: Current modal state
-
-    Returns:
-        bool: New modal state
-    """
     if not ctx.triggered:
         return is_open
 
@@ -96,7 +60,7 @@ def toggle_delete_history_modal(delete_clicks, cancel_clicks, confirm_clicks, is
 
     if button_id == "budget-delete-history-button":
         return True
-    return False  # cancel or confirm
+    return False
 
 
 @callback(
@@ -114,17 +78,7 @@ def toggle_delete_history_modal(delete_clicks, cancel_clicks, confirm_clicks, is
     prevent_initial_call=True,
 )
 def confirm_delete_budget_history(n_clicks, profile_id, query_id):
-    """
-    Delete all budget revision history (danger zone action).
 
-    Args:
-        n_clicks: Confirm button clicks
-        profile_id: Active profile identifier
-        query_id: Active query identifier
-
-    Returns:
-        Tuple of (notification, updated_store, modal_state, revision_history)
-    """
     if not n_clicks or not profile_id or not query_id:
         return no_update, no_update, no_update, no_update
 
@@ -179,18 +133,7 @@ def confirm_delete_budget_history(n_clicks, profile_id, query_id):
     prevent_initial_call=True,
 )
 def toggle_delete_complete_modal(delete_clicks, cancel_clicks, confirm_clicks, is_open):
-    """
-    Toggle delete complete budget modal.
 
-    Args:
-        delete_clicks: Delete button clicks
-        cancel_clicks: Cancel button clicks
-        confirm_clicks: Confirm button clicks
-        is_open: Current modal state
-
-    Returns:
-        bool: New modal state
-    """
     if not ctx.triggered:
         return is_open
 
@@ -198,7 +141,7 @@ def toggle_delete_complete_modal(delete_clicks, cancel_clicks, confirm_clicks, i
 
     if button_id == "budget-delete-complete-button":
         return True
-    return False  # cancel or confirm
+    return False
 
 
 @callback(
@@ -207,15 +150,7 @@ def toggle_delete_complete_modal(delete_clicks, cancel_clicks, confirm_clicks, i
     prevent_initial_call=True,
 )
 def enable_delete_complete_button(confirmation_text):
-    """
-    Enable confirm button only when user types "DELETE".
 
-    Args:
-        confirmation_text: Text entered by user
-
-    Returns:
-        bool: Button disabled state
-    """
     return (confirmation_text or "").strip().upper() != "DELETE"
 
 
@@ -236,17 +171,7 @@ def enable_delete_complete_button(confirmation_text):
     prevent_initial_call=True,
 )
 def confirm_delete_complete_budget(n_clicks, profile_id, query_id):
-    """
-    Delete complete budget configuration including all history (danger zone action).
 
-    Args:
-        n_clicks: Confirm button clicks
-        profile_id: Active profile identifier
-        query_id: Active query identifier
-
-    Returns:
-        Tuple of (notification, store, modal_state, history, time_input, cost_input)
-    """
     if not n_clicks or not profile_id or not query_id:
         return (
             no_update,

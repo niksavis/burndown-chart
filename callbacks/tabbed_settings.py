@@ -1,11 +1,3 @@
-"""Tabbed settings panel callbacks.
-
-Implements profile-first onboarding for the tabbed settings panel:
-- Connect and Queries are disabled until at least one profile exists.
-- Disabled tabs expose tooltip guidance and ARIA state.
-- Active tab is forced back to Profile when gated tabs are unavailable.
-"""
-
 import logging
 
 from dash import Input, Output, callback, no_update
@@ -30,7 +22,6 @@ PROFILE_REQUIRED_MESSAGE = "Create or import a profile first."
     prevent_initial_call=False,
 )
 def enforce_profile_first_tab_access(profile_options, active_tab):
-    """Disable tabs that require a profile and expose onboarding guidance."""
     has_profiles = bool(profile_options)
     tabs_disabled = not has_profiles
 

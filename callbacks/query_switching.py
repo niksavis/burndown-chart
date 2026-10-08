@@ -1,9 +1,3 @@
-"""Query Switching Callbacks for Profile Workspace Management.
-
-Handles query selection, creation, editing, and deletion within profiles.
-Integrates with data.query_manager for backend operations.
-"""
-
 import logging
 
 from dash import Input, Output, State, callback, ctx, html, no_update
@@ -24,11 +18,6 @@ from ui.toast_notifications import create_error_toast, create_success_toast
 logger = logging.getLogger(__name__)
 
 
-# ============================================================================
-# Query Button State Management
-# ============================================================================
-
-
 @callback(
     [
         Output("load-query-data-btn", "disabled"),
@@ -37,22 +26,9 @@ logger = logging.getLogger(__name__)
     [Input("query-selector", "value")],
 )
 def manage_query_button_states(selected_query):
-    """Disable load/delete buttons when no query selected or Create New selected.
 
-    Args:
-        selected_query: Currently selected query ID
-
-    Returns:
-        Tuple of (load_disabled, delete_disabled)
-    """
-    # Disable if no selection or if "Create New Query" is selected
     disabled = not selected_query or selected_query == "__create_new__"
     return disabled, disabled
-
-
-# ============================================================================
-# Query Dropdown Population
-# ============================================================================
 
 
 @callback(
@@ -61,37 +37,21 @@ def manage_query_button_states(selected_query):
         Output("query-selector", "value", allow_duplicate=True),
         Output("query-jql-editor", "value", allow_duplicate=True),
         Output("query-name-input", "value", allow_duplicate=True),
-        Output(
-            "jira-jql-query", "value", allow_duplicate=True
-        ),  # Sync legacy component on page load
+        Output("jira-jql-query", "value", allow_duplicate=True),
     ],
     [
-        Input("url", "pathname"),  # Trigger on page load
-        Input("profile-selector", "value"),  # Trigger when profile changes
+        Input("url", "pathname"),
+        Input("profile-selector", "value"),
     ],
     prevent_initial_call="initial_duplicate",
 )
 def populate_query_dropdown(_pathname, profile_id):
-    """Populate query dropdown with queries from active profile and set JQL.
 
-    Includes special '→ Create New Query' option at the top for inline query creation.
-
-    Args:
-        _pathname: URL pathname (triggers on page load)
-        profile_id: Selected profile ID from dropdown (triggers on profile change)
-
-    Returns:
-        Tuple of (options, value, jql_query, query_name, legacy_jql)
-    """
     try:
-        # Use provided profile_id if available (from profile-selector change),
-        # otherwise get active profile from file system (on page load)
         if profile_id is None or profile_id == "":
             try:
                 profile_id = get_active_profile_id()
             except ValueError:
-                # App state not initialized yet (first startup).
-                # Return safe empty state.
                 logger.debug(
                     "[Query] App state not initialized, returning empty dropdown"
                 )
@@ -104,7 +64,6 @@ def populate_query_dropdown(_pathname, profile_id):
                     "",
                 )
 
-        # Guard against None profile_id after all checks
         if not profile_id:
             logger.debug("[Query] No profile ID available, returning empty dropdown")
 
@@ -116,10 +75,7 @@ def populate_query_dropdown(_pathname, profile_id):
                 "",
             )
 
-        # List queries for this profile
         queries = list_queries_for_profile(profile_id)
-
-        # Build dropdown options with "Create New" at the top and timestamps
 
         options = get_query_dropdown_options(profile_id)
         active_value = ""
@@ -127,10 +83,8 @@ def populate_query_dropdown(_pathname, profile_id):
         active_name = ""
 
         if not queries:
-            # Only show "Create New" option - select it by default
             return options, "__create_new__", "", "", ""
 
-        # Find active query details
         for query in queries:
             if query.get("is_active", False):
                 active_value = query.get("id", "")
@@ -143,12 +97,10 @@ def populate_query_dropdown(_pathname, profile_id):
             f"Create New. Active: {active_value}"
         )
 
-        # Return options, active query, and its JQL + name (sync to both editors)
         return options, active_value, active_jql, active_name, active_jql
 
     except Exception as e:
         logger.error(f"[Query] Failed to populate dropdown: {type(e).__name__}: {e}")
-        # Return safe defaults with Create New option
         return (
             [{"label": "→ Create New Query", "value": "__create_new__"}],
             "",
@@ -158,63 +110,32 @@ def populate_query_dropdown(_pathname, profile_id):
         )
 
 
-# ============================================================================
-# Query Switching
-# ============================================================================
-
-
 @callback(
     [
         Output("query-selector", "options", allow_duplicate=True),
         Output("query-selector", "value", allow_duplicate=True),
         Output("query-jql-editor", "value", allow_duplicate=True),
         Output("query-name-input", "value", allow_duplicate=True),
-        Output(
-            "jira-jql-query", "value", allow_duplicate=True
-        ),  # Sync legacy component for Update Data
+        Output("jira-jql-query", "value", allow_duplicate=True),
     ],
     Input("query-selector", "value"),
     State("query-selector", "options"),
     prevent_initial_call=True,
 )
 def switch_query_callback(selected_query_id, current_options):
-    """Switch to selected query and update dropdown and JQL editor.
 
-    Handles two special cases:
-    1. Regular query selection - loads query data
-    2. "→ Create New Query" - clears fields for new query creation
-
-    Performance target: <50ms for switch operation.
-
-    Args:
-        selected_query_id: Query ID selected from dropdown (or "__create_new__")
-        current_options: Current dropdown options (for validation)
-
-    Returns:
-        Tuple of (updated_options, updated_value, jql_query, query_name, legacy_jql)
-    """
     if not selected_query_id:
         raise PreventUpdate
 
-    # Type guard to ensure selected_query_id is a string
     if not isinstance(selected_query_id, str):
         logger.warning(f"Invalid query ID type: {type(selected_query_id)}")
         raise PreventUpdate
 
-    # Handle "Create New Query" selection
     if selected_query_id == "__create_new__":
         logger.info("Create New Query selected - clearing fields")
-        # Keep dropdown options, clear value and fields (including legacy component)
         return no_update, "__create_new__", "", "", ""
 
     try:
-        # IMPORTANT: Do NOT call switch_query() here!
-        # Switching the active query would cause other callbacks to load data
-        # from the newly selected query before the user clicks "Load".
-        # The actual query switch happens in load_query_cached_data() when
-        # the user clicks the "Load Query Data" button.
-
-        # Just refresh the dropdown to show the selected query's JQL and name
         profile_id = get_active_profile_id()
         queries = list_queries_for_profile(profile_id)
 
@@ -222,19 +143,16 @@ def switch_query_callback(selected_query_id, current_options):
         selected_jql = ""
         selected_name = ""
 
-        # Find the selected query's details
         for query in queries:
             if query.get("id", "") == selected_query_id:
                 selected_jql = query.get("jql", "")
                 selected_name = query.get("name", "")
                 break
 
-        # Validate that we found the selected query
         if not selected_jql and not selected_name:
             logger.error(
                 f"Query selection failed: {selected_query_id} not found in profile"
             )
-            # Query not found - don't update anything
             raise PreventUpdate
 
         logger.info(
@@ -244,10 +162,10 @@ def switch_query_callback(selected_query_id, current_options):
         )
         return (
             options,
-            selected_query_id,  # Keep the selected value
+            selected_query_id,
             selected_jql,
             selected_name,
-            selected_jql,  # Sync to legacy component
+            selected_jql,
         )
 
     except ValueError as e:
@@ -255,17 +173,11 @@ def switch_query_callback(selected_query_id, current_options):
         return no_update, no_update, no_update, no_update, no_update
 
     except PreventUpdate:
-        # Re-raise PreventUpdate - this is expected behavior, not an error
         raise
 
     except Exception as e:
         logger.error(f"[Query] Switch failed: {type(e).__name__}: {e}")
         return no_update, no_update, no_update, no_update, no_update
-
-
-# ============================================================================
-# Query Edit Modal
-# ============================================================================
 
 
 @callback(
@@ -286,17 +198,7 @@ def switch_query_callback(selected_query_id, current_options):
 def toggle_edit_query_modal(
     edit_clicks, cancel_clicks, confirm_clicks, selected_query_id
 ):
-    """Toggle edit query modal and populate fields.
 
-    Args:
-        edit_clicks: Edit button clicks
-        cancel_clicks: Cancel button clicks
-        confirm_clicks: Confirm button clicks
-        selected_query_id: Currently selected query ID
-
-    Returns:
-        Tuple of (is_open, name, description, jql)
-    """
     triggered = ctx.triggered_id
 
     if triggered == "edit-query-btn":
@@ -307,7 +209,6 @@ def toggle_edit_query_modal(
             profile_id = get_active_profile_id()
             queries = list_queries_for_profile(profile_id)
 
-            # Find the selected query
             query = next((q for q in queries if q.get("id") == selected_query_id), None)
 
             if not query:
@@ -331,11 +232,6 @@ def toggle_edit_query_modal(
     raise PreventUpdate
 
 
-# ============================================================================
-# Query Creation Modal
-# ============================================================================
-
-
 @callback(
     Output("workspace-create-query-modal", "is_open"),
     [
@@ -347,17 +243,7 @@ def toggle_edit_query_modal(
     prevent_initial_call=True,
 )
 def toggle_create_query_modal(create_clicks, save_clicks, cancel_clicks, is_open):
-    """Toggle create query modal visibility.
 
-    Args:
-        create_clicks: Create button clicks
-        save_clicks: Save button clicks
-        cancel_clicks: Cancel button clicks
-        is_open: Current modal state
-
-    Returns:
-        New modal state (open/closed)
-    """
     triggered = ctx.triggered_id
 
     if triggered == "create-query-btn":
@@ -388,21 +274,11 @@ def toggle_create_query_modal(create_clicks, save_clicks, cancel_clicks, is_open
     prevent_initial_call=True,
 )
 def create_new_query_callback(save_clicks, query_name, query_jql):
-    """Create new query in active profile.
 
-    Args:
-        save_clicks: Save button clicks
-        query_name: Query name from input
-        query_jql: JQL string from input
-
-    Returns:
-        Tuple of (cleared_name, cleared_jql, feedback_message, options, query_id, toast)
-    """
     if not save_clicks:
         raise PreventUpdate
 
     try:
-        # Validate inputs
         if not query_name or not query_name.strip():
             feedback = create_error_toast(
                 "Query name is required",
@@ -417,19 +293,15 @@ def create_new_query_callback(save_clicks, query_name, query_jql):
             )
             return no_update, no_update, "", no_update, no_update, feedback
 
-        # Get active profile
         profile_id = get_active_profile_id()
 
-        # Create query
         query_id = create_query(profile_id, query_name.strip(), query_jql.strip())
 
         logger.info(f"Created query '{query_id}' in profile '{profile_id}'")
 
-        # Get updated query list
         queries = list_queries_for_profile(profile_id)
         options = build_query_options(queries)
 
-        # Clear inputs and show success toast
         toast = create_success_toast(
             f"Query '{query_name}' created successfully!",
             header="Query Created",
@@ -450,19 +322,6 @@ def create_new_query_callback(save_clicks, query_name, query_jql):
         return no_update, no_update, "", no_update, no_update, feedback
 
 
-# Query deletion moved to settings.py to use modal confirmation system
-# This prevents accidental deletion by requiring user confirmation
-
-# NOTE: Data is NOT automatically loaded when switching queries.
-# User must explicitly click "Load Query Data" button to populate UI with query data.
-# This allows creating/editing queries without triggering data loads.
-
-
-# ============================================================================
-# Query Deletion Modal Trigger
-# ============================================================================
-
-
 @callback(
     [
         Output("delete-jql-query-modal", "is_open", allow_duplicate=True),
@@ -473,20 +332,7 @@ def create_new_query_callback(save_clicks, query_name, query_jql):
     prevent_initial_call=True,
 )
 def trigger_delete_query_modal_from_selector(delete_clicks, selected_query_id):
-    """Trigger delete query modal when delete button is clicked.
 
-    Shows context-aware warnings:
-    - Active query: Warns that charts will be cleared
-    - Last query: Extra warning about losing all query data
-    - Regular query: Standard deletion warning
-
-    Args:
-        delete_clicks: Delete button clicks
-        selected_query_id: Currently selected query ID
-
-    Returns:
-        Tuple of (modal_open, query_display_text)
-    """
     logger.info(
         f"[DELETE] Delete button clicked - "
         f"delete_clicks={delete_clicks}, selected_query_id='{selected_query_id}'"
@@ -499,13 +345,11 @@ def trigger_delete_query_modal_from_selector(delete_clicks, selected_query_id):
         )
         raise PreventUpdate
 
-    # Prevent deletion of "Create New Query" placeholder
     if selected_query_id == "__create_new__":
         logger.warning("Cannot delete 'Create New Query' placeholder")
         raise PreventUpdate
 
     try:
-        # Get query info
         profile_id = get_active_profile_id()
         queries = list_queries_for_profile(profile_id)
 
@@ -519,7 +363,6 @@ def trigger_delete_query_modal_from_selector(delete_clicks, selected_query_id):
         is_active = active_query_id and selected_query_id == active_query_id
         is_last_query = len(queries) == 1
 
-        # Build contextual display text
         display_parts = [query_name]
 
         if is_active and is_last_query:
@@ -538,7 +381,6 @@ def trigger_delete_query_modal_from_selector(delete_clicks, selected_query_id):
 
         display_text = "".join(display_parts)
 
-        # Open modal with context
         return True, display_text
 
     except Exception as e:
@@ -546,14 +388,8 @@ def trigger_delete_query_modal_from_selector(delete_clicks, selected_query_id):
         raise PreventUpdate from e
 
 
-# ============================================================================
-# Load Query Data
-# ============================================================================
-
-
 @callback(
     [
-        # Removed Output("statistics-table") - tab loads from DB when activated
         Output("total-items-input", "value", allow_duplicate=True),
         Output("estimated-items-input", "value", allow_duplicate=True),
         Output("total-points-display", "value", allow_duplicate=True),
@@ -562,28 +398,14 @@ def trigger_delete_query_modal_from_selector(delete_clicks, selected_query_id):
         Output("update-data-status", "children", allow_duplicate=True),
         Output("current-statistics", "data", allow_duplicate=True),
         Output("jira-cache-status", "children", allow_duplicate=True),
-        Output(
-            "query-selector", "options", allow_duplicate=True
-        ),  # Update dropdown to show [Active]
+        Output("query-selector", "options", allow_duplicate=True),
     ],
     Input("load-query-data-btn", "n_clicks"),
     State("query-selector", "value"),
     prevent_initial_call=True,
 )
 def load_query_cached_data(n_clicks, selected_query_id):
-    """Load cached data for the selected query without fetching from JIRA.
 
-    This switches the active query and loads its cached project_data.json.
-    No JIRA API calls are made - only loads existing cached data.
-
-    Args:
-        n_clicks: Button click count
-        selected_query_id: Selected query ID from dropdown
-
-    Returns:
-        Tuple of (statistics, total_items, estimated_items, total_points,
-                  estimated_points, settings, status_message)
-    """
     if not n_clicks or not selected_query_id:
         raise PreventUpdate
 
@@ -599,19 +421,15 @@ def load_query_cached_data(n_clicks, selected_query_id):
         raise PreventUpdate
 
     try:
-        # Switch to the selected query
         switch_query(selected_query_id)
         logger.info(f"Switched to query: {selected_query_id}")
 
-        # Refresh dropdown to show [Active] indicator on the newly active query
         profile_id = get_active_profile_id()
 
         dropdown_options = get_query_dropdown_options(profile_id)
 
-        # Load cached data for this query
         unified_data = load_unified_project_data()
 
-        # Extract statistics
         statistics = unified_data.get("statistics", [])
         logger.info(
             f"[QUERY SWITCH] Loaded {len(statistics)} statistics "
@@ -631,24 +449,17 @@ def load_query_cached_data(n_clicks, selected_query_id):
                 f"points: {statistics[-1].get('remaining_total_points', 'NO POINTS')}"
             )
 
-        # Extract scope
         scope = unified_data.get("project_scope", {})
         estimated_items = scope.get("estimated_items", 0)
         estimated_points = scope.get("estimated_points", 0)
 
-        # Get actual remaining values from project scope
         total_items = scope.get("remaining_items", 0)
         total_points = scope.get("remaining_total_points", 0)
 
-        # Format total_points for display field
         total_points_display = f"{total_points:.0f}"
 
-        # Load settings and update with current scope data
         settings = load_app_settings()
 
-        # CRITICAL: After query switch, settings MUST include current scope data
-        # for forecast calculations to work. This is especially important after
-        # migration when switching to a different query for the first time.
         if scope:
             settings["total_items"] = total_items
             settings["total_points"] = total_points
@@ -659,7 +470,6 @@ def load_query_cached_data(n_clicks, selected_query_id):
                 f"items={total_items}, points={total_points}"
             )
 
-        # Create success message
         data_points_count = len(statistics)
         status_message = html.Div(
             [
@@ -679,7 +489,6 @@ def load_query_cached_data(n_clicks, selected_query_id):
             f"{data_points_count} points, {total_items} items"
         )
 
-        # Create cache status message to trigger dashboard refresh
         cache_status = html.Div(
             [
                 html.I(className="fas fa-database me-2 text-muted"),
@@ -695,9 +504,9 @@ def load_query_cached_data(n_clicks, selected_query_id):
             estimated_points,
             settings,
             status_message,
-            statistics,  # Update current-statistics store to trigger dashboard/charts
-            cache_status,  # Update jira-cache-status to trigger dashboard refresh
-            dropdown_options,  # Update dropdown to show [Active] on newly loaded query
+            statistics,
+            cache_status,
+            dropdown_options,
         )
 
     except Exception as e:
@@ -719,100 +528,7 @@ def load_query_cached_data(n_clicks, selected_query_id):
             no_update,
             no_update,
             error_message,
-            no_update,  # Don't update current-statistics on error
-            no_update,  # Don't update jira-cache-status on error
-            no_update,  # Don't update dropdown on error
+            no_update,
+            no_update,
+            no_update,
         )
-
-        # ============================================================================
-        # Auto-Reload Data When Query Switches
-        # ============================================================================
-
-        # DISABLED: Auto-reload on query switch
-        # User requirement: Query dropdown should not trigger data loading automatically
-        # Data should only be loaded via explicit "Load Data" button click
-        # This allows users to select and modify queries without triggering data loads
-        #
-        # @callback(
-        #     [
-        #         Output("statistics-table", "data", allow_duplicate=True),
-
-
-#         Output("current-statistics", "data", allow_duplicate=True),
-#         Output("current-settings", "data", allow_duplicate=True),
-#         Output("total-items-input", "value", allow_duplicate=True),
-#         Output("estimated-items-input", "value", allow_duplicate=True),
-#         Output("total-points-display", "value", allow_duplicate=True),
-#         Output("estimated-points-input", "value", allow_duplicate=True),
-#     ],
-#     Input("query-selector", "value"),
-#     State("query-selector", "options"),
-#     prevent_initial_call=True,
-# )
-# def auto_reload_data_on_query_switch(selected_query_id, current_options):
-#     """Automatically reload statistics and settings when query switches.
-#
-#     This ensures that switching queries immediately updates all displayed data
-#     without requiring manual "Load Data" button click.
-#
-#     Args:
-#         selected_query_id: Newly selected query ID
-#         current_options: Current dropdown options (for validation)
-#
-#     Returns:
-#         Tuple of (statistics, statistics_store, settings, total_items,
-#                   estimated_items, total_points, estimated_points)
-#     """
-#     if not selected_query_id or selected_query_id == "__create_new__":
-#         raise PreventUpdate
-#
-#     try:
-#         from data.persistence import (
-#             load_statistics,
-#             load_unified_project_data,
-#             load_app_settings,
-#         )
-#
-#         # Load statistics from database for active query
-#         statistics, _ = load_statistics()
-#
-#         # Load unified project data for scope
-#         unified_data = load_unified_project_data()
-#         scope = unified_data.get("project_scope", {})
-#
-#         estimated_items = scope.get("estimated_items", 0)
-#         estimated_points = scope.get("estimated_points", 0)
-#         total_items = scope.get("remaining_items", 0)
-#         total_points = scope.get("remaining_total_points", 0)
-#         total_points_display = f"{total_points:.0f}"
-#
-#         # Load settings and update with actual scope values
-#         settings = load_app_settings()
-#         settings = {**settings}
-#         settings.update(
-#             {
-#                 "total_items": total_items,
-#                 "total_points": total_points,
-#                 "estimated_items": estimated_items,
-#                 "estimated_points": estimated_points,
-#             }
-#         )
-#
-#         logger.info(
-#             f"Auto-reloaded data for query {selected_query_id}: "
-#             f"{len(statistics)} data points"
-#         )
-#
-#         return (
-#             statistics,
-#             statistics,  # Update store
-#             settings,
-#             total_items,
-#             estimated_items,
-#             total_points_display,
-#             estimated_points,
-#         )
-#
-#     except Exception as e:
-#         logger.error(f"Failed to auto-reload data on query switch: {e}")
-#         raise PreventUpdate

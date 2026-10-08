@@ -1,11 +1,3 @@
-"""Sprint Tracker Callbacks Module
-
-This module provides callback functions for the Sprint Tracker feature,
-handling sprint data rendering and filtering.
-
-Follows Bug Analysis pattern for conditional tab display.
-"""
-
 import logging
 import traceback
 
@@ -44,24 +36,12 @@ logger = logging.getLogger(__name__)
 def _render_sprint_tracker_content(
     data_points_count: int, show_points: bool = False
 ) -> html.Div:
-    """Render Sprint Tracker tab content.
 
-    This is called directly from the main visualization callback for instant
-    rendering without loading placeholder.
-
-    Args:
-        data_points_count: Number of weeks to include (from timeline filter)
-        show_points: Whether to show story points metrics
-
-    Returns:
-        Complete Sprint Tracker tab content (html.Div)
-    """
     logger.info(
         f"Rendering Sprint Tracker content with data_points: {data_points_count}"
     )
 
     try:
-        # Load issues and changelog from database
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")
@@ -104,7 +84,6 @@ def _render_sprint_tracker_content(
 
         logger.info(f"Selected sprint: {selected_sprint_id}")
 
-        # Load flow status configuration - same lists used for metrics and visualization
         flow_start_statuses = settings.get("flow_start_statuses", [])
         flow_wip_statuses = settings.get("wip_statuses", [])
         flow_end_statuses = settings.get("flow_end_statuses", [])
@@ -133,7 +112,6 @@ def _render_sprint_tracker_content(
             sprint_data, flow_end_statuses, flow_wip_statuses
         )
 
-        # Calculate sprint scope changes
         scope_changes = calculate_sprint_scope_changes(sprint_data, scope_window_start)
         scope_change_points = calculate_sprint_scope_change_points(
             sprint_data,
@@ -147,19 +125,15 @@ def _render_sprint_tracker_content(
             sprint_end_date=sprint_end_date,
         )
 
-        # Extract sprint_changes with issue lists for progress bars
         sprint_changes = {
             "added": sprint_data.get("added_issues", []),
             "removed": sprint_data.get("removed_issues", []),
         }
 
-        # Create UI components
-        # Build summary card data
         summary_card_data = create_sprint_summary_card(
             progress_data, show_points, flow_wip_statuses
         )
 
-        # Create sprint summary cards
         summary_cards = create_sprint_summary_cards(
             selected_sprint_id,
             summary_card_data,
@@ -182,7 +156,6 @@ def _render_sprint_tracker_content(
             issue_states=all_issue_states,
         )
 
-        # Load status changelog for time-in-status calculation
         status_changelog = dataset["status_changelog"]
 
         logger.info(
@@ -190,7 +163,6 @@ def _render_sprint_tracker_content(
             f"{len(status_changelog)} status changelog entries for sprint"
         )
 
-        # Create visualizations
         progress_bars = create_sprint_progress_bars(
             sprint_data,
             status_changelog,
@@ -200,12 +172,11 @@ def _render_sprint_tracker_content(
             flow_start_statuses=flow_start_statuses,
             flow_wip_statuses=flow_wip_statuses,
             flow_end_statuses=flow_end_statuses,
-            sprint_changes=sprint_changes,  # Pass issue lists for icon indicators
-            sprint_state=selected_sprint_state,  # Pass sprint state
-            scope_changes=scope_changes,  # Pass scope changes for inline badges
+            sprint_changes=sprint_changes,
+            sprint_state=selected_sprint_state,
+            scope_changes=scope_changes,
         )
 
-        # Create combined sprint controls (selector + issue type filter)
         sprint_ids = sort_sprint_ids_by_recency(sprint_snapshots, sprint_metadata)
         combined_controls = (
             create_combined_sprint_controls(
@@ -215,32 +186,21 @@ def _render_sprint_tracker_content(
             else html.Div()
         )
 
-        # Assemble the complete layout with separate containers
-        # Controls (sprint selector + filters) stay fixed
-        # Data container gets updated by dropdown callbacks
         return html.Div(
             [
                 dbc.Container(
                     [
-                        # Control container (not updated by callbacks)
                         html.Div(
                             [
-                                # Combined sprint selector + issue type filter
                                 combined_controls,
                             ],
                             id="sprint-controls-container",
                         ),
-                        # Charts section (collapsible)
                         create_sprint_charts_section(),
-                        # Data container (updated by dropdown callbacks)
                         html.Div(
                             [
-                                # Summary cards
                                 summary_cards,
-                                # Closed-sprint scope changes
-                                # (added/removed issue lists)
                                 scope_changes_view,
-                                # Progress bars (HTML component)
                                 html.H5("Issue Progress", className="mt-4 mb-3"),
                                 progress_bars,
                             ],
@@ -257,7 +217,6 @@ def _render_sprint_tracker_content(
         logger.error(f"Error rendering Sprint Tracker content: {e}")
         logger.error(traceback.format_exc())
 
-        # Return error state
         return html.Div(
             [
                 dbc.Alert(
@@ -282,14 +241,7 @@ def _render_sprint_tracker_content(
     prevent_initial_call=True,
 )
 def toggle_sprint_charts(n_clicks):
-    """Toggle sprint charts collapse.
 
-    Args:
-        n_clicks: Number of button clicks
-
-    Returns:
-        Tuple of (is_open: bool, button_text: str)
-    """
     logger.info(f"toggle_sprint_charts called: n_clicks={n_clicks}")
     if n_clicks is None:
         logger.warning("toggle_sprint_charts: n_clicks is None")
@@ -311,22 +263,7 @@ def toggle_sprint_charts(n_clicks):
     prevent_initial_call=True,
 )
 def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
-    """Update burnup chart when sprint selection changes OR when charts become visible.
 
-    Note: points_toggle is a State (not Input) to prevent cascade when toggling.
-    The chart updates via sprint-selector-dropdown changes
-    triggered by update_sprint_selection.
-
-    Args:
-        selected_sprint: Selected sprint name from dropdown
-        charts_visible: Whether charts section is visible
-        points_toggle_list: Points toggle list
-            (list with 'points' if enabled) - STATE only
-
-    Returns:
-        Plotly figure for burnup chart
-    """
-    # Log which input triggered this callback
     triggered = callback_context.triggered[0] if callback_context.triggered else None
     trigger_id = triggered["prop_id"].split(".")[0] if triggered else "unknown"
     logger.info(
@@ -339,7 +276,6 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
         logger.info("update_sprint_charts: No sprint selected")
         return no_update
 
-    # Only update if charts are visible
     if not charts_visible:
         logger.info("update_sprint_charts: Charts not visible, skipping update")
         return no_update
@@ -349,7 +285,6 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
             f"update_sprint_charts: Starting update for sprint: {selected_sprint}"
         )
 
-        # Determine if using points (note: checklist uses 'show' as value, not 'points')
         show_points = points_toggle_list and "show" in points_toggle_list
         logger.info(
             f"update_sprint_charts: show_points={show_points}, "
@@ -409,7 +344,6 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
             f"{len(sprint_data.get('current_issues', []))} current issues"
         )
 
-        # Get sprint dates
         sprint_dates = get_sprint_dates(selected_sprint, tracked_issues, sprint_field)
         if not sprint_dates:
             logger.warning(f"No dates found for sprint {selected_sprint}")
@@ -426,7 +360,6 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
             logger.warning(f"Missing start/end dates for sprint {selected_sprint}")
             return no_update
 
-        # Calculate daily snapshots (database returns normalized 'points' column)
         flow_end_statuses = settings.get("flow_end_statuses", ["Done", "Closed"])
         logger.info(f"update_sprint_charts: flow_end_statuses={flow_end_statuses}")
 
@@ -447,7 +380,6 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
         if daily_snapshots:
             logger.info(f"update_sprint_charts: First snapshot: {daily_snapshots[0]}")
             logger.info(f"update_sprint_charts: Last snapshot: {daily_snapshots[-1]}")
-            # Check if data is changing over time
             completed_values = [s.get("completed_points", 0) for s in daily_snapshots]
             scope_values = [s.get("total_scope", 0) for s in daily_snapshots]
             logger.info(
@@ -459,7 +391,6 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
             logger.warning(f"No daily snapshots generated for {selected_sprint}")
             return no_update
 
-        # Create burnup chart (dual y-axis: items always shown, points conditionally)
         burnup_fig = create_sprint_burnup_chart(
             daily_snapshots,
             sprint_name=selected_sprint,

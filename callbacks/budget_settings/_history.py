@@ -1,10 +1,3 @@
-"""
-Budget settings - revision history and pagination callbacks.
-
-Handles refreshing the revision history table and managing
-page navigation through budget revision records.
-"""
-
 import logging
 
 from dash import Input, Output, State, callback, ctx, html, no_update
@@ -29,19 +22,7 @@ logger = logging.getLogger(__name__)
 def refresh_budget_revision_history(
     store_data, profile_id, query_id, current_page, active_tab
 ):
-    """
-    Refresh budget revision history when store updates or Budget tab opens.
 
-    Args:
-        store_data: Updated budget settings store
-        profile_id: Active profile identifier
-        query_id: Active query identifier
-        current_page: Current pagination page
-        active_tab: Currently active settings tab
-
-    Returns:
-        List of revision history UI elements
-    """
     if not profile_id or not query_id or not store_data:
         return no_update
 
@@ -91,17 +72,7 @@ def refresh_budget_revision_history(
     prevent_initial_call=True,
 )
 def handle_revision_pagination(prev_clicks, next_clicks, current_page):
-    """
-    Handle revision history pagination button clicks.
 
-    Args:
-        prev_clicks: Previous button click count
-        next_clicks: Next button click count
-        current_page: Current page number (1-indexed)
-
-    Returns:
-        int: New page number
-    """
     if not ctx.triggered:
         return current_page or 1
 
@@ -134,18 +105,7 @@ def handle_revision_pagination(prev_clicks, next_clicks, current_page):
     prevent_initial_call=True,
 )
 def update_revision_history_page(page, store_data, profile_id, query_id):
-    """
-    Update revision history table when page changes.
 
-    Args:
-        page: Current page number
-        store_data: Budget settings store
-        profile_id: Active profile identifier
-        query_id: Active query identifier
-
-    Returns:
-        Tuple of (table, page_info, prev_disabled, next_disabled)
-    """
     if not profile_id or not query_id or not store_data:
         return no_update, no_update, no_update, no_update
 

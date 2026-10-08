@@ -1,9 +1,3 @@
-"""Auto-configuration from JIRA metadata.
-
-Analyzes JIRA metadata and existing issues to generate smart defaults
-for all configuration sections.
-"""
-
 import logging
 from pathlib import Path
 
@@ -24,7 +18,7 @@ logger = logging.getLogger(__name__)
         Output("field-mapping-state-store", "data", allow_duplicate=True),
         Output("field-mapping-status", "children", allow_duplicate=True),
         Output("auto-configure-warning-banner", "is_open", allow_duplicate=True),
-        Output("auto-configure-refresh-trigger", "data"),  # Trigger tab re-render
+        Output("auto-configure-refresh-trigger", "data"),
         Output("auto-configure-confirm-button", "disabled"),
         Output("auto-configure-confirm-button", "children"),
         Output("app-notifications", "children", allow_duplicate=True),
@@ -33,9 +27,7 @@ logger = logging.getLogger(__name__)
     [
         State("jira-metadata-store", "data"),
         State("field-mapping-state-store", "data"),
-        State(
-            "auto-configure-refresh-trigger", "data"
-        ),  # Get current value to increment
+        State("auto-configure-refresh-trigger", "data"),
     ],
     prevent_initial_call=True,
     running=[
@@ -50,21 +42,7 @@ logger = logging.getLogger(__name__)
 def auto_configure_from_metadata(
     n_clicks: int, metadata: dict, current_state: dict, current_trigger: int
 ):
-    """Auto-configure profile settings from JIRA metadata.
 
-    Generates smart defaults for all configuration sections:
-    - Project classification (completion/active/WIP statuses)
-    - Flow type mappings (Feature/Defect/TechnicalDebt/Risk)
-    - Development projects (extracted from JQL query)
-
-    Args:
-        n_clicks: Number of times auto-configure button clicked
-        metadata: JIRA metadata from jira-metadata-store
-        current_state: Current state from state store
-
-    Returns:
-        Tuple of (updated_state, status_alert, banner_closed)
-    """
     import json  # noqa: PLC0415
 
     if not n_clicks:
@@ -72,21 +50,20 @@ def auto_configure_from_metadata(
             no_update,
             no_update,
             no_update,
-            no_update,  # Don't trigger refresh
-            no_update,  # Button disabled state
-            no_update,  # Button children
-            no_update,  # Toast notification
+            no_update,
+            no_update,
+            no_update,
+            no_update,
         )
 
     try:
-        # Validate metadata is available
         if not metadata or metadata.get("error"):
             return (
                 no_update,
-                "",  # Clear inline status
-                False,  # Close confirmation modal
-                no_update,  # Don't trigger refresh on error
-                False,  # Re-enable button
+                "",
+                False,
+                no_update,
+                False,
                 [html.I(className="fas fa-check me-2"), "Yes, Auto-Configure Now"],
                 create_error_toast(
                     "JIRA metadata not available. Please ensure JIRA is connected.",
@@ -94,15 +71,14 @@ def auto_configure_from_metadata(
                 ),
             )
 
-        # Get active profile to extract JQL query
         active_profile = get_active_profile()
         if not active_profile:
             return (
                 no_update,
-                "",  # Clear inline status
-                False,  # Close confirmation modal
-                no_update,  # Don't trigger refresh on error
-                False,  # Re-enable button
+                "",
+                False,
+                no_update,
+                False,
                 [html.I(className="fas fa-check me-2"), "Yes, Auto-Configure Now"],
                 create_error_toast(
                     "No active profile found.",
@@ -113,16 +89,13 @@ def auto_configure_from_metadata(
         profile_id = active_profile.id
         profile_path = get_profile_file_path(profile_id)
 
-        # Load current profile to get active query JQL
         jql_query = None
         try:
             with open(profile_path, encoding="utf-8") as f:
                 profile_data = json.load(f)
 
-                # Get active query ID from profile
                 active_query_id = profile_data.get("active_query_id")
 
-                # Fallback: If no active query, check if there are any queries
                 if not active_query_id:
                     queries = profile_data.get("queries", [])
                     if queries and len(queries) > 0:
@@ -136,8 +109,6 @@ def auto_configure_from_metadata(
                             f"using first query: {active_query_id}"
                         )
                     else:
-                        # Last resort: Check for query directories
-
                         queries_dir = Path(profile_path).parent / "queries"
                         if queries_dir.exists():
                             query_dirs = [
@@ -151,8 +122,6 @@ def auto_configure_from_metadata(
                                 )
 
                 if active_query_id:
-                    # Load query from database
-
                     backend = get_backend()
 
                     try:
@@ -182,33 +151,28 @@ def auto_configure_from_metadata(
             f"[AutoConfigure] Generating smart defaults for profile {profile_id}"
         )
 
-        # Fetch recent issues for field detection (last 100 issues)
         issues = []
         if jql_query:
             try:
                 logger.info(
                     "[AutoConfigure] Fetching last 100 issues for field analysis..."
                 )
-                # Modify JQL to get last 100 issues ordered by created date
                 sample_jql = f"{jql_query} ORDER BY created DESC"
 
-                # Get JIRA config from profile
                 with open(profile_path, encoding="utf-8") as f:
                     profile_data = json.load(f)
                     jira_config = profile_data.get("jira_config", {})
 
-                # Build config dict for fetch_jira_issues (matches expected structure)
                 fetch_config = {
                     "jql_query": sample_jql,
                     "api_endpoint": jira_config.get("base_url", "").rstrip("/")
                     + "/rest/api/2/search",
                     "token": jira_config.get("token", ""),
                     "story_points_field": jira_config.get("points_field", ""),
-                    "field_mappings": {},  # Empty for field detection
-                    "fields": "*all",  # Request all fields including custom
+                    "field_mappings": {},
+                    "fields": "*all",
                 }
 
-                # Fetch issues
                 success, fetched_issues = fetch_jira_issues(
                     config=fetch_config, max_results=100
                 )
@@ -229,15 +193,10 @@ def auto_configure_from_metadata(
                     exc_info=True,
                 )
 
-        # Generate smart defaults using metadata and issues
         defaults = generate_smart_defaults(metadata, jql_query, issues)
 
-        # Update state store with auto-configured values
         new_state = current_state.copy() if current_state else {}
 
-        # CRITICAL: Store values in FLAT keys that the UI dropdowns read from
-        # The render_tab_content callback reads these flat keys
-        # to populate dropdowns.
         new_state["flow_end_statuses"] = defaults["project_classification"][
             "flow_end_statuses"
         ]
@@ -255,7 +214,6 @@ def auto_configure_from_metadata(
             "devops_projects", []
         )
 
-        # Flow type mappings - store in flat keys for UI
         new_state["flow_feature_issue_types"] = defaults["flow_type_mappings"][
             "Feature"
         ]
@@ -267,7 +225,6 @@ def auto_configure_from_metadata(
             "Risk", []
         )
 
-        # Bug types - store in flat key for UI (Incident Types dropdown)
         if (
             "project_classification" in defaults
             and "bug_types" in defaults["project_classification"]
@@ -278,7 +235,6 @@ def auto_configure_from_metadata(
                 f"{len(new_state['bug_types'])} incident types for UI"
             )
 
-        # DevOps task types - store in flat key for UI (DevOps Task Types dropdown)
         if (
             "project_classification" in defaults
             and "devops_task_types" in defaults["project_classification"]
@@ -291,11 +247,9 @@ def auto_configure_from_metadata(
                 f"{len(new_state['devops_task_types'])} DevOps task types for UI"
             )
 
-        # Field mappings - store if detected (DORA + Flow only)
         if "field_mappings" in defaults:
             new_state["field_mappings"] = defaults["field_mappings"]
 
-        # Points field - store in General Fields mapping (Estimate)
         if "points_field" in defaults:
             if "field_mappings" not in new_state:
                 new_state["field_mappings"] = {}
@@ -305,25 +259,19 @@ def auto_configure_from_metadata(
                 "points_field"
             ]
 
-        # Field values - store for dropdown population
         if "field_values" in defaults:
             new_state["field_values"] = defaults["field_values"]
 
-        # ALSO store in nested structure for profile.json compatibility
         if "project_classification" not in new_state:
             new_state["project_classification"] = {}
         new_state["project_classification"].update(defaults["project_classification"])
 
-        # Populate production_environment_values from
-        # auto-detected production identifiers
-        # These are values matching patterns like "prod", "production", "live", "prd"
         auto_detected_prod = (
             metadata.get("auto_detected", {}).get("production_identifiers", [])
             if metadata
             else []
         )
         if auto_detected_prod:
-            # Use auto-detected production identifiers for pre-selection
             new_state["project_classification"]["production_environment_values"] = (
                 auto_detected_prod
             )
@@ -337,8 +285,6 @@ def auto_configure_from_metadata(
             "field_values" in defaults
             and "target_environment" in defaults["field_values"]
         ):
-            # Fallback: If no auto-detected values, don't pre-select anything
-            # The dropdown will show all available values for manual selection
             logger.info(
                 f"[AutoConfigure] No auto-detected production identifiers found. "
                 "Available environment values: "
@@ -355,7 +301,6 @@ def auto_configure_from_metadata(
                 }
             new_state["flow_type_mappings"][flow_type]["issue_types"] = issue_types
 
-            # Populate effort_categories from field_values if available
             if (
                 "field_values" in defaults
                 and "effort_category" in defaults["field_values"]
@@ -369,7 +314,6 @@ def auto_configure_from_metadata(
                     f"effort categories for {flow_type}"
                 )
 
-        # Count what was configured
         completion_count = len(defaults["project_classification"]["flow_end_statuses"])
         active_count = len(defaults["project_classification"]["active_statuses"])
         wip_count = len(defaults["project_classification"]["wip_statuses"])
@@ -384,7 +328,6 @@ def auto_configure_from_metadata(
             f"{project_count} projects"
         )
 
-        # Create success toast notification
         total_statuses = completion_count + active_count + wip_count
         total_types = feature_count + defect_count
         toast = create_success_toast(
@@ -395,17 +338,16 @@ def auto_configure_from_metadata(
             duration=5000,
         )
 
-        # Increment refresh trigger to force tab re-render with new state
         new_trigger = (current_trigger or 0) + 1
         return (
             new_state,
-            "",  # Clear inline status
+            "",
             False,
             new_trigger,
-            False,  # Re-enable button
+            False,
             [html.I(className="fas fa-check me-2"), "Yes, Auto-Configure Now"],
             toast,
-        )  # Close modal, trigger refresh
+        )
 
     except Exception as e:
         logger.error(
@@ -413,15 +355,10 @@ def auto_configure_from_metadata(
         )
         return (
             no_update,
-            "",  # Clear inline status
+            "",
             False,
             no_update,
-            False,  # Re-enable button
+            False,
             [html.I(className="fas fa-check me-2"), "Yes, Auto-Configure Now"],
             create_error_toast(f"Error: {str(e)}", header="Auto-Configuration Failed"),
-        )  # Close modal, don't trigger refresh
-
-
-# ============================================================================
-# VALIDATE AND SAVE MAPPINGS
-# ============================================================================
+        )

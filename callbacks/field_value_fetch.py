@@ -1,12 +1,3 @@
-"""Callbacks for auto-fetching field values when field mappings change.
-
-Implements Option 5 (Hybrid Auto-Fetch with Visual Indicator) for field mapping UX:
-- When user changes effort_category or affected_environment field mapping
-- Auto-fetch available values from JIRA (1000 issues from dev projects)
-- Update Types/Environment tab dropdowns immediately
-- Show toast notification with results
-"""
-
 import logging
 from typing import Any
 
@@ -20,42 +11,24 @@ logger = logging.getLogger(__name__)
 
 
 def _extract_field_id(namespace_value: str | None) -> str | None:
-    """Extract clean field ID from namespace syntax.
 
-    Examples:
-        "customfield_13204" -> "customfield_13204"
-        "customfield_11309=PROD" -> "customfield_11309"
-        "PROJECT.customfield_13204" -> "customfield_13204"
-        "status:Done.DateTime" -> None (not a simple field)
-
-    Args:
-        namespace_value: Raw namespace input value
-
-    Returns:
-        Clean field ID or None if not a simple field reference
-    """
     if not namespace_value or not isinstance(namespace_value, str):
         return None
 
     value = namespace_value.strip()
 
-    # Skip changelog syntax (status:Done.DateTime) - not a simple field
     if ":" in value and ".DateTime" in value:
         return None
     if ":" in value and ".Occurred" in value:
         return None
 
-    # Strip =Value suffix (e.g., "customfield_11309=PROD" -> "customfield_11309")
     if "=" in value:
         value = value.split("=")[0]
 
-    # Strip project prefix (e.g., "PROJECT.customfield_13204" -> "customfield_13204")
     if "." in value:
         parts = value.split(".")
-        # Take last part if it looks like a field ID
         value = parts[-1]
 
-    # Validate it looks like a field ID
     if value.startswith("customfield_") or value in [
         "status",
         "issuetype",
@@ -68,15 +41,7 @@ def _extract_field_id(namespace_value: str | None) -> str | None:
 
 
 def _fetch_field_values(field_id: str, jira_config: dict[str, Any]) -> list[str]:
-    """Fetch available values for a field from JIRA.
 
-    Args:
-        field_id: JIRA field ID (e.g., customfield_13204)
-        jira_config: JIRA configuration with base_url, token, api_version
-
-    Returns:
-        List of available values for the field
-    """
     if not field_id or not jira_config.get("base_url"):
         return []
 
@@ -102,23 +67,7 @@ def _fetch_field_values(field_id: str, jira_config: dict[str, Any]) -> list[str]
     prevent_initial_call=True,
 )
 def prefetch_field_values_on_modal_open(is_open: bool):
-    """Prefetch field values when the modal opens with already-configured fields.
 
-    Solves the chicken-and-egg problem on first-time configuration: if
-    effort_category or affected_environment fields are already saved in settings,
-    fetch their available values immediately so the Types/Environment tab dropdowns
-    are populated without requiring a prior 'Update Data' run.
-
-    This callback always runs AFTER toggle_field_mapping_modal (in modal_core.py)
-    because it depends on the is_open output of that callback.  The store is
-    therefore already cleared to {} before this callback fires.
-
-    Args:
-        is_open: Whether the field mapping modal is open
-
-    Returns:
-        Dict with pre-fetched field values, or no_update when closing
-    """
     if not is_open:
         return no_update
 
@@ -222,12 +171,7 @@ def fetch_field_values_on_blur(
     affected_environment_value: str,
     current_store: dict[str, Any],
 ):
-    """Fetch values when field-mapping inputs lose focus.
 
-    Triggered when user finishes typing and leaves the field (on blur).
-    Only fetches if value looks like a valid field ID AND has changed since last fetch.
-    Shows toast notification with results.
-    """
     if not ctx.triggered:
         return no_update, no_update
 
@@ -235,15 +179,11 @@ def fetch_field_values_on_blur(
     if not triggered_id:
         return no_update, no_update
 
-    # Load JIRA config from profile (not from a store)
-
     jira_config = load_jira_configuration() or {}
 
-    # Initialize store if needed
     if current_store is None:
         current_store = {}
 
-    # Determine which field triggered the callback
     field_type = triggered_id.get("field") if isinstance(triggered_id, dict) else None
 
     toast = None
@@ -253,7 +193,6 @@ def fetch_field_values_on_blur(
         field_id = _extract_field_id(effort_category_value)
 
         if field_id:
-            # Check if this field was already fetched with same field_id
             existing = current_store.get("effort_category", {})
             if existing.get("field_id") == field_id:
                 logger.debug(
@@ -288,7 +227,6 @@ def fetch_field_values_on_blur(
         field_id = _extract_field_id(affected_environment_value)
 
         if field_id:
-            # Check if this field was already fetched with same field_id
             existing = current_store.get("affected_environment", {})
             if existing.get("field_id") == field_id:
                 logger.debug(

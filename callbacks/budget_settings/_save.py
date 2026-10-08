@@ -1,10 +1,3 @@
-"""
-Budget settings - save/update callback.
-
-Handles saving new budget settings and updating existing ones,
-including revision tracking and baseline velocity capture.
-"""
-
 import logging
 from datetime import UTC, datetime
 
@@ -47,23 +40,7 @@ def save_budget_settings(
     current_settings,
     effective_date,
 ):
-    """
-    Save or update budget settings with revision tracking.
 
-    Args:
-        n_clicks: Button click count
-        profile_id: Active profile identifier
-        query_id: Active query identifier
-        time_allocated: Time allocated in weeks
-        currency_symbol: Currency symbol
-        team_cost: Team cost per week (weekly rate)
-        revision_reason: Reason for budget change
-        current_settings: Current budget settings from store
-        effective_date: Effective date for retroactive budget entry
-
-    Returns:
-        Tuple of (status_message, updated_store_data)
-    """
     if not n_clicks or not profile_id or not query_id:
         return no_update, no_update
 
@@ -106,7 +83,6 @@ def save_budget_settings(
             )
 
         if current_settings:
-            # Update mode: preserve existing baseline velocities
             baseline_velocity_items = current_settings.get("baseline_velocity_items", 0)
             baseline_velocity_points = current_settings.get(
                 "baseline_velocity_points", 0
@@ -117,7 +93,6 @@ def save_budget_settings(
                 f"points={baseline_velocity_points:.2f}"
             )
         else:
-            # Create mode: capture baseline from Recent Completions (last 4 weeks)
             import pandas as pd  # noqa: PLC0415
 
             unified_data = load_unified_project_data()

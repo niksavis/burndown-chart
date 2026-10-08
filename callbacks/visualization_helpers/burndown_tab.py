@@ -1,10 +1,3 @@
-"""
-Burndown Tab Renderer
-
-Renders the tab-burndown content including forecast chart,
-weekly items chart, and weekly points chart.
-"""
-
 import logging
 from datetime import datetime
 
@@ -32,24 +25,7 @@ def _render_burndown_tab(
     is_mobile: bool,
     is_tablet: bool,
 ) -> object:
-    """
-    Render the burndown tab content.
 
-    Generates the forecast chart, weekly items chart, and weekly points chart,
-    then assembles them via create_burndown_tab_content.
-
-    Args:
-        df: Raw statistics DataFrame (unfiltered).
-        statistics: Raw statistics list (for functions that require list form).
-        settings: Current application settings dictionary.
-        show_points: Whether story-points tracking is enabled.
-        data_points_count: Number of data points (weeks) to display.
-        is_mobile: Whether the current viewport is mobile.
-        is_tablet: Whether the current viewport is tablet.
-
-    Returns:
-        Rendered burndown tab content (html.Div).
-    """
     pert_factor = settings.get("pert_factor", 1.2)
     deadline = settings.get("deadline") or None
     total_items = settings.get("total_items", 0)

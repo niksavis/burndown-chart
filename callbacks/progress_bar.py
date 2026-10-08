@@ -1,5 +1,3 @@
-"""Progress bar callback for tracking Update Data operations."""
-
 import logging
 import time
 from datetime import datetime
@@ -35,22 +33,12 @@ logger = logging.getLogger(__name__)
     prevent_initial_call=True,
 )
 def update_progress_bars(n_intervals):
-    """
-    Poll task progress database and update progress bar.
 
-    Args:
-        n_intervals: Number of intervals elapsed (polling trigger)
-
-    Returns:
-        Tuple of (container_style, label, value, color, animated, interval_disabled)
-    """
     try:
-        # Read task progress from database
         backend = get_backend()
         progress_data = backend.get_task_state()
 
         if progress_data is None:
-            # No progress data - hide progress bar and disable polling
             return (
                 {"display": "none"},
                 "Processing: 0%",
@@ -58,19 +46,17 @@ def update_progress_bars(n_intervals):
                 "primary",
                 True,
                 True,
-                {},  # Show Update Data button
-                False,  # Enable Update Data button
-                {"display": "none"},  # Hide Cancel button
-                no_update,  # No metrics trigger
-                no_update,  # No metrics refresh
-                no_update,  # No statistics reload
+                {},
+                False,
+                {"display": "none"},
+                no_update,
+                no_update,
+                no_update,
             )
 
         task_id = progress_data.get("task_id")
 
-        # ISOLATION: Only handle Update Data tasks, ignore Generate Report tasks
         if task_id != "update_data":
-            # Different task running (e.g., generate_report) - don't interfere
             return (
                 {"display": "none"},
                 "Processing: 0%",
@@ -78,12 +64,12 @@ def update_progress_bars(n_intervals):
                 "primary",
                 True,
                 True,
-                {},  # Show Update Data button
-                False,  # Enable Update Data button
-                {"display": "none"},  # Hide Cancel button
-                no_update,  # No metrics trigger
-                no_update,  # No metrics refresh
-                no_update,  # No statistics reload
+                {},
+                False,
+                {"display": "none"},
+                no_update,
+                no_update,
+                no_update,
             )
 
         status = progress_data.get("status", "idle")
@@ -103,22 +89,18 @@ def update_progress_bars(n_intervals):
             f"n_intervals={n_intervals}"
         )
 
-        # RECOVERY: Detect stuck cancelled tasks
-        # If task is cancelled but still in_progress (backend didn't call fail_task),
-        # force it to error status after grace period
         if status == "in_progress" and cancelled and cancel_time:
             cancel_timestamp = parse_iso_datetime(cancel_time)
             if cancel_timestamp:
                 elapsed = (datetime.now() - cancel_timestamp).total_seconds()
 
-                if elapsed > 5:  # 5 second grace period for backend to respond
+                if elapsed > 5:
                     logger.warning(
                         "[Progress] Detected stuck cancelled task "
                         f"({elapsed:.0f}s since cancellation). "
                         "Forcing to error status."
                     )
                     TaskProgress.fail_task("update_data", "Operation cancelled by user")
-                    # Will be handled on next poll as error status
                     raise PreventUpdate
             else:
                 logger.warning(
@@ -126,13 +108,6 @@ def update_progress_bars(n_intervals):
                     "skipping cancellation grace check"
                 )
 
-        # RECOVERY: Detect calculate phase and trigger metrics calculation
-        # When background thread completes fetch, it sets phase="calculate"
-        # but can't trigger the metrics callback directly
-        # (running in different thread). So we detect the phase
-        # change here and trigger the metrics calculation.
-        # CRITICAL: Only trigger ONCE - check if calc has started
-        # (percent > 0 or message changed)
         stuck_metrics_trigger = None
         calc_message = calc_progress.get("message", "")
         initial_messages = ["", "Fetch complete, starting metrics calculation..."]
@@ -143,20 +118,13 @@ def update_progress_bars(n_intervals):
             and calc_message in initial_messages
             and not cancelled
         ):
-            # Only trigger if the message is still the initial one
-            # set by background fetch
-            # Once auto_calculate_metrics_after_fetch runs, it changes the message
             logger.info(
                 "[Progress] Detected calculate phase transition - "
                 "triggering metrics calculation"
             )
 
-            # Trigger metrics calculation by returning a timestamp
             stuck_metrics_trigger = int(time.time() * 1000)
 
-        # Finalization: Postprocess phase triggers UI refresh to complete the task
-        # CRITICAL: Trigger metrics-refresh-trigger ONCE when postprocess phase starts
-        # This ensures reload_data_after_update callback fires and completes the task
         postprocess_trigger = None
         if status == "in_progress" and phase == "postprocess":
             postprocess_time = progress_data.get("postprocess_time")
@@ -164,24 +132,18 @@ def update_progress_bars(n_intervals):
                 "postprocess_message", "Data updated successfully"
             )
 
-            # Check if we've already triggered the refresh (prevent infinite loop)
-            # Store last postprocess_time we've seen to avoid re-triggering
-
             last_postprocess_time_seen = getattr(
                 update_progress_bars, "_last_postprocess_time", None
             )
 
             if postprocess_time and postprocess_time != last_postprocess_time_seen:
-                # First time seeing this postprocess phase - trigger UI refresh
                 logger.info(
                     "[Progress] Detected postprocess phase - triggering "
                     "UI refresh to complete task"
                 )
                 postprocess_trigger = int(time.time() * 1000)
-                # Remember this postprocess_time so we don't trigger again
                 update_progress_bars._last_postprocess_time = postprocess_time
 
-            # Timeout safety: If postprocess takes too long, force completion
             postprocess_timestamp = parse_iso_datetime(postprocess_time)
             if postprocess_timestamp:
                 elapsed = (datetime.now() - postprocess_timestamp).total_seconds()
@@ -203,13 +165,9 @@ def update_progress_bars(n_intervals):
                         TaskProgress.complete_task("update_data", postprocess_message)
                         raise PreventUpdate
 
-        # Handle complete status - show success for 3 seconds then hide
         if status == "complete":
             complete_time = progress_data.get("complete_time")
             if complete_time:
-                # CRITICAL: Check if this is a stale completion from an old task
-                # If complete_time is > 10 seconds old,
-                # treat as stale and hide immediately
                 completed_at = parse_iso_datetime(complete_time)
                 if not completed_at:
                     logger.warning(
@@ -220,7 +178,6 @@ def update_progress_bars(n_intervals):
                 elapsed = (datetime.now() - completed_at).total_seconds()
 
                 if elapsed > 10:
-                    # Very old completion - hide immediately without showing message
                     logger.info(
                         f"[Progress] Stale completion detected "
                         f"({elapsed:.0f}s old), hiding immediately"
@@ -233,17 +190,14 @@ def update_progress_bars(n_intervals):
                         "primary",
                         True,
                         True,
-                        {},  # Show Update Data button
-                        False,  # Enable Update Data button
-                        {"display": "none"},  # Hide Cancel button
-                        no_update,  # No metrics trigger
-                        int(time.time() * 1000),  # Trigger metrics refresh
-                        int(time.time() * 1000),  # Trigger statistics reload
+                        {},
+                        False,
+                        {"display": "none"},
+                        no_update,
+                        int(time.time() * 1000),
+                        int(time.time() * 1000),
                     )
                 elif elapsed >= 3:
-                    # 3 seconds elapsed - hide progress bar but DON'T delete file
-                    # Let the next task's start_task() handle cleanup
-                    # to avoid race condition
                     logger.info("[Progress] Auto-hiding progress bar after 3s")
 
                     return (
@@ -253,15 +207,14 @@ def update_progress_bars(n_intervals):
                         "primary",
                         True,
                         True,
-                        {},  # Show Update Data button
-                        False,  # Enable Update Data button
-                        {"display": "none"},  # Hide Cancel button
-                        no_update,  # No metrics trigger
-                        int(time.time() * 1000),  # Trigger metrics refresh
-                        int(time.time() * 1000),  # Trigger statistics reload
+                        {},
+                        False,
+                        {"display": "none"},
+                        no_update,
+                        int(time.time() * 1000),
+                        int(time.time() * 1000),
                     )
                 else:
-                    # Show success message
                     message = progress_data.get("message", "✓ Complete")
                     logger.info(
                         f"[Progress] Task complete: {message}, "
@@ -273,16 +226,15 @@ def update_progress_bars(n_intervals):
                         message,
                         100,
                         "success",
-                        False,  # Not animated when complete
-                        False,  # Keep polling to hide after 3s
-                        {},  # Show Update Data button
-                        False,  # Enable Update Data button
-                        {"display": "none"},  # Hide Cancel button
-                        no_update,  # No metrics trigger
-                        int(time.time() * 1000),  # Trigger metrics refresh
-                        int(time.time() * 1000),  # Trigger statistics reload
+                        False,
+                        False,
+                        {},
+                        False,
+                        {"display": "none"},
+                        no_update,
+                        int(time.time() * 1000),
+                        int(time.time() * 1000),
                     )
-            # No complete_time, hide immediately
             logger.info("[Progress] Task complete (no timestamp), hiding immediately")
 
             return (
@@ -292,15 +244,14 @@ def update_progress_bars(n_intervals):
                 "primary",
                 True,
                 True,
-                {},  # Show Update Data button
-                False,  # Enable Update Data button
-                {"display": "none"},  # Hide Cancel button
-                no_update,  # No metrics trigger
-                int(time.time() * 1000),  # Trigger metrics refresh
-                int(time.time() * 1000),  # Trigger statistics reload
+                {},
+                False,
+                {"display": "none"},
+                no_update,
+                int(time.time() * 1000),
+                int(time.time() * 1000),
             )
 
-        # Handle error status - show error message briefly then hide
         if status == "error":
             error_time = progress_data.get("error_time")
             if error_time:
@@ -314,7 +265,6 @@ def update_progress_bars(n_intervals):
                 elapsed = (datetime.now() - error_timestamp).total_seconds()
 
                 if elapsed >= 3:
-                    # Hide after 3 seconds
                     logger.info("[Progress] Auto-hiding error message after 3s")
                     return (
                         {"display": "none"},
@@ -323,15 +273,14 @@ def update_progress_bars(n_intervals):
                         "primary",
                         True,
                         True,
-                        {},  # Show Update Data button
-                        False,  # Enable Update Data button
-                        {"display": "none"},  # Hide Cancel button
-                        no_update,  # No metrics trigger
-                        no_update,  # No metrics refresh
-                        no_update,  # No statistics reload on error
+                        {},
+                        False,
+                        {"display": "none"},
+                        no_update,
+                        no_update,
+                        no_update,
                     )
                 else:
-                    # Show error message
                     message = progress_data.get("message", "Operation failed")
                     logger.info(
                         f"[Progress] Showing error: {message}, "
@@ -341,17 +290,16 @@ def update_progress_bars(n_intervals):
                         {"display": "block", "minHeight": "60px"},
                         message,
                         0,
-                        "danger",  # Red color for errors/cancellations
+                        "danger",
                         False,
-                        False,  # Keep polling to hide after 3s
-                        {},  # Show Update Data button
-                        False,  # Enable Update Data button
-                        {"display": "none"},  # Hide Cancel button
-                        no_update,  # No metrics trigger
-                        no_update,  # No metrics refresh
-                        no_update,  # No statistics reload on error
+                        False,
+                        {},
+                        False,
+                        {"display": "none"},
+                        no_update,
+                        no_update,
+                        no_update,
                     )
-            # No error time, hide immediately
             return (
                 {"display": "none"},
                 "Processing: 0%",
@@ -359,15 +307,14 @@ def update_progress_bars(n_intervals):
                 "primary",
                 True,
                 True,
-                {},  # Show Update Data button
-                False,  # Enable Update Data button
-                {"display": "none"},  # Hide Cancel button
-                no_update,  # No metrics trigger
-                no_update,  # No metrics refresh
-                no_update,  # No statistics reload on error
+                {},
+                False,
+                {"display": "none"},
+                no_update,
+                no_update,
+                no_update,
             )
 
-        # If task is idle, hide progress bar
         if status == "idle":
             return (
                 {"display": "none"},
@@ -376,42 +323,36 @@ def update_progress_bars(n_intervals):
                 "primary",
                 True,
                 True,
-                {},  # Show Update Data button
-                False,  # Enable Update Data button
-                {"display": "none"},  # Hide Cancel button
-                no_update,  # No metrics trigger
-                no_update,  # No metrics refresh
-                no_update,  # No statistics reload when idle
+                {},
+                False,
+                {"display": "none"},
+                no_update,
+                no_update,
+                no_update,
             )
 
-        # Show progress container with fixed height
         container_style = {"display": "block", "minHeight": "60px"}
 
-        # Get current phase
         phase = progress_data.get("phase", "fetch")
 
-        # Get both progress objects
         fetch_progress = progress_data.get("fetch_progress", {})
         calc_progress = progress_data.get("calculate_progress", {})
 
-        # Each phase shows 0-100% independently
-        # Fetch phase = 0-100% (blue bar)
-        # Calculate phase = 0-100% (green bar, resets from fetch)
         if phase == "fetch":
             phase_label = "Fetching"
-            color = "primary"  # Blue
+            color = "primary"
             phase_percent = fetch_progress.get("percent", 0)
             current = fetch_progress.get("current", 0)
             total = fetch_progress.get("total", 0)
             message = fetch_progress.get("message", "")
         elif phase == "calculate":
             phase_label = "Calculating"
-            color = "success"  # Green
+            color = "success"
             phase_percent = calc_progress.get("percent", 0)
             current = calc_progress.get("current", 0)
             total = calc_progress.get("total", 0)
             message = calc_progress.get("message", "")
-        else:  # postprocess
+        else:
             phase_label = "Finalizing"
             color = "primary"
             phase_percent = 100
@@ -426,35 +367,26 @@ def update_progress_bars(n_intervals):
         else:
             label = f"{phase_label}: {message or 'Preparing...'}"
 
-        # Read button visibility from ui_state (persisted across page refreshes)
-        # operation_in_progress=True -> Show Cancel, Hide Update Data
-        # operation_in_progress=False -> Show Update Data, Hide Cancel
         ui_state = progress_data.get("ui_state", {})
-        operation_in_progress = ui_state.get(
-            "operation_in_progress", True
-        )  # Default to in-progress for safety
+        operation_in_progress = ui_state.get("operation_in_progress", True)
 
         update_data_style = {"display": "none"} if operation_in_progress else {}
-        update_data_disabled = operation_in_progress  # Disable button during operation
+        update_data_disabled = operation_in_progress
         cancel_button_style = {} if operation_in_progress else {"display": "none"}
 
         return (
             container_style,
             label,
-            phase_percent,  # Show phase-specific percentage (0-100 for each phase)
+            phase_percent,
             color,
-            True,  # Animated during progress
-            False,  # Keep polling enabled
-            update_data_style,  # Button visibility from ui_state
-            update_data_disabled,  # Button disabled state from ui_state
-            cancel_button_style,  # Button visibility from ui_state
-            stuck_metrics_trigger
-            if stuck_metrics_trigger
-            else no_update,  # Auto-trigger metrics if stuck
-            postprocess_trigger
-            if postprocess_trigger
-            else no_update,  # Trigger UI refresh when postprocess starts
-            no_update,  # No statistics reload during progress
+            True,
+            False,
+            update_data_style,
+            update_data_disabled,
+            cancel_button_style,
+            stuck_metrics_trigger if stuck_metrics_trigger else no_update,
+            postprocess_trigger if postprocess_trigger else no_update,
+            no_update,
         )
 
     except PreventUpdate:
@@ -470,12 +402,12 @@ def update_progress_bars(n_intervals):
             "primary",
             True,
             True,
-            {},  # Show Update Data button
-            False,  # Enable Update Data button
-            {"display": "none"},  # Hide Cancel button
-            no_update,  # No metrics trigger on exception
-            no_update,  # No metrics refresh on exception
-            no_update,  # No statistics reload on exception
+            {},
+            False,
+            {"display": "none"},
+            no_update,
+            no_update,
+            no_update,
         )
 
 
@@ -485,23 +417,12 @@ def update_progress_bars(n_intervals):
     prevent_initial_call=True,
 )
 def start_progress_polling(n_clicks):
-    """
-    Enable progress polling when Update Data is clicked.
 
-    Button visibility is automatically managed by the polling callback
-    reading ui_state from task_progress.json.
-
-    Args:
-        n_clicks: Number of button clicks
-
-    Returns:
-        bool: False to enable polling
-    """
     if not n_clicks:
         raise PreventUpdate
 
     logger.info("[Progress] Update Data clicked - enabling progress polling")
-    return False  # Enable polling
+    return False
 
 
 @callback(
@@ -510,15 +431,7 @@ def start_progress_polling(n_clicks):
     prevent_initial_call=True,
 )
 def cancel_operation(n_clicks):
-    """
-    Cancel the running operation when Cancel button is clicked.
 
-    Args:
-        n_clicks: Number of button clicks
-
-    Returns:
-        Cancellation message
-    """
     if not n_clicks:
         raise PreventUpdate
 
@@ -526,8 +439,6 @@ def cancel_operation(n_clicks):
 
     if TaskProgress.cancel_task():
         logger.info("[Progress] Cancellation request sent successfully")
-        # Just update the progress label text
-        # Progress polling will continue to update this
         return "Cancelling operation..."
     else:
         logger.warning("[Progress] Failed to cancel task")
@@ -536,43 +447,15 @@ def cancel_operation(n_clicks):
 
 @callback(
     [
-        # Removed Output("statistics-table") - tab loads from DB when activated
         Output("jira-cache-status", "children", allow_duplicate=True),
-        Output(
-            "current-statistics", "data", allow_duplicate=True
-        ),  # Clear stores and reload active query data
-        Output(
-            "query-selector", "options", allow_duplicate=True
-        ),  # Refresh dropdown with timestamps
+        Output("current-statistics", "data", allow_duplicate=True),
+        Output("query-selector", "options", allow_duplicate=True),
     ],
     Input("metrics-refresh-trigger", "data"),
     prevent_initial_call=True,
 )
 def reload_data_after_update(refresh_trigger):
-    """
-    Reload statistics and update JIRA cache status
-    after Update Data or import completes.
 
-    This callback is triggered when the task completes
-    (metrics-refresh-trigger is set by
-    the progress polling callback or import callback).
-    It clears browser stores and reloads statistics
-    for the currently active profile/query,
-    which triggers downstream callbacks
-    to refresh the UI.
-
-    This ensures correct behavior for all scenarios:
-    - CONFIG_ONLY import: Clears stores,
-      loads data for active query (shows empty if no data)
-    - FULL_DATA import: Clears stores, loads imported data for active query
-    - Update Data: Clears stores, loads fresh data from JIRA
-
-    Args:
-        refresh_trigger: Timestamp when the refresh was triggered
-
-    Returns:
-        tuple: (statistics_data, cache_status, current_statistics_store)
-    """
     if not refresh_trigger:
         raise PreventUpdate
 
@@ -581,8 +464,6 @@ def reload_data_after_update(refresh_trigger):
     )
 
     try:
-        # Load statistics from disk
-        # Check if task is already complete (avoid redundant complete_task calls)
         backend = get_backend()
         progress_data = backend.get_task_state()
         task_status = progress_data.get("status") if progress_data else None
@@ -590,7 +471,6 @@ def reload_data_after_update(refresh_trigger):
 
         statistics, is_sample = load_statistics()
 
-        # Build dropdown options with timestamps
         logger.info("[DROPDOWN] Refreshing dropdown after Update Data completion")
         dropdown_options = get_query_dropdown_options()
         logger.info(f"[DROPDOWN] Built {len(dropdown_options)} dropdown options")
@@ -617,8 +497,8 @@ def reload_data_after_update(refresh_trigger):
                     ],
                     className="text-warning small",
                 ),
-                [],  # Clear current-statistics store
-                dropdown_options,  # Refresh dropdown
+                [],
+                dropdown_options,
             )
 
         logger.info(f"[Progress] Reloaded {len(statistics)} statistics records")
@@ -635,7 +515,6 @@ def reload_data_after_update(refresh_trigger):
                 "skipping redundant complete_task call"
             )
 
-        # Update cache status to trigger jira-issues-store refresh
         cache_status = html.Div(
             [
                 html.I(className="fas fa-check-circle me-2"),
@@ -645,16 +524,15 @@ def reload_data_after_update(refresh_trigger):
         )
 
         return (
-            cache_status,  # jira-cache-status.children
-            statistics,  # current-statistics.data
-            dropdown_options,  # query-selector.options
+            cache_status,
+            statistics,
+            dropdown_options,
         )
 
     except Exception as e:
         logger.error(f"[Progress] Error reloading statistics: {e}", exc_info=True)
         TaskProgress.fail_task("update_data", "Error refreshing UI after data update")
 
-        # Try to build dropdown even on error
         try:
             dropdown_options = get_query_dropdown_options()
         except Exception:
@@ -668,8 +546,8 @@ def reload_data_after_update(refresh_trigger):
                 ],
                 className="text-danger small",
             ),
-            [],  # Clear current-statistics store on error
-            dropdown_options,  # Refresh dropdown
+            [],
+            dropdown_options,
         )
 
 
@@ -679,27 +557,16 @@ def reload_data_after_update(refresh_trigger):
     prevent_initial_call="initial_duplicate",
 )
 def cleanup_stale_tasks_on_load(pathname):
-    """
-    Check for stale task progress on page load and enable polling if needed.
-    This ensures orphaned/cancelled tasks get cleaned up after page refresh.
 
-    Args:
-        pathname: URL pathname (triggers on initial page load)
-
-    Returns:
-        bool: False to enable polling if stale task exists, True to keep disabled
-    """
     try:
         backend = get_backend()
         state = backend.get_task_state()
 
         if state is None:
-            # No task state, keep polling disabled
             return True
 
         status = state.get("status", "idle")
 
-        # If task is in error or complete status, check if it's stale
         if status in ["error", "complete"]:
             time_key = "error_time" if status == "error" else "complete_time"
             timestamp = state.get(time_key)
@@ -716,42 +583,37 @@ def cleanup_stale_tasks_on_load(pathname):
                 elapsed = (datetime.now() - parsed_timestamp).total_seconds()
 
                 if elapsed > 10:
-                    # Very stale task - clear state immediately
                     logger.info(
                         f"[Progress] Clearing stale {status} task state "
                         f"({elapsed:.0f}s old)"
                     )
                     backend.clear_task_state()
-                    return True  # Keep polling disabled
+                    return True
                 else:
-                    # Recent error/complete - enable polling to show and auto-hide
                     logger.info(
                         f"[Progress] Enabling polling for recent {status} task "
                         f"({elapsed:.0f}s old)"
                     )
-                    return False  # Enable polling
+                    return False
             else:
-                # No timestamp - clear stale state
                 logger.info(
                     f"[Progress] Clearing {status} task state with no timestamp"
                 )
                 backend.clear_task_state()
                 return True
 
-        # Task is in_progress or idle - enable polling to update UI
         if status == "in_progress":
             logger.info(
                 "[Progress] Found in_progress task on page load, enabling polling"
             )
-            return False  # Enable polling
+            return False
 
-        # Idle status - clear state
         if status == "idle":
             logger.info("[Progress] Clearing idle task state")
             backend.clear_task_state()
             return True
 
-        return True  # Keep polling disabled by default
+        return True
 
     except Exception as e:
         logger.error(f"[Progress] Error checking stale tasks: {e}")

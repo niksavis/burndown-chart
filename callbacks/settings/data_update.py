@@ -1,18 +1,3 @@
-"""
-Data Update Callbacks
-
-This module handles JIRA data synchronization callbacks:
-- handle_unified_data_update: Main data fetch callback with background threading
-- Clientside callback for force refresh detection
-
-This is a large callback (~980 lines) that coordinates:
-- JIRA connection validation
-- Query switching
-- Force refresh/data wipe logic
-- Background threading for data fetch
-- Progress tracking integration
-"""
-
 import threading
 
 from dash import ClientsideFunction, Input, Output, State, ctx, html, no_update
@@ -38,14 +23,7 @@ from data.task_progress import TaskProgress
 
 
 def register(app):
-    """
-    Register data update callbacks.
 
-    Args:
-        app: Dash application instance
-    """
-
-    # Clientside callback to detect force refresh from long-press
     app.clientside_callback(
         ClientsideFunction(namespace="forceRefresh", function_name="updateStore"),
         Output("force-refresh-store", "data"),
@@ -88,25 +66,7 @@ def register(app):
         jql_query,
         selected_query_id,
     ):
-        """
-        Handle unified data update button click (JIRA data source only).
 
-        This callback coordinates the entire data fetch workflow:
-        1. Validates JIRA configuration
-        2. Switches to selected query
-        3. Optionally performs data wipe (force refresh)
-        4. Launches background thread for JIRA sync
-        5. Returns immediately to enable progress polling
-
-        Args:
-            n_clicks: Number of clicks on unified update button
-            force_refresh: Force cache refresh flag from clientside store
-            jql_query: JQL query for JIRA data source
-            selected_query_id: Currently selected query from dropdown
-
-        Returns:
-            Tuple of 16 outputs for UI state management
-        """
         triggered_id = ctx.triggered_id if ctx.triggered else None
         triggered_prop = ctx.triggered[0] if ctx.triggered else None
 
@@ -118,22 +78,18 @@ def register(app):
         logger.info(f"[UPDATE DATA] Full trigger info: {triggered_prop}")
         logger.info("[UPDATE DATA] =========================================")
 
-        # Normal button state
         button_normal = [
             html.I(className="fas fa-sync-alt", style={"marginRight": "0.5rem"}),
             html.Span("Update Data"),
         ]
 
-        # If triggered by force-refresh-store changing but button wasn't clicked, ignore
         if triggered_id == "force-refresh-store" and not n_clicks:
             raise PreventUpdate
 
         if not n_clicks:
-            # Initial page load - return normal button state with icon
             return _initial_state(button_normal)
 
         try:
-            # Check if another task is already running
             is_running, existing_task = TaskProgress.is_task_running()
             if is_running:
                 logger.warning(
@@ -141,20 +97,17 @@ def register(app):
                 )
                 return _task_already_running(existing_task, button_normal)
 
-            # Start the task
             if not TaskProgress.start_task("update_data", "Updating data from JIRA"):
                 logger.error("Failed to start Update Data task")
                 return _task_start_failed(button_normal)
 
-            # Validate JIRA configuration and prepare sync
             result = _prepare_jira_sync(
                 jql_query, selected_query_id, force_refresh, button_normal
             )
 
             if result is not None:
-                return result  # Error occurred during preparation
+                return result
 
-            # All validation passed - get final config and start background sync
             return _start_background_sync(
                 jql_query, selected_query_id, force_refresh, button_normal
             )
@@ -171,29 +124,27 @@ def register(app):
 
 
 def _initial_state(button_normal):
-    """Return initial state for page load."""
     return (
-        None,  # upload contents
-        None,  # upload filename
-        "",  # cache status (empty)
-        no_update,  # total items
-        no_update,  # estimated items
-        no_update,  # total points
-        no_update,  # estimated points
-        no_update,  # settings
-        False,  # force refresh
-        False,  # button disabled
-        button_normal,  # button children with icon
-        "",  # update-data-status (empty)
-        "",  # toast notification (empty)
-        None,  # metrics trigger
-        True,  # progress-poll-interval disabled (no task)
-        no_update,  # current-statistics
+        None,
+        None,
+        "",
+        no_update,
+        no_update,
+        no_update,
+        no_update,
+        no_update,
+        False,
+        False,
+        button_normal,
+        "",
+        "",
+        None,
+        True,
+        no_update,
     )
 
 
 def _task_already_running(existing_task, button_normal):
-    """Return state when task is already running."""
     message_div = html.Div(
         [
             html.I(className="fas fa-info-circle me-2"),
@@ -203,27 +154,26 @@ def _task_already_running(existing_task, button_normal):
     )
 
     return (
-        None,  # upload-data contents
-        None,  # upload-data filename
-        message_div,  # jira-cache-status
-        no_update,  # total-items-input
-        no_update,  # estimated-items-input
-        no_update,  # total-points-display
-        no_update,  # estimated-points-input
-        no_update,  # current-settings
-        False,  # force-refresh-store (reset)
-        False,  # update-data-unified disabled (enable button)
-        button_normal,  # update-data-unified children
-        message_div,  # update-data-status
-        "",  # app-notifications (no toast)
-        None,  # trigger-auto-metrics-calc
-        True,  # progress-poll-interval disabled (already running)
-        no_update,  # current-statistics
+        None,
+        None,
+        message_div,
+        no_update,
+        no_update,
+        no_update,
+        no_update,
+        no_update,
+        False,
+        False,
+        button_normal,
+        message_div,
+        "",
+        None,
+        True,
+        no_update,
     )
 
 
 def _task_start_failed(button_normal):
-    """Return state when task fails to start."""
     message_div = html.Div(
         [
             html.I(className="fas fa-exclamation-triangle me-2"),
@@ -253,20 +203,14 @@ def _task_start_failed(button_normal):
 
 
 def _prepare_jira_sync(jql_query, selected_query_id, force_refresh, button_normal):
-    """
-    Prepare JIRA sync by validating configuration and switching queries.
 
-    Returns None if successful, or error tuple if validation fails.
-    """
     logger.info(
         "[Settings] Received jql_query from Store: "
         f"'{jql_query}' (type: {type(jql_query)})"
     )
 
-    # Load JIRA configuration
     jira_config = load_jira_configuration()
 
-    # Switch to selected query BEFORE fetching data
     if selected_query_id and selected_query_id != "__create_new__":
         try:
             switch_query(selected_query_id)
@@ -276,7 +220,6 @@ def _prepare_jira_sync(jql_query, selected_query_id, force_refresh, button_norma
         except Exception as e:
             logger.error(f"[Settings] Failed to switch query before Update Data: {e}")
 
-    # Check if JIRA is configured
     is_configured = (
         jira_config.get("configured", False)
         and jira_config.get("base_url", "").strip() != ""
@@ -325,18 +268,15 @@ def _prepare_jira_sync(jql_query, selected_query_id, force_refresh, button_norma
             no_update,
         )
 
-    # Get JQL from active query if input is empty
     app_settings = load_app_settings()
     settings_jql = resolve_jql_query(jql_query, app_settings)
 
     logger.info(f"[Settings] JQL Query - Input: '{jql_query}', Final: '{settings_jql}'")
 
-    # Build JIRA config for validation
     jira_config_for_sync = build_sync_jira_config(
         jira_config, settings_jql, app_settings
     )
 
-    # Validate configuration
     is_valid, validation_message = validate_jira_config(jira_config_for_sync)
     if not is_valid:
         message_div = html.Div(
@@ -377,12 +317,10 @@ def _prepare_jira_sync(jql_query, selected_query_id, force_refresh, button_norma
             no_update,
         )
 
-    return None  # Success - no error
+    return None
 
 
 def _start_background_sync(jql_query, selected_query_id, force_refresh, button_normal):
-    """Start background thread for JIRA data synchronization."""
-    # Reload config for background thread
     app_settings = load_app_settings()
     jira_config = load_jira_configuration()
     settings_jql = resolve_jql_query(jql_query, app_settings)
@@ -390,14 +328,11 @@ def _start_background_sync(jql_query, selected_query_id, force_refresh, button_n
         jira_config, settings_jql, app_settings
     )
 
-    # Convert force_refresh to boolean and check for new queries
     force_refresh_bool = _should_force_refresh(force_refresh)
 
-    # Perform data wipe if force refresh is enabled
     if force_refresh_bool:
         _perform_data_wipe()
 
-    # Log changelog cache strategy
     if force_refresh_bool:
         logger.info("[Settings] Force refresh: Changelog will be re-fetched from JIRA")
     else:
@@ -406,9 +341,7 @@ def _start_background_sync(jql_query, selected_query_id, force_refresh, button_n
             "for reuse (saves 1-2 minutes)"
         )
 
-    # Start background thread
     def background_sync():
-        """Background thread for JIRA data fetch."""
         logger.info("=" * 70)
         logger.info("[BACKGROUND SYNC] Thread started")
         logger.info(f"[BACKGROUND SYNC] JQL: {settings_jql}")
@@ -465,10 +398,9 @@ def _start_background_sync(jql_query, selected_query_id, force_refresh, button_n
         f"(alive={thread.is_alive()})"
     )
 
-    # Return immediately to show progress bar
     return (
-        None,  # upload contents
-        None,  # filename
+        None,
+        None,
         html.Div(
             [
                 html.I(className="fas fa-spinner fa-spin me-2"),
@@ -476,34 +408,32 @@ def _start_background_sync(jql_query, selected_query_id, force_refresh, button_n
             ],
             className="text-info small",
         ),
-        no_update,  # total-items-input
-        no_update,  # estimated-items-input
-        no_update,  # total-points-display
-        no_update,  # estimated-points-input
-        no_update,  # current-settings
-        False,  # force-refresh-store (reset)
-        True,  # update-data-unified disabled (operation in progress)
-        button_normal,  # update-data-unified children
+        no_update,
+        no_update,
+        no_update,
+        no_update,
+        no_update,
+        False,
+        True,
+        button_normal,
         html.Div(
             [html.I(className="fas fa-spinner fa-spin me-2"), "Starting..."],
             className="text-info small",
         ),
-        "",  # app-notifications
-        None,  # trigger-auto-metrics-calc
-        False,  # progress-poll-interval enabled (start polling)
-        [] if force_refresh_bool else no_update,  # current-statistics
+        "",
+        None,
+        False,
+        [] if force_refresh_bool else no_update,
     )
 
 
 def _should_force_refresh(force_refresh):
-    """Determine if force refresh should be enabled."""
     force_refresh_bool = bool(force_refresh)
 
     logger.info(
         f"[Settings] force_refresh value = {force_refresh}, bool = {force_refresh_bool}"
     )
 
-    # Check for new queries with no existing data
     if not force_refresh_bool:
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")
@@ -522,7 +452,6 @@ def _should_force_refresh(force_refresh):
 
 
 def _perform_data_wipe():
-    """Perform complete data wipe for active query."""
     logger.info("=" * 60)
     logger.info("[Settings] FORCE REFRESH ENABLED - COMPLETE DATA WIPE FOR THIS QUERY")
     logger.info("[Settings] This is a self-repair mechanism to recover from bad data")
@@ -542,7 +471,6 @@ def _perform_data_wipe():
             f"{active_profile_id}/{active_query_id}"
         )
 
-        # Delete JIRA issues (CASCADE deletes changelog too)
         with get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -553,7 +481,6 @@ def _perform_data_wipe():
             conn.commit()
             logger.info(f"[Settings] ✓ Deleted {issues_deleted} JIRA issues")
 
-        # Delete project statistics
         with get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -564,25 +491,21 @@ def _perform_data_wipe():
             conn.commit()
             logger.info(f"[Settings] ✓ Deleted {stats_deleted} project statistics")
 
-        # Invalidate caches
         invalidate_all_cache()
         logger.info("[Settings] All global cache files invalidated")
 
-        # Delete metrics
         try:
             deleted_count = backend.delete_metrics(active_profile_id, active_query_id)
             logger.info(f"[Settings] ✓ Deleted {deleted_count} cached metrics")
         except Exception as e:
             logger.warning(f"[Settings] Failed to delete metrics: {e}")
 
-        # Clear snapshots cache
         try:
             clear_snapshots_cache()
             logger.info("[Settings] ✓ Cleared in-memory snapshots cache")
         except Exception as e:
             logger.warning(f"[Settings] Failed to clear snapshots cache: {e}")
 
-        # Delete workspace cache files
         query_workspace = get_active_query_workspace()
         if query_workspace and query_workspace.exists():
             jira_cache = query_workspace / "jira_cache.json"
@@ -604,7 +527,6 @@ def _perform_data_wipe():
 
 
 def _jira_import_error(button_normal):
-    """Return state for JIRA import error."""
     message_div = html.Div(
         [
             html.I(className="fas fa-exclamation-triangle me-2 text-danger"),
@@ -643,7 +565,6 @@ def _jira_import_error(button_normal):
 
 
 def _unexpected_error(error, button_normal):
-    """Return state for unexpected error."""
     message_div = html.Div(
         [
             html.I(className="fas fa-exclamation-triangle me-2 text-danger"),

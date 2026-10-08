@@ -1,11 +1,3 @@
-"""Active Work Timeline Callbacks Module
-
-This module provides callback functions for the Active Work Timeline feature,
-handling epic/feature timeline rendering with recent activity.
-
-Follows Sprint Tracker pattern for conditional tab display.
-"""
-
 import logging
 import re
 
@@ -29,7 +21,6 @@ logger = logging.getLogger(__name__)
 
 
 def _remove_last_clause(query: str) -> str:
-    """Remove the last top-level clause from a builder query string."""
     text = (query or "").strip()
     if not text:
         return ""
@@ -80,23 +71,10 @@ def _remove_last_clause(query: str) -> str:
 def _render_active_work_timeline_content(
     show_points: bool = False, data_points_count: int = 30
 ) -> html.Div:
-    """Render Active Work Timeline content with nested epic timeline.
 
-    Structure:
-    1. Epic Timeline with nested issues (sorted: Blocked/WIP → To Do → Completed)
-    2. Issues filtered by data_points_count week range
-
-    Args:
-        show_points: Whether to show story points metrics
-        data_points_count: Number of weeks to look back (from Data Points slider)
-
-    Returns:
-        Div containing nested epic timeline
-    """
     try:
         backend = get_backend()
 
-        # Get active profile and query
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")
 
@@ -110,7 +88,6 @@ def _render_active_work_timeline_content(
             f"data_points={data_points_count}"
         )
 
-        # Load issues from database
         issues = backend.get_issues(
             profile_id=active_profile_id, query_id=active_query_id
         )
@@ -120,8 +97,6 @@ def _render_active_work_timeline_content(
             return create_no_active_work_state()
 
         logger.info(f"[ACTIVE WORK] Loaded {len(issues)} issues from database")
-
-        # Get configuration
 
         settings = load_app_settings()
         field_mappings = settings.get("field_mappings", {})
@@ -135,12 +110,9 @@ def _render_active_work_timeline_content(
         development_projects = settings.get("development_projects", [])
         devops_projects = settings.get("devops_projects", [])
 
-        # DEBUG: Log configuration
         logger.info(f"[ACTIVE WORK DEBUG] development_projects: {development_projects}")
         logger.info(f"[ACTIVE WORK DEBUG] devops_projects: {devops_projects}")
         logger.info(f"[ACTIVE WORK DEBUG] Before filtering: {len(issues)} total issues")
-
-        # Filter to only configured development project issues
 
         issues = filter_development_issues(
             issues, development_projects, devops_projects
@@ -149,22 +121,19 @@ def _render_active_work_timeline_content(
             f"[ACTIVE WORK] After project filtering: {len(issues)} development issues"
         )
 
-        # Check if parent field is configured
         parent_field_configured = bool(parent_field)
 
         if not parent_field_configured:
             logger.info(
                 "Parent field not configured - will show issues without epic timeline"
             )
-            # Use dummy parent field to still process issues
-            parent_field = "parent"  # Won't match anything, all issues will be orphaned
+            parent_field = "parent"
 
         logger.info(
             "[ACTIVE WORK] Using parent field: "
             f"{parent_field} (configured: {parent_field_configured})"
         )
 
-        # Get active work data with nested structure
         try:
             logger.info(
                 "[ACTIVE WORK] Calling get_active_work_data with "
@@ -180,7 +149,7 @@ def _render_active_work_timeline_content(
                 flow_end_statuses=flow_end_statuses if flow_end_statuses else None,
                 flow_wip_statuses=flow_wip_statuses if flow_wip_statuses else None,
                 parent_issue_types=parent_issue_types,
-                filter_parents=True,  # Filter out parent issues from child calculations
+                filter_parents=True,
             )
             logger.info("[ACTIVE WORK] get_active_work_data returned successfully")
         except Exception as e:
@@ -203,17 +172,14 @@ def _render_active_work_timeline_content(
                 parent_field_configured=parent_field_configured
             )
 
-        # Count total issues across all epics
         total_issues = sum(epic.get("total_issues", 0) for epic in timeline)
 
         logger.info(f"Found {len(timeline)} epics with {total_issues} total issues")
 
-        # Get recently completed items by week
-
         completed_by_week = get_completed_items_by_week(
             issues=issues,
             flow_end_statuses=flow_end_statuses if flow_end_statuses else None,
-            n_weeks=2,  # Current week + last week
+            n_weeks=2,
             parent_field=parent_field,
         )
 
@@ -221,7 +187,6 @@ def _render_active_work_timeline_content(
             completed_by_week, show_points=show_points
         )
 
-        # Create nested epic timeline
         summary_text = (
             f"Showing {len(timeline)} epics with {total_issues} issues "
             f"(last {data_points_count} week"
@@ -233,16 +198,13 @@ def _render_active_work_timeline_content(
             show_points,
             parent_field_configured,
             summary_text,
-            completed_section=completed_section,  # Insert between legend and epics
+            completed_section=completed_section,
         )
 
-        # Assemble layout
         return html.Div(
             [
                 dbc.Container(
                     [
-                        # Nested epic timeline with legend,
-                        # completed items, and epics.
                         timeline_content,
                     ],
                     fluid=True,
@@ -258,18 +220,13 @@ def _render_active_work_timeline_content(
 
 
 def register(app):
-    """Register Active Work Timeline callbacks.
 
-    Args:
-        app: Dash application instance
-    """
     if getattr(app, "_active_work_callbacks_registered", False):
         logger.debug("[ACTIVE WORK] Callbacks already registered; skipping")
         return
 
     app._active_work_callbacks_registered = True
 
-    # Client-side callback: Build search metadata from timeline data
     app.clientside_callback(
         ClientsideFunction(
             namespace="activeWorkSearch", function_name="buildSearchMetadata"
@@ -279,7 +236,6 @@ def register(app):
     )
 
     def _build_query_preview(query_text: str):
-        """Build color-coded query preview for fields, values, and operators."""
         query = (query_text or "").strip()
         if not query:
             return ""
@@ -319,7 +275,6 @@ def register(app):
         return html.Div(preview_parts, className="active-work-query-preview-line")
 
     def _build_query_outputs(query_text: str):
-        """Return synchronized builder outputs with formatted preview."""
         query = (query_text or "").strip()
         return query, query, _build_query_preview(query)
 
@@ -332,7 +287,6 @@ def register(app):
         prevent_initial_call=False,
     )
     def update_builder_value_options(selected_field, metadata):
-        """Populate value options for selected field and toggle input type."""
         shared_style = {"flex": "1", "minWidth": "260px"}
 
         if not selected_field:
@@ -372,7 +326,6 @@ def register(app):
         text_value,
         current_query,
     ):
-        """Build query via explicit AND/OR actions, clear resets everything."""
         triggered = ctx.triggered_id
 
         if triggered is None:
@@ -452,7 +405,6 @@ def register(app):
 
         return _build_query_outputs(next_query)
 
-    # Server-side callback: Filter timeline based on search
     @app.callback(
         Output("active-work-filtered-content", "children"),
         Output("completed-items-section", "children"),
@@ -461,7 +413,6 @@ def register(app):
         prevent_initial_call=True,
     )
     def filter_timeline(search_input, timeline_data):
-        """Filter timeline based on search input (server-side for now)."""
 
         def _flatten_issues(epics):
             flattened = []
@@ -480,9 +431,6 @@ def register(app):
             parent_field = general_mappings.get("parent_field")
             flow_end_statuses = workflow_mappings.get("flow_end_statuses", [])
 
-            # Build synthetic epic lookup records from the timeline store so
-            # _group_issues_by_epic can resolve epic names without re-querying
-            # the database (DRY: epic_summary is already resolved in the store).
             epic_lookup_records = [
                 {
                     "issue_key": epic.get("epic_key"),
@@ -557,7 +505,6 @@ def register(app):
         prevent_initial_call=True,
     )
     def apply_or_clear_search(n_apply, n_clear, builder_query, search_input):
-        """Apply search only when Search is clicked; clear applied query on Clear."""
         triggered = ctx.triggered_id
 
         if triggered == "active-work-search-clear":
@@ -569,7 +516,6 @@ def register(app):
 
         return ""
 
-    # Server-side callback: Clear builder input value selector
     @app.callback(
         Output("active-work-builder-value-select", "value"),
         Output("active-work-builder-value-text", "value"),
@@ -577,5 +523,4 @@ def register(app):
         prevent_initial_call=True,
     )
     def clear_search(n_clicks):
-        """Clear value selector when Clear button is clicked."""
         return [], ""

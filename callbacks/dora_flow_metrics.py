@@ -1,5 +1,3 @@
-"""DORA metrics dashboard callbacks."""
-
 import logging
 from typing import Any
 
@@ -24,11 +22,6 @@ from ui.metric_cards import create_metric_cards_grid
 logger = logging.getLogger(__name__)
 
 
-#######################################################################
-# DORA METRICS CALLBACK
-#######################################################################
-
-
 @callback(
     [
         Output("dora-metrics-cards-container", "children"),
@@ -48,7 +41,6 @@ def load_and_display_dora_metrics(
     data_points: int,
     refresh_trigger: Any | None,
 ):
-    """Load and display DORA metrics from cache."""
     try:
         import dash_bootstrap_components as dbc  # noqa: PLC0415
 

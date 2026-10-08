@@ -1,8 +1,3 @@
-"""Validation helper functions for field mapping.
-
-Provides comprehensive validation and alert generation for all configuration tabs.
-"""
-
 import logging
 
 import dash_bootstrap_components as dbc
@@ -12,35 +7,13 @@ logger = logging.getLogger(__name__)
 
 
 def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
-    """Validate all configuration tabs comprehensively.
 
-    Args:
-        state_data: Current form state from state store
-        field_validation_errors: Validation errors from Fields tab (namespace inputs)
-
-    Returns:
-        Dict with validation results:
-        {
-            "is_valid": bool,
-            "errors": [{"tab": str, "field": str, "error": str}, ...],
-            "warnings": [{"tab": str, "field": str, "warning": str}, ...],
-            "summary": {
-                "fields": int,
-                "statuses": int,
-                "projects": int,
-                "issue_types": int,
-            },
-        }
-    """
     errors = []
     warnings = []
     summary = {"fields": 0, "statuses": 0, "projects": 0, "issue_types": 0}
 
     state_data = state_data or {}
 
-    # =========================================================================
-    # 1. FIELDS TAB VALIDATION (from clientside namespace validation)
-    # =========================================================================
     if field_validation_errors:
         for err in field_validation_errors:
             errors.append(
@@ -54,14 +27,11 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
                 }
             )
 
-    # Count configured fields (from namespace values in field_mappings)
     field_mappings = state_data.get("field_mappings", {})
     for metric in ["dora", "flow", "general"]:
         if metric in field_mappings:
             summary["fields"] += len([v for v in field_mappings[metric].values() if v])
 
-    # Validate REQUIRED fields are mapped
-    # These fields are marked as REQUIRED in the UI (field_mapping_modal.py)
     required_fields = {
         "general": {
             "completed_date": (
@@ -84,12 +54,10 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
         },
     }
 
-    # Check each required field
     for metric, fields in required_fields.items():
         metric_mappings = field_mappings.get(metric, {})
         for field_id, field_label in fields.items():
             if not metric_mappings.get(field_id):
-                # Field not mapped - add warning (not error, to allow partial config)
                 warnings.append(
                     {
                         "tab": "Fields",
@@ -98,10 +66,6 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
                     }
                 )
 
-    # =========================================================================
-    # 2. STATUS TAB VALIDATION
-    # =========================================================================
-    # Get status values (check both flat and nested structure)
     flow_end_statuses = state_data.get("flow_end_statuses", [])
     if not flow_end_statuses and "project_classification" in state_data:
         flow_end_statuses = state_data["project_classification"].get(
@@ -124,7 +88,6 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
             "flow_start_statuses", []
         )
 
-    # Count total statuses
     summary["statuses"] = (
         len(flow_end_statuses)
         + len(active_statuses)
@@ -132,7 +95,6 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
         + len(flow_start_statuses)
     )
 
-    # Validate: Completion statuses required
     if not flow_end_statuses:
         warnings.append(
             {
@@ -144,7 +106,6 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
             }
         )
 
-    # Validate: WIP statuses required
     if not wip_statuses:
         warnings.append(
             {
@@ -154,7 +115,6 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
             }
         )
 
-    # Validate: Active statuses should be subset of WIP
     if active_statuses and wip_statuses:
         wip_set = set(wip_statuses)
         active_not_in_wip = [s for s in active_statuses if s not in wip_set]
@@ -171,7 +131,6 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
                 }
             )
 
-    # Validate: Flow Start statuses should be subset of WIP
     if flow_start_statuses and wip_statuses:
         wip_set = set(wip_statuses)
         flow_start_not_in_wip = [s for s in flow_start_statuses if s not in wip_set]
@@ -188,7 +147,6 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
                 }
             )
 
-    # CRITICAL: Validate WIP statuses don't include completion statuses
     if wip_statuses and flow_end_statuses:
         wip_set = set(wip_statuses)
         end_set = set(flow_end_statuses)
@@ -207,9 +165,6 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
                 }
             )
 
-    # =========================================================================
-    # 3. PROJECT TAB VALIDATION
-    # =========================================================================
     dev_projects = state_data.get("development_projects", [])
     if not dev_projects and "project_classification" in state_data:
         dev_projects = state_data["project_classification"].get(
@@ -224,7 +179,6 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
 
     summary["projects"] = len(dev_projects) + len(devops_projects)
 
-    # Validate: At least one project type should be selected
     if not dev_projects and not devops_projects:
         warnings.append(
             {
@@ -236,12 +190,8 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
             }
         )
 
-    # =========================================================================
-    # 4. ISSUE TYPE TAB VALIDATION
-    # =========================================================================
     flow_type_mappings = state_data.get("flow_type_mappings", {})
 
-    # Also check flat keys for backward compatibility
     feature_types = state_data.get("flow_feature_issue_types", [])
     if not feature_types and "Feature" in flow_type_mappings:
         feature_mapping = flow_type_mappings["Feature"]
@@ -282,7 +232,6 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
         len(feature_types) + len(defect_types) + len(tech_debt_types) + len(risk_types)
     )
 
-    # Validate: At least Feature or Defect should have mappings
     if not feature_types and not defect_types:
         warnings.append(
             {
@@ -303,13 +252,11 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
 
 
 def _build_comprehensive_validation_alert(validation_result: dict):
-    """Build comprehensive validation alert showing all tabs' results."""
     errors = validation_result.get("errors", [])
     warnings = validation_result.get("warnings", [])
     summary = validation_result.get("summary", {})
     is_valid = validation_result.get("is_valid", True)
 
-    # Build summary line
     summary_parts = []
     if summary.get("fields", 0) > 0:
         summary_parts.append(f"{summary['fields']} field(s)")
@@ -322,20 +269,18 @@ def _build_comprehensive_validation_alert(validation_result: dict):
 
     summary_text = ", ".join(summary_parts) if summary_parts else "No configuration"
 
-    # Build error list
     error_items = []
     for err in errors:
         error_items.append(
             html.Li(
                 [
                     html.Strong(f"{err['tab']} > {err['field']}: "),
-                    html.Span(err["error"]),  # No text-danger - inherits alert color
+                    html.Span(err["error"]),
                 ],
                 className="mb-1",
             )
         )
 
-    # Build warning list
     warning_items = []
     for warn in warnings:
         warning_items.append(
@@ -348,7 +293,6 @@ def _build_comprehensive_validation_alert(validation_result: dict):
             )
         )
 
-    # Determine alert color and icon
     if errors:
         color = "danger"
         icon = "fas fa-times-circle"
@@ -362,10 +306,7 @@ def _build_comprehensive_validation_alert(validation_result: dict):
         icon = "fas fa-check-circle"
         title = "Validation Passed"
 
-    # Build alert content with improved layout.
-    # Wrap in a single div to prevent column layout.
     content_parts = [
-        # Header with icon and title
         html.Div(
             [
                 html.I(className=f"{icon} me-2"),
@@ -373,7 +314,6 @@ def _build_comprehensive_validation_alert(validation_result: dict):
             ],
             className="d-flex align-items-center mb-2",
         ),
-        # Summary line
         html.Div(
             f"Configured: {summary_text}",
             className="mb-2",
@@ -381,7 +321,6 @@ def _build_comprehensive_validation_alert(validation_result: dict):
         ),
     ]
 
-    # Add errors section if present
     if error_items:
         content_parts.append(
             html.Div(
@@ -393,7 +332,6 @@ def _build_comprehensive_validation_alert(validation_result: dict):
             )
         )
 
-    # Add warnings section if present
     if warning_items:
         content_parts.append(
             html.Div(
@@ -405,7 +343,6 @@ def _build_comprehensive_validation_alert(validation_result: dict):
             )
         )
 
-    # Add success message at the bottom
     if is_valid and not warnings:
         content_parts.append(
             html.Div(
@@ -415,11 +352,9 @@ def _build_comprehensive_validation_alert(validation_result: dict):
             )
         )
 
-    # Wrap all content in a single container div to ensure vertical stacking
-    # Use timestamp in ID to force complete re-render each time validation runs
     import time  # noqa: PLC0415
 
-    timestamp = int(time.time() * 1000)  # Millisecond timestamp
+    timestamp = int(time.time() * 1000)
 
     return html.Div(
         dbc.Alert(
@@ -428,12 +363,11 @@ def _build_comprehensive_validation_alert(validation_result: dict):
             dismissable=True,
             id=f"validation-result-alert-{timestamp}",
         ),
-        id="validation-result-container",  # Stable container ID for positioning
+        id="validation-result-container",
     )
 
 
 def _build_validation_error_alert(validation_errors):
-    """Build validation error alert for display in modal."""
     error_items = []
     for err in validation_errors:
         metric_label = err.get("metric", "unknown").upper()
@@ -478,7 +412,6 @@ def _build_validation_error_alert(validation_errors):
 
 
 def _build_validation_success_alert(total_fields):
-    """Build validation success alert for display in modal."""
     return dbc.Alert(
         html.Div(
             [
@@ -503,7 +436,6 @@ def _build_validation_success_alert(total_fields):
 
 
 def _build_no_fields_alert():
-    """Build info alert when no fields are configured."""
     return dbc.Alert(
         html.Div(
             [

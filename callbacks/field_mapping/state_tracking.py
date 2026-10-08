@@ -1,18 +1,8 @@
-"""State tracking callbacks for field mapping.
-
-Tracks form changes across all tabs in real-time.
-"""
-
 import logging
 
 from dash import ALL, Input, Output, State, callback, ctx, no_update
 
 logger = logging.getLogger(__name__)
-
-
-# ============================================================================
-# STATE MANAGEMENT - Real-time tracking of all form changes
-# ============================================================================
 
 
 @callback(
@@ -22,83 +12,40 @@ logger = logging.getLogger(__name__)
     prevent_initial_call=True,
 )
 def track_form_state_changes(*args):
-    """Track field mapping dropdown changes in real-time.
 
-    This callback fires whenever ANY field mapping dropdown (Fields tab) changes.
-    Tab-specific dropdowns are tracked via separate callbacks below.
-
-    Args:
-        *args: All dropdown values followed by current state
-
-    Returns:
-        Updated state dict with current form values
-    """
-
-    # Get current state (last argument)
     current_state = args[-1] or {}
 
-    # Get triggered input
     triggered = ctx.triggered_id
 
     if not triggered:
         return no_update
 
-    # Get the new value
     new_value = ctx.triggered[0]["value"]
 
-    # Update state based on which input was triggered
     if isinstance(triggered, dict):
-        # Field mapping dropdown (pattern-matched ID)
-        # Structure: {"type": "field-mapping-dropdown", "metric": "dora",
-        # "field": "deployment_date"}
         if triggered.get("type") == "field-mapping-dropdown":
             metric = triggered.get("metric")
             field = triggered.get("field")
 
-            # Initialize field_mappings structure if not exists
             if "field_mappings" not in current_state:
                 current_state["field_mappings"] = {}
             if metric not in current_state["field_mappings"]:
                 current_state["field_mappings"][metric] = {}
 
-            # Handle multi-select dropdown: extract first value
-            # CRITICAL: Only store if value exists (non-empty)
-            # Empty/missing fields should NOT be in field_mappings - this allows
-            # variable extraction to fall back to changelog-based extraction
             if isinstance(new_value, list):
-                if new_value:  # Only store if list has values
+                if new_value:
                     current_state["field_mappings"][metric][field] = new_value[0]
                 elif field in current_state.get("field_mappings", {}).get(metric, {}):
-                    # Remove field if user cleared it
                     del current_state["field_mappings"][metric][field]
             else:
-                if new_value:  # Only store if value is non-empty
+                if new_value:
                     current_state["field_mappings"][metric][field] = new_value
                 elif field in current_state.get("field_mappings", {}).get(metric, {}):
-                    # Remove field if user cleared it
                     del current_state["field_mappings"][metric][field]
 
     logger.info(f"[StateTracking] Updated state for {triggered}: {new_value}")
 
     return current_state
-
-
-# ============================================================================
-# NAMESPACE FIELD INPUT STATE TRACKING
-# ============================================================================
-# NOTE: Namespace inputs do NOT use server-side state tracking.
-# Server-side callbacks cause React to re-render inputs, which loses
-# autocomplete selections (the "stat" vs "status" bug).
-#
-# Instead, namespace field values are collected at SAVE time via a
-# clientside callback that reads directly from the DOM.
-# See: save_field_mappings() and assets/namespace_autocomplete_clientside.js
-
-
-# ============================================================================
-# TAB-SPECIFIC STATE TRACKING
-# These callbacks track dropdowns that only exist in specific tabs
-# ============================================================================
 
 
 @callback(
@@ -109,7 +56,6 @@ def track_form_state_changes(*args):
     prevent_initial_call=True,
 )
 def track_projects_tab_changes(dev_projects, devops_projects, current_state):
-    """Track Projects tab dropdown changes."""
     current_state = current_state or {}
     current_state["development_projects"] = (
         dev_projects
@@ -128,7 +74,7 @@ def track_projects_tab_changes(dev_projects, devops_projects, current_state):
     Output("field-mapping-state-store", "data", allow_duplicate=True),
     Input("devops-task-types-dropdown", "value"),
     Input("bug-types-dropdown", "value"),
-    Input("parent-issue-types-dropdown", "value"),  # NEW: Parent types
+    Input("parent-issue-types-dropdown", "value"),
     Input("flow-feature-issue-types-dropdown", "value"),
     Input("flow-feature-effort-categories-dropdown", "value"),
     Input("flow-defect-issue-types-dropdown", "value"),
@@ -141,14 +87,12 @@ def track_projects_tab_changes(dev_projects, devops_projects, current_state):
     prevent_initial_call=True,
 )
 def track_types_tab_changes(*args):
-    """Track Types tab dropdown changes."""
     current_state = args[-1] or {}
 
-    # Map args to state keys (ADDED parent_issue_types)
     state_keys = [
         "devops_task_types",
         "bug_types",
-        "parent_issue_types",  # NEW: Parent types
+        "parent_issue_types",
         "flow_feature_issue_types",
         "flow_feature_effort_categories",
         "flow_defect_issue_types",
@@ -164,7 +108,6 @@ def track_types_tab_changes(*args):
         current_state[key] = (
             value if isinstance(value, list) else ([value] if value else [])
         )
-        # Log parent_issue_types and Technical Debt changes specifically
         if key in ("parent_issue_types", "flow_technical_debt_issue_types") and value:
             logger.info(
                 f"[FieldMapping] track_types_tab_changes: Storing {key}={value}"
@@ -183,7 +126,6 @@ def track_types_tab_changes(*args):
     prevent_initial_call=True,
 )
 def track_status_tab_changes(completion, active, flow_start, wip, current_state):
-    """Track Status tab dropdown changes."""
     current_state = current_state or {}
     current_state["flow_end_statuses"] = (
         completion
@@ -211,9 +153,7 @@ def track_status_tab_changes(completion, active, flow_start, wip, current_state)
     prevent_initial_call=True,
 )
 def track_environment_tab_changes(prod_env, current_state):
-    """Track Environment tab dropdown changes."""
 
-    # Only process if this was triggered by an actual user interaction
     if not ctx.triggered or not ctx.triggered[0]["value"]:
         return no_update
 

@@ -1,17 +1,3 @@
-"""Query Management Callbacks for Unified Query Workflow.
-
-Handles inline query creation, editing, saving, and state management.
-Implements the Save/Save As/Discard workflow with auto-name generation.
-
-Workflow:
-1. Select query from dropdown → Load query data
-2. Select "→ Create New Query" → Clear fields
-3. Edit JQL/name → Enable Save/Save As/Discard buttons
-4. Save → Overwrite selected query (destructive)
-5. Save As → Create new query with UUID
-6. Discard → Revert to last saved state
-"""
-
 import logging
 
 from dash import Input, Output, State, callback, callback_context, html, no_update
@@ -33,11 +19,6 @@ from ui.toast_notifications import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-# ============================================================================
-# Change Detection & Button State Management
-# ============================================================================
 
 
 @callback(
@@ -63,27 +44,6 @@ def manage_button_states(
     selected_query_id: str,
     dropdown_options: list,
 ) -> tuple[bool, bool, bool, bool]:
-    """Manage Save/Save As/Discard button states based on changes.
-
-    Button Logic:
-    - Save: Enabled when JQL changed (and not "Create New")
-    - Save As: Enabled when name OR JQL changed
-    - Discard: Enabled when name OR JQL changed
-    - Alert: Show when changes detected (prevents Update Data)
-
-    Note: When switching queries, there's a brief moment where the dropdown value
-    changes but the JQL/name haven't updated yet. We detect this and suppress the
-    alert to avoid showing "unsaved changes" during legitimate query switches.
-
-    Args:
-        current_name: Current query name from input
-        current_jql: Current JQL from editor
-        selected_query_id: Selected query ID from dropdown
-        dropdown_options: Current dropdown options (to get original values)
-
-    Returns:
-        Tuple of (save_disabled, save_as_disabled, discard_disabled, show_alert)
-    """
 
     logger.info(
         f"[QueryManagement] CALLBACK FIRED - selected_query_id='{selected_query_id}', "
@@ -92,7 +52,6 @@ def manage_button_states(
         f"current_jql='{current_jql[:60] if current_jql else '(empty)'}...'"
     )
 
-    # Detect if query-selector triggered this callback (query switch in progress)
     ctx = callback_context
     triggered_by_selector = False
     if ctx.triggered:
@@ -105,18 +64,13 @@ def manage_button_states(
             )
 
     try:
-        # Handle "Create New Query" mode
         if selected_query_id == "__create_new__":
-            # Creating new query - enable Save/Save As when JQL is entered
             has_name = bool(current_name and current_name.strip())
             has_jql = bool(current_jql and current_jql.strip())
             has_any_content = has_name or has_jql
 
-            # Save: Enabled when JQL is present (name auto-generated if empty)
             save_disabled = not has_jql
-            # Save As: Enabled when JQL is present (user can provide custom name)
             save_as_disabled = not has_jql
-            # Discard: Enabled when any content (can clear fields)
             discard_disabled = not has_any_content
 
             logger.info(
@@ -134,26 +88,17 @@ def manage_button_states(
                 f"discard_disabled={discard_disabled}, alert={has_any_content}"
             )
 
-            # Suppress alert if triggered by query selector
-            # (race condition during switch)
             show_alert = has_any_content and not triggered_by_selector
 
             return save_disabled, save_as_disabled, discard_disabled, show_alert
 
-        # Handle no query selected (empty dropdown)
         if not selected_query_id:
-            # First query in profile: enable Save/Save As when JQL is entered
             has_name = bool(current_name and current_name.strip())
             has_jql = bool(current_jql and current_jql.strip())
             has_any_content = has_name or has_jql
 
-            # First query: Enable Save when JQL present
-            # (name will be auto-generated)
-            # Save: Enabled when JQL is present (name auto-generated if empty)
             save_disabled = not has_jql
-            # Save As: Enabled when JQL is present (user can provide custom name)
             save_as_disabled = not has_jql
-            # Discard: Enabled when any content present (can clear fields)
             discard_disabled = not has_any_content
 
             logger.info(
@@ -171,13 +116,9 @@ def manage_button_states(
                 f"discard_disabled={discard_disabled}, alert={has_any_content}"
             )
 
-            # Suppress alert if triggered by query selector
-            # (race condition during switch)
             show_alert = has_any_content and not triggered_by_selector
 
             return save_disabled, save_as_disabled, discard_disabled, show_alert
-
-        # Get original query data from dropdown options
 
         profile_id = get_active_profile_id()
         queries = list_queries_for_profile(profile_id)
@@ -190,18 +131,14 @@ def manage_button_states(
         original_name = query.get("name", "")
         original_jql = query.get("jql", "")
 
-        # Detect changes
         name_changed = (current_name or "") != original_name
         jql_changed = (current_jql or "") != original_jql
         any_changes = name_changed or jql_changed
 
-        # Button states based on changes
-        save_disabled = not jql_changed  # Save only enabled when JQL changed
-        save_as_disabled = not any_changes  # Save As enabled when anything changed
-        discard_disabled = not any_changes  # Discard enabled when anything changed
+        save_disabled = not jql_changed
+        save_as_disabled = not any_changes
+        discard_disabled = not any_changes
 
-        # Suppress alert if triggered by query selector (race condition during switch)
-        # When switching queries, the selector changes first, then JQL/name update async
         show_alert = any_changes and not triggered_by_selector
 
         logger.debug(
@@ -215,13 +152,7 @@ def manage_button_states(
 
     except Exception as e:
         logger.error(f"Failed to manage button states: {e}")
-        # Safe defaults - disable all buttons
         return True, True, True, False
-
-
-# ============================================================================
-# Auto-Generate Query Name from JQL
-# ============================================================================
 
 
 @callback(
@@ -233,26 +164,10 @@ def manage_button_states(
 def auto_generate_query_name(
     jql_query: str, selected_query_id: str, current_name: str
 ) -> str:
-    """Auto-generate query name from JQL when creating new query.
 
-    Only generates name when:
-    1. "Create New Query" is selected OR no query selected (first query)
-    2. JQL has content
-    3. Name field is empty (don't overwrite manual names)
-
-    Args:
-        jql_query: Current JQL query string
-        selected_query_id: Selected query ID (or "__create_new__" or empty)
-        current_name: Current value in query name input
-
-    Returns:
-        Generated query name or no_update
-    """
-    # Only auto-generate for "Create New Query" mode or no selection (first query)
     if selected_query_id and selected_query_id != "__create_new__":
         raise PreventUpdate
 
-    # Don't overwrite manually entered names
     if current_name and current_name.strip():
         raise PreventUpdate
 
@@ -267,11 +182,6 @@ def auto_generate_query_name(
     except Exception as e:
         logger.error(f"[QueryManagement] Failed to auto-generate query name: {e}")
         raise PreventUpdate from e
-
-
-# ============================================================================
-# Save Query (Overwrite)
-# ============================================================================
 
 
 @callback(
@@ -295,29 +205,12 @@ def save_query_overwrite(
     query_jql: str,
     selected_query_id: str,
 ) -> tuple:
-    """Save query by overwriting the selected query (destructive operation).
 
-    Validation:
-    - Cannot save if "Create New Query" is selected
-    - Requires valid query name and JQL
-    - Confirms destructive overwrite with user
-
-    Args:
-        n_clicks: Button click count
-        query_name: Query name from input
-        query_jql: JQL query from editor
-        selected_query_id: Selected query ID to overwrite
-
-    Returns:
-        Tuple of (status_message, updated_options, updated_value, toast_notification)
-    """
     if not n_clicks:
         raise PreventUpdate
 
     try:
-        # Handle no query selected (first query in profile)
         if not selected_query_id:
-            # Creating first query - treat like "Save As" with auto-generated name
             if not query_jql or not query_jql.strip():
                 feedback = create_error_toast(
                     "JQL query cannot be empty",
@@ -325,15 +218,12 @@ def save_query_overwrite(
                 )
                 return "", no_update, no_update, feedback
 
-            # Auto-generate name if empty
             if not query_name or not query_name.strip():
                 query_name = generate_query_name(query_jql.strip())
                 logger.info(
                     "[QueryManagement] Auto-generated name for first query: "
                     f"'{query_name}'"
                 )
-
-            # Create first query
 
             profile_id = get_active_profile_id()
             new_query_id = create_query(profile_id, query_name, query_jql.strip())
@@ -344,8 +234,6 @@ def save_query_overwrite(
                 f"in profile '{profile_id}'"
             )
 
-            # Refresh dropdown and select new query
-
             options = get_query_dropdown_options(profile_id)
 
             toast = create_success_toast(
@@ -355,9 +243,7 @@ def save_query_overwrite(
 
             return "", options, new_query_id, toast
 
-        # Handle "Create New Query" mode - same logic as "no selection"
         if selected_query_id == "__create_new__":
-            # Creating new query - treat like first query
             if not query_jql or not query_jql.strip():
                 feedback = create_error_toast(
                     "JQL query cannot be empty",
@@ -365,7 +251,6 @@ def save_query_overwrite(
                 )
                 return "", no_update, no_update, feedback
 
-            # Auto-generate name if empty
             if not query_name or not query_name.strip():
                 query_name = generate_query_name(query_jql.strip())
                 logger.info(
@@ -373,11 +258,8 @@ def save_query_overwrite(
                     f"'{query_name}'"
                 )
 
-            # Create new query
-
             profile_id = get_active_profile_id()
 
-            # Check for name collision
             queries = list_queries_for_profile(profile_id)
             for query in queries:
                 if query.get("name", "").strip() == query_name.strip():
@@ -397,8 +279,6 @@ def save_query_overwrite(
                 f"in profile '{profile_id}'"
             )
 
-            # Refresh dropdown and select new query
-
             options = get_query_dropdown_options(profile_id)
 
             toast = create_success_toast(
@@ -408,7 +288,6 @@ def save_query_overwrite(
 
             return "", options, new_query_id, toast
 
-        # Validate inputs for existing query update
         if not query_name or not query_name.strip():
             feedback = create_error_toast(
                 "Query name cannot be empty",
@@ -423,11 +302,8 @@ def save_query_overwrite(
             )
             return "", no_update, no_update, feedback
 
-        # Update query
-
         profile_id = get_active_profile_id()
 
-        # Check for name collision with OTHER queries
         queries = list_queries_for_profile(profile_id)
         for query in queries:
             if (
@@ -447,8 +323,6 @@ def save_query_overwrite(
         )
 
         logger.info(f"Query '{selected_query_id}' updated successfully")
-
-        # Refresh dropdown
 
         options = get_query_dropdown_options(profile_id)
 
@@ -470,11 +344,6 @@ def save_query_overwrite(
         return "", no_update, no_update, feedback
 
 
-# ============================================================================
-# Save As (Create New Query)
-# ============================================================================
-
-
 @callback(
     [
         Output("query-save-status", "children", allow_duplicate=True),
@@ -494,27 +363,11 @@ def save_query_as_new(
     query_name: str,
     query_jql: str,
 ) -> tuple:
-    """Save query as new (create new query with UUID).
 
-    Safe operation - does not overwrite existing queries.
-
-    Validation:
-    - Requires valid query name and JQL
-    - Checks for name collisions
-
-    Args:
-        n_clicks: Button click count
-        query_name: Query name from input
-        query_jql: JQL query from editor
-
-    Returns:
-        Tuple of (status_message, updated_options, new_query_id, toast_notification)
-    """
     if not n_clicks:
         raise PreventUpdate
 
     try:
-        # Validate inputs
         if not query_name or not query_name.strip():
             feedback = create_error_toast(
                 "Query name cannot be empty",
@@ -529,11 +382,8 @@ def save_query_as_new(
             )
             return "", no_update, no_update, feedback
 
-        # Create new query
-
         profile_id = get_active_profile_id()
 
-        # Check for name collision
         queries = list_queries_for_profile(profile_id)
         for query in queries:
             if query.get("name", "").strip() == query_name.strip():
@@ -548,8 +398,6 @@ def save_query_as_new(
         query_id = create_query(profile_id, query_name.strip(), query_jql.strip())
 
         logger.info(f"New query '{query_id}' created successfully")
-
-        # Refresh dropdown and select new query
 
         options = get_query_dropdown_options(profile_id)
 
@@ -574,11 +422,6 @@ def save_query_as_new(
         return "", no_update, no_update, feedback
 
 
-# ============================================================================
-# Discard Changes
-# ============================================================================
-
-
 @callback(
     [
         Output("query-name-input", "value", allow_duplicate=True),
@@ -590,24 +433,11 @@ def save_query_as_new(
     prevent_initial_call=True,
 )
 def discard_query_changes(n_clicks: int, selected_query_id: str) -> tuple:
-    """Discard changes and revert to last saved state.
 
-    Behavior:
-    - If "Create New Query": Clear all fields
-    - If existing query: Reload original name and JQL
-
-    Args:
-        n_clicks: Button click count
-        selected_query_id: Selected query ID (or "__create_new__")
-
-    Returns:
-        Tuple of (query_name, query_jql, status_message)
-    """
     if not n_clicks:
         raise PreventUpdate
 
     try:
-        # Handle "Create New Query" mode - clear fields
         if selected_query_id == "__create_new__":
             feedback = html.Div(
                 [
@@ -617,8 +447,6 @@ def discard_query_changes(n_clicks: int, selected_query_id: str) -> tuple:
                 className="alert alert-info",
             )
             return "", "", feedback
-
-        # Handle existing query - reload original data
 
         profile_id = get_active_profile_id()
         queries = list_queries_for_profile(profile_id)

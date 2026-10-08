@@ -1,10 +1,3 @@
-"""
-Extended Metrics Loader
-
-Loads DORA, flow, and bug-analysis metrics for the health formula
-used in the dashboard tab.  All business logic delegated to data/ modules.
-"""
-
 import logging
 from datetime import datetime, timedelta
 
@@ -30,18 +23,7 @@ def load_extended_metrics(
     data_points_count: int,
     current_week_label: str,
 ) -> dict:
-    """
-    Load DORA, flow, and bug extended metrics for the health formula.
 
-    Args:
-        profile_id: Active profile identifier.
-        query_id: Active query identifier.
-        data_points_count: Number of weeks to include.
-        current_week_label: ISO week label for the current week.
-
-    Returns:
-        Dict with optional keys: "dora", "flow", "bug_analysis".
-    """
     extended_metrics: dict = {}
 
     if not profile_id or not query_id:
@@ -61,7 +43,6 @@ def load_extended_metrics(
 
 
 def _try_load_dora(extended_metrics: dict, data_points_count: int) -> None:
-    """Load DORA metrics into extended_metrics if available."""
     try:
         cached_metrics = load_dora_metrics_from_cache(n_weeks=data_points_count or 12)
         if not cached_metrics:
@@ -107,7 +88,6 @@ def _try_load_dora(extended_metrics: dict, data_points_count: int) -> None:
 def _try_load_flow(
     extended_metrics: dict, data_points_count: int, current_week_label: str
 ) -> None:
-    """Load flow metrics into extended_metrics if available."""
     try:
         weeks = []
         current_date = datetime.now()
@@ -201,7 +181,6 @@ def _try_load_flow(
 def _try_load_bugs(
     extended_metrics: dict, data_points_count: int, profile_id: str
 ) -> None:
-    """Load bug analysis metrics into extended_metrics if available."""
     try:
         backend = get_backend()
         query_id_active = get_active_query_id()

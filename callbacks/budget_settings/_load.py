@@ -1,11 +1,3 @@
-"""
-Budget settings - load, display, and populate callbacks.
-
-Handles loading budget settings when profile/query changes, refreshing
-the current budget card, populating inputs when the Budget tab opens,
-and displaying the budget total and baseline velocity.
-"""
-
 import logging
 from datetime import datetime
 
@@ -47,21 +39,7 @@ logger = logging.getLogger(__name__)
 def load_budget_settings(
     profile_id, query_id, active_tab, profile_switch, metrics_refresh
 ):
-    """
-    Load budget settings when profile/query changes or Budget tab is opened.
 
-    Args:
-        profile_id: Active profile identifier
-        query_id: Active query identifier
-        active_tab: Currently active settings tab
-        profile_switch: Trigger for profile switch
-        metrics_refresh: Trigger for metrics refresh
-
-    Returns:
-        Tuple of (store_data, time_input, currency_input, cost_input,
-                  effective_date, revision_history, time_current, cost_current,
-                  page_info, prev_disabled, next_disabled)
-    """
     logger.info(
         "[BUDGET LOAD] Called with "
         f"profile_id={profile_id}, query_id={query_id}, "
@@ -86,7 +64,6 @@ def load_budget_settings(
             no_update,
         )
 
-    # If not on budget tab, only update the store (for other components to use)
     if active_tab != "budget-tab":
         try:
             current_week = get_week_label(datetime.now())
@@ -276,17 +253,7 @@ def load_budget_settings(
     prevent_initial_call=False,
 )
 def update_budget_total_display(time_allocated, team_cost, currency_symbol):
-    """
-    Update budget total display when time or cost inputs change.
 
-    Args:
-        time_allocated: Time allocated in weeks
-        team_cost: Team cost per week
-        currency_symbol: Currency symbol for display
-
-    Returns:
-        str: Formatted budget total string
-    """
     currency = currency_symbol or "\u20ac"
     if time_allocated and team_cost and time_allocated > 0 and team_cost > 0:
         total = time_allocated * team_cost
@@ -304,17 +271,7 @@ def update_budget_total_display(time_allocated, team_cost, currency_symbol):
     prevent_initial_call=False,
 )
 def update_budget_total_preview(time_allocated, team_cost, currency):
-    """
-    Update auto-calculated budget total preview.
 
-    Args:
-        time_allocated: Time allocated in weeks
-        team_cost: Team cost per week (weekly rate)
-        currency: Currency symbol
-
-    Returns:
-        str: Formatted budget total preview
-    """
     if not time_allocated or not team_cost:
         return f"{currency or '\u20ac'}0.00"
     total = time_allocated * team_cost
@@ -330,16 +287,7 @@ def update_budget_total_preview(time_allocated, team_cost, currency):
     prevent_initial_call=False,
 )
 def update_baseline_velocity_display(profile_id, query_id):
-    """
-    Display current velocity that will be captured as baseline when budget is saved.
 
-    Args:
-        profile_id: Active profile identifier
-        query_id: Active query identifier
-
-    Returns:
-        str or html.Span: Velocity display text
-    """
     if not profile_id or not query_id:
         return "Will be captured from Recent Completions (Last 4 Weeks) when you save"
 
@@ -395,16 +343,7 @@ def update_baseline_velocity_display(profile_id, query_id):
     prevent_initial_call="initial_duplicate",
 )
 def refresh_current_budget_card(store_data, active_tab):
-    """
-    Refresh current budget card when store updates or Budget tab becomes active.
 
-    Args:
-        store_data: Budget settings store
-        active_tab: Currently active settings tab
-
-    Returns:
-        Updated card children
-    """
     if not store_data or not store_data.get("time_allocated_weeks"):
         return _create_current_budget_card_content(
             budget_data=None, show_placeholder=True
@@ -449,19 +388,7 @@ def refresh_current_budget_card(store_data, active_tab):
     prevent_initial_call=True,
 )
 def populate_inputs_on_tab_switch(active_tab, store_data):
-    """
-    Populate budget input fields when Budget tab becomes active.
 
-    Handles the case where the app starts on a different tab and inputs
-    were not populated by load_budget_settings.
-
-    Args:
-        active_tab: Currently active settings tab
-        store_data: Budget settings from store
-
-    Returns:
-        Tuple of (time_input, currency_input, cost_input, effective_date)
-    """
     logger.info(
         "[POPULATE INPUTS] Called with "
         f"active_tab={active_tab}, "

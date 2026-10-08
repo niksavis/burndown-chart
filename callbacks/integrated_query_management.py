@@ -1,17 +1,3 @@
-"""
-Integrated Query Management Callbacks
-
-Implements all callbacks for the unified JQL-first query management system.
-Handles state management, query switching, saving, reverting, and deletion.
-
-Workflow:
-1. JQL editor changes → update state, show unsaved indicator
-2. Save → generate name, show modal with update/new options
-3. Switch query → check unsaved, prompt if needed, load JQL
-4. Revert → restore saved JQL, clear unsaved state
-5. Delete → confirm, remove files, switch to next query
-"""
-
 import logging
 from datetime import datetime
 from typing import Any
@@ -31,11 +17,6 @@ from data.query_name_generator import generate_query_name, validate_query_name
 logger = logging.getLogger(__name__)
 
 
-# ============================================================================
-# CALLBACK 1: JQL Editor Change Detection
-# ============================================================================
-
-
 @callback(
     [
         Output("query-state-store", "data"),
@@ -53,20 +34,7 @@ def detect_jql_changes(
     current_jql: str,
     state: dict[str, Any],
 ) -> tuple:
-    """
-    Detect JQL editor changes and update UI state.
 
-    Compares current JQL with saved version to determine if changes exist.
-    Updates unsaved indicator, enables/disables buttons, generates name suggestion.
-
-    Args:
-        current_jql: Current JQL in editor
-        state: Query state from store
-
-    Returns:
-        Tuple of (updated_state, badge_style, save_disabled, revert_style,
-                  suggested_name, suggestion_container_style)
-    """
     if state is None:
         state = {
             "activeQueryId": None,
@@ -78,29 +46,24 @@ def detect_jql_changes(
             "suggestedName": "",
         }
 
-    # Update current JQL in state
     saved_jql = state.get("savedJql", "")
     current_jql = current_jql or ""
 
-    # Determine if changes exist
     has_unsaved_changes = current_jql.strip() != saved_jql.strip()
 
-    # Generate suggested name if JQL exists
     suggested_name = ""
     if current_jql.strip():
         suggested_name = generate_query_name(current_jql)
 
-    # Update state
     state["currentJql"] = current_jql
     state["hasUnsavedChanges"] = has_unsaved_changes
     state["suggestedName"] = suggested_name
     state["lastModified"] = datetime.now().isoformat()
 
-    # UI updates
     badge_style = (
         {"display": "inline-block"} if has_unsaved_changes else {"display": "none"}
     )
-    save_disabled = not bool(current_jql.strip())  # Enable if JQL has content
+    save_disabled = not bool(current_jql.strip())
     revert_style = {"display": "block"} if has_unsaved_changes else {"display": "none"}
     suggestion_style = {"display": "block"} if suggested_name else {"display": "none"}
 
@@ -112,11 +75,6 @@ def detect_jql_changes(
         suggested_name,
         suggestion_style,
     )
-
-
-# ============================================================================
-# CALLBACK 2: Query Dropdown Change (with Unsaved Check)
-# ============================================================================
 
 
 @callback(
@@ -138,49 +96,27 @@ def handle_query_dropdown_change(
     state: dict[str, Any],
     modal_is_open: bool,
 ) -> tuple:
-    """
-    Handle query selection with unsaved changes check.
 
-    If unsaved changes exist, opens modal to prompt user.
-    Otherwise, proceeds with loading query (handled by separate callback).
-
-    Args:
-        selected_query_id: ID of selected query
-        state: Query state from store
-        modal_is_open: Current modal state
-
-    Returns:
-        Tuple of (modal_is_open, query_name, jql_preview, pending_query_id)
-    """
     if not selected_query_id or not state:
         raise PreventUpdate
 
-    # Check if switching to same query (no-op)
     if selected_query_id == state.get("activeQueryId"):
         raise PreventUpdate
 
-    # Check for unsaved changes
     has_unsaved = state.get("hasUnsavedChanges", False)
 
     if has_unsaved:
-        # Show unsaved changes modal
         query_name = state.get("activeQueryName", "current query")
         current_jql = state.get("currentJql", "")
 
         return (
-            True,  # Open modal
+            True,
             query_name,
             current_jql,
-            selected_query_id,  # Store pending switch
+            selected_query_id,
         )
 
-    # No unsaved changes - allow switch (handled by load callback)
     return no_update, no_update, no_update, selected_query_id
-
-
-# ============================================================================
-# CALLBACK 3: Load Query JQL (after unsaved handled)
-# ============================================================================
 
 
 @callback(
@@ -199,30 +135,11 @@ def load_query_jql(
     query_id: str | None,
     state: dict[str, Any],
 ) -> tuple:
-    """
-    Load selected query's JQL into editor.
 
-    Updates editor content and state to reflect loaded query.
-    Resets unsaved changes flag.
-
-    Args:
-        query_id: ID of query to load
-        state: Current query state
-
-    Returns:
-        Tuple of (
-            jql_value,
-            updated_state,
-            delete_disabled,
-            last_saved,
-            indicator_style,
-        )
-    """
     if not query_id:
         raise PreventUpdate
 
     try:
-        # Load query data
         profile_id = get_active_profile_id()
         all_queries = list_queries_for_profile(profile_id)
         query = next((q for q in all_queries if q.get("id") == query_id), None)
@@ -233,7 +150,6 @@ def load_query_jql(
         query_name = query.get("name", "Unnamed")
         query_jql = query.get("jql", "")
 
-        # Update state
         if state is None:
             state = {}
 
@@ -244,25 +160,19 @@ def load_query_jql(
         state["hasUnsavedChanges"] = False
         state["lastModified"] = datetime.now().isoformat()
 
-        # Format last saved time
         last_saved_text = "Just now"
 
         return (
-            query_jql,  # Load into editor
+            query_jql,
             state,
-            False,  # Enable delete button
+            False,
             last_saved_text,
-            {"display": "block"},  # Show last saved indicator
+            {"display": "block"},
         )
 
     except Exception as e:
         logger.error(f"Error loading query {query_id}: {e}")
         raise PreventUpdate from e
-
-
-# ============================================================================
-# CALLBACK 4: Unsaved Changes Modal Actions
-# ============================================================================
 
 
 @callback(
@@ -285,42 +195,19 @@ def handle_unsaved_changes_modal(
     cancel_clicks: int,
     pending_query_id: str | None,
 ) -> tuple:
-    """
-    Handle unsaved changes modal button clicks.
 
-    Save: Opens save query modal
-    Discard: Proceeds with query switch (clears pending)
-    Cancel: Closes modal, stays on current query
-
-    Args:
-        save_clicks: Save button clicks
-        discard_clicks: Discard button clicks
-        cancel_clicks: Cancel button clicks
-        pending_query_id: Query user was trying to switch to
-
-    Returns:
-        Tuple of (unsaved_modal_open, save_modal_open, pending_query_id)
-    """
     triggered = ctx.triggered_id
 
     if triggered == "unsaved-changes-save-button":
-        # Open save modal, keep pending switch
         return False, True, pending_query_id
 
     elif triggered == "unsaved-changes-discard-button":
-        # Proceed with switch (triggers load callback)
         return False, False, pending_query_id
 
     elif triggered == "unsaved-changes-cancel-button":
-        # Cancel switch, clear pending
         return False, False, None
 
     raise PreventUpdate
-
-
-# ============================================================================
-# CALLBACK 5: Open Save Query Modal
-# ============================================================================
 
 
 @callback(
@@ -339,19 +226,7 @@ def open_save_query_modal(
     n_clicks: int,
     state: dict[str, Any],
 ) -> tuple:
-    """
-    Open save query modal with current JQL and suggested name.
 
-    Determines if this is a new query or update to existing.
-    Pre-fills suggested name and sets appropriate mode.
-
-    Args:
-        n_clicks: Save button clicks
-        state: Current query state
-
-    Returns:
-        Tuple of (modal_open, jql_preview, suggested_name, mode, mode_container_style)
-    """
     if not n_clicks or not state:
         raise PreventUpdate
 
@@ -359,29 +234,22 @@ def open_save_query_modal(
     suggested_name = state.get("suggestedName", "")
     active_query_id = state.get("activeQueryId")
 
-    # Determine mode: update existing or save as new
     if active_query_id:
-        mode = "update"  # Has active query, default to update
+        mode = "update"
     else:
-        mode = "new"  # No active query, must save as new
+        mode = "new"
 
-    # Show/hide mode container (hide if new query)
     mode_container_style = (
         {"display": "block"} if active_query_id else {"display": "none"}
     )
 
     return (
-        True,  # Open modal
+        True,
         current_jql,
         suggested_name,
         mode,
         mode_container_style,
     )
-
-
-# ============================================================================
-# CALLBACK 6: Save Query Confirm
-# ============================================================================
 
 
 @callback(
@@ -406,37 +274,15 @@ def save_query_confirm(
     save_mode: str,
     state: dict[str, Any],
 ) -> tuple:
-    """
-    Save query (update existing or create new).
 
-    Validates name, creates/updates query, refreshes dropdown.
-    Shows data loss warning handled by modal UI.
-
-    Args:
-        n_clicks: Confirm button clicks
-        query_name: User-entered query name
-        save_mode: "update" or "new"
-        state: Current query state
-
-    Returns:
-        Tuple of (
-            modal_open,
-            validation_msg,
-            updated_state,
-            dropdown_options,
-            selected_value,
-        )
-    """
     if not n_clicks or not state:
         raise PreventUpdate
 
     try:
-        # Validate name
         profile_id = get_active_profile_id()
         all_queries = list_queries_for_profile(profile_id)
         existing_names = [q.get("name", "") for q in all_queries]
 
-        # If updating, exclude current query name from validation
         if save_mode == "update" and state.get("activeQueryName"):
             existing_names = [
                 n for n in existing_names if n != state.get("activeQueryName")
@@ -449,7 +295,6 @@ def save_query_confirm(
         current_jql = state.get("currentJql", "")
 
         if save_mode == "update":
-            # Update existing query
             query_id = state.get("activeQueryId")
             if not query_id:
                 return (
@@ -462,7 +307,6 @@ def save_query_confirm(
             update_query(profile_id, query_id, name=query_name, jql=current_jql)
             logger.info(f"Updated query {query_id}: {query_name}")
 
-            # Update state
             state["activeQueryName"] = query_name
             state["savedJql"] = current_jql
             state["hasUnsavedChanges"] = False
@@ -470,11 +314,9 @@ def save_query_confirm(
             selected_query_id = query_id
 
         else:
-            # Create new query
             query_id = create_query(profile_id, query_name, current_jql)
             logger.info(f"Created query {query_id}: {query_name}")
 
-            # Update state
             state["activeQueryId"] = query_id
             state["activeQueryName"] = query_name
             state["savedJql"] = current_jql
@@ -482,7 +324,6 @@ def save_query_confirm(
 
             selected_query_id = query_id
 
-        # Refresh dropdown options
         all_queries = list_queries_for_profile(profile_id)
         dropdown_options = [
             {
@@ -496,8 +337,8 @@ def save_query_confirm(
         ]
 
         return (
-            False,  # Close modal
-            "",  # Clear validation
+            False,
+            "",
             state,
             dropdown_options,
             selected_query_id,
@@ -514,26 +355,15 @@ def save_query_confirm(
         )
 
 
-# ============================================================================
-# CALLBACK 7: Cancel Save Query Modal
-# ============================================================================
-
-
 @callback(
     Output("save-query-modal", "is_open", allow_duplicate=True),
     Input("save-query-cancel-button", "n_clicks"),
     prevent_initial_call=True,
 )
 def cancel_save_query_modal(n_clicks: int) -> bool:
-    """Close save query modal without saving."""
     if not n_clicks:
         raise PreventUpdate
     return False
-
-
-# ============================================================================
-# CALLBACK 8: Revert Changes
-# ============================================================================
 
 
 @callback(
@@ -549,33 +379,16 @@ def revert_query_changes(
     n_clicks: int,
     state: dict[str, Any],
 ) -> tuple:
-    """
-    Revert JQL editor to last saved version.
 
-    Restores savedJql to editor, clears unsaved changes flag.
-
-    Args:
-        n_clicks: Revert button clicks
-        state: Current query state
-
-    Returns:
-        Tuple of (jql_value, updated_state)
-    """
     if not n_clicks or not state:
         raise PreventUpdate
 
     saved_jql = state.get("savedJql", "")
 
-    # Update state
     state["currentJql"] = saved_jql
     state["hasUnsavedChanges"] = False
 
     return saved_jql, state
-
-
-# ============================================================================
-# CALLBACK 9: Open Delete Query Modal
-# ============================================================================
 
 
 @callback(
@@ -592,18 +405,7 @@ def open_delete_query_modal(
     n_clicks: int,
     state: dict[str, Any],
 ) -> tuple:
-    """
-    Open delete query confirmation modal.
 
-    Shows query name and JQL being deleted.
-
-    Args:
-        n_clicks: Delete button clicks
-        state: Current query state
-
-    Returns:
-        Tuple of (modal_open, query_name, query_jql)
-    """
     if not n_clicks or not state:
         raise PreventUpdate
 
@@ -611,11 +413,6 @@ def open_delete_query_modal(
     current_jql = state.get("currentJql", "")
 
     return True, query_name, current_jql
-
-
-# ============================================================================
-# CALLBACK 10: Confirm Delete Query
-# ============================================================================
 
 
 @callback(
@@ -634,25 +431,7 @@ def confirm_delete_query(
     n_clicks: int,
     state: dict[str, Any],
 ) -> tuple:
-    """
-    Delete query and switch to first remaining query.
 
-    Deletes query files, updates dropdown, loads next query.
-    Prevents deletion if last query in profile.
-
-    Args:
-        n_clicks: Confirm button clicks
-        state: Current query state
-
-    Returns:
-        Tuple of (
-            modal_open,
-            dropdown_options,
-            selected_value,
-            jql_value,
-            updated_state,
-        )
-    """
     if not n_clicks or not state:
         raise PreventUpdate
 
@@ -660,30 +439,25 @@ def confirm_delete_query(
         query_id = state.get("activeQueryId")
         profile_id = get_active_profile_id()
 
-        # Delete query (allow deletion of last query)
         if not query_id:
             raise PreventUpdate
         delete_query(profile_id, query_id, allow_cascade=True)
         logger.info(f"Deleted query {query_id}")
 
-        # Get remaining queries
         remaining_queries = list_queries_for_profile(profile_id)
         first_query = remaining_queries[0] if remaining_queries else None
 
         if first_query:
-            # Load first remaining query
             first_query_id = first_query.get("id")
             first_query_jql = first_query.get("jql", "")
             first_query_name = first_query.get("name", "")
 
-            # Update state
             state["activeQueryId"] = first_query_id
             state["activeQueryName"] = first_query_name
             state["savedJql"] = first_query_jql
             state["currentJql"] = first_query_jql
             state["hasUnsavedChanges"] = False
 
-            # Update dropdown
             dropdown_options = [
                 {
                     "label": (
@@ -696,14 +470,13 @@ def confirm_delete_query(
             ]
 
             return (
-                False,  # Close modal
+                False,
                 dropdown_options,
                 first_query_id,
                 first_query_jql,
                 state,
             )
         else:
-            # No queries left - user deleted the last query, return to empty state
             return (
                 False,
                 [],
@@ -725,26 +498,15 @@ def confirm_delete_query(
         raise PreventUpdate from e
 
 
-# ============================================================================
-# CALLBACK 11: Cancel Delete Query Modal
-# ============================================================================
-
-
 @callback(
     Output("delete-query-modal", "is_open", allow_duplicate=True),
     Input("delete-query-cancel-button", "n_clicks"),
     prevent_initial_call=True,
 )
 def cancel_delete_query_modal(n_clicks: int) -> bool:
-    """Close delete query modal without deleting."""
     if not n_clicks:
         raise PreventUpdate
     return False
-
-
-# ============================================================================
-# CALLBACK 12: Initialize Query Dropdown on Load
-# ============================================================================
 
 
 @callback(
@@ -756,17 +518,7 @@ def cancel_delete_query_modal(n_clicks: int) -> bool:
     prevent_initial_call="initial_duplicate",
 )
 def initialize_query_dropdown(state: dict[str, Any]) -> tuple:
-    """
-    Initialize query dropdown with queries from active profile.
 
-    Runs on page load to populate dropdown with saved queries.
-
-    Args:
-        state: Query state (may be initial default)
-
-    Returns:
-        Tuple of (dropdown_options, selected_value)
-    """
     try:
         profile_id = get_active_profile_id()
         if not profile_id:
@@ -776,7 +528,6 @@ def initialize_query_dropdown(state: dict[str, Any]) -> tuple:
         if not all_queries:
             return [], None
 
-        # Get active query from state or use first
         active_query_id = state.get("activeQueryId") if state else None
         if not active_query_id and all_queries:
             active_query_id = all_queries[0].get("id")

@@ -1,12 +1,3 @@
-"""Field mapping callbacks package.
-
-Provides callbacks for JIRA field mapping configuration across multiple tabs.
-
-This package was refactored from a single 2846-line file to improve maintainability
-and comply with 500-line architectural guidelines.
-"""
-
-# Import all callback modules to register them with Dash
 from . import (
     auto_config,
     helpers,

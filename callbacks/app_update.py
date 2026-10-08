@@ -1,10 +1,3 @@
-"""
-Callbacks for application auto-update functionality.
-
-Handles downloading and installing updates from GitHub releases.
-Uses background threading for downloads to provide progress feedback.
-"""
-
 import logging
 import threading
 
@@ -20,7 +13,6 @@ from ui.toast_notifications import create_toast
 
 logger = logging.getLogger(__name__)
 
-# Global variable to track download thread
 _download_thread: threading.Thread | None = None
 _download_in_progress = False
 
@@ -31,23 +23,9 @@ _download_in_progress = False
     prevent_initial_call=True,
 )
 def handle_footer_update_click(footer_clicks: int):
-    """Handle clicks on footer update indicator.
-
-    Re-shows the appropriate toast based on current state:
-    - AVAILABLE: Re-show Download button toast
-    - READY: Re-show Update button toast
-    - MANUAL_UPDATE_REQUIRED: Open GitHub releases page
-
-    Args:
-        footer_clicks: Number of clicks on footer update indicator
-
-    Returns:
-        Toast notification
-    """
 
     import app  # noqa: PLC0415
 
-    # Check if actually clicked
     if not callback_context.triggered:
         return no_update
 
@@ -57,13 +35,11 @@ def handle_footer_update_click(footer_clicks: int):
 
     logger.info("Footer update button clicked")
 
-    # Get current update state
     if not app.VERSION_CHECK_RESULT:
         return no_update
 
     progress = app.VERSION_CHECK_RESULT
 
-    # READY state: Re-show Update button toast
     if progress.state == UpdateState.READY:
         logger.info("Footer clicked in READY state - re-showing install toast")
 
@@ -89,7 +65,6 @@ def handle_footer_update_click(footer_clicks: int):
         )
         return ready_toast
 
-    # AVAILABLE state: Re-show Download button toast (consistent with READY behavior)
     elif progress.state == UpdateState.AVAILABLE:
         logger.info("Footer clicked in AVAILABLE state - re-showing download toast")
 
@@ -118,7 +93,6 @@ def handle_footer_update_click(footer_clicks: int):
         )
         return download_toast
 
-    # MANUAL_UPDATE_REQUIRED: Open GitHub releases (source code mode)
     elif progress.state == UpdateState.MANUAL_UPDATE_REQUIRED:
         logger.info("Footer clicked in MANUAL mode - opening GitHub releases page")
 
@@ -138,7 +112,6 @@ def handle_footer_update_click(footer_clicks: int):
             icon="external-link-alt",
         )
 
-    # Any other state - shouldn't happen but handle gracefully
     else:
         return no_update
 
@@ -154,22 +127,18 @@ def handle_footer_update_click(footer_clicks: int):
     prevent_initial_call=True,
 )
 def handle_toast_download_click(download_clicks: int, status_data: dict | None):
-    """Handle download when user clicks Download button in toast notification."""
     global _download_thread, _download_in_progress
 
     import app  # noqa: PLC0415
 
-    # Check if button was actually clicked
     if not callback_context.triggered:
         return no_update, no_update, True
 
     triggered_prop = callback_context.triggered[0]["prop_id"]
 
-    # Only proceed if n_clicks was actually triggered
     if ".n_clicks" not in triggered_prop:
         return no_update, no_update, True
 
-    # Verify it's the download button and clicks > 0
     if not download_clicks or download_clicks == 0:
         return no_update, no_update, True
 
@@ -180,7 +149,6 @@ def handle_toast_download_click(download_clicks: int, status_data: dict | None):
 
     progress = app.VERSION_CHECK_RESULT
 
-    # Check if download already in progress
     if _download_in_progress:
         logger.warning("Download already in progress")
         return (
@@ -191,10 +159,9 @@ def handle_toast_download_click(download_clicks: int, status_data: dict | None):
                 header="Download In Progress",
                 duration=3000,
             ),
-            False,  # Keep polling enabled
+            False,
         )
 
-    # Start download in background thread
     def download_background():
         global _download_in_progress
         try:
@@ -212,7 +179,6 @@ def handle_toast_download_click(download_clicks: int, status_data: dict | None):
             )
         except Exception as e:
             logger.error(f"Background download failed: {e}", exc_info=True)
-            # Set error state
             progress.state = UpdateState.ERROR
             progress.error_message = str(e)
             app.VERSION_CHECK_RESULT = progress
@@ -222,7 +188,6 @@ def handle_toast_download_click(download_clicks: int, status_data: dict | None):
     _download_thread = threading.Thread(target=download_background, daemon=True)
     _download_thread.start()
 
-    # Show downloading toast with progress
     downloading_toast = create_toast(
         [
             html.Div("Downloading update...", id="download-status-text"),
@@ -250,7 +215,7 @@ def handle_toast_download_click(download_clicks: int, status_data: dict | None):
         ],
         "info",
         header="Downloading Update",
-        duration=300000,  # 5 minutes - long enough for download
+        duration=300000,
         icon="download",
         dismissable=True,
     )
@@ -258,7 +223,7 @@ def handle_toast_download_click(download_clicks: int, status_data: dict | None):
     return (
         {"state": "downloading"},
         downloading_toast,
-        False,  # Enable polling interval
+        False,
     )
 
 
@@ -273,33 +238,15 @@ def handle_toast_download_click(download_clicks: int, status_data: dict | None):
     prevent_initial_call=True,
 )
 def poll_download_progress(n_intervals):
-    """Poll download progress and update UI.
-
-    Checks global VERSION_CHECK_RESULT for download status and shows
-    completion toast when download finishes. Updates progress bar.
-
-    Args:
-        n_intervals: Number of polling intervals
-
-    Returns:
-        Tuple of (
-            toast notification,
-            poll interval disabled,
-            progress value,
-            progress text,
-        )
-    """
 
     import app  # noqa: PLC0415
 
     progress = app.VERSION_CHECK_RESULT
 
     if not progress or not _download_in_progress:
-        # Check if download completed
         if progress and progress.state == UpdateState.READY:
             logger.info("Download complete - showing Update button toast")
 
-            # Show completion toast with Update button
             ready_toast = create_toast(
                 [
                     html.Div(
@@ -323,7 +270,6 @@ def poll_download_progress(n_intervals):
                 icon="check-circle",
             )
 
-            # Footer will show "Update Ready" via footer-update-container dynamic update
             return ready_toast, True, 100, "Download complete!"
 
         elif progress and progress.state == UpdateState.ERROR:
@@ -338,13 +284,11 @@ def poll_download_progress(n_intervals):
 
             return error_toast, True, 0, "Download failed"
 
-    # Still downloading - update progress
     if progress and _download_in_progress:
         percent = progress.progress_percent or 0
         logger.debug(f"Download progress: {percent}%")
         return no_update, no_update, percent, f"{percent}% complete"
 
-    # No status yet
     return no_update, no_update, 0, "Starting..."
 
 
@@ -355,20 +299,7 @@ def poll_download_progress(n_intervals):
     prevent_initial_call=True,
 )
 def handle_update_install(install_clicks: int, status_data: dict | None):
-    """Handle update installation when user clicks Update button.
 
-    This will launch the updater executable which will:
-    1. Wait for the current app to close
-    2. Replace the executable with the new version
-    3. Restart the application
-
-    Args:
-        install_clicks: Number of clicks on Update button
-        status_data: Current update status from dcc.Store
-
-    Returns:
-        Toast notification about the update process
-    """
     import app  # noqa: PLC0415
 
     if not install_clicks:
@@ -376,7 +307,6 @@ def handle_update_install(install_clicks: int, status_data: dict | None):
 
     logger.info("User clicked Update button - launching updater")
 
-    # Get current update progress
     progress = app.VERSION_CHECK_RESULT
     if not progress or progress.state != UpdateState.READY:
         logger.warning(
@@ -401,21 +331,17 @@ def handle_update_install(install_clicks: int, status_data: dict | None):
         return toast
 
     try:
-        # Schedule updater launch in background to allow callback to return
+
         def launch_and_exit():
             try:
                 logger.info("Launching updater in background thread")
-                if progress.download_path:  # Type guard
+                if progress.download_path:
                     launch_updater(progress.download_path)
-                # launch_updater calls sys.exit(0), so this line won't be reached
             except SystemExit:
-                # This is expected - updater calls sys.exit(0)
                 pass
             except Exception as e:
                 logger.error(f"Failed to launch updater: {e}", exc_info=True)
 
-        # Start updater in background thread with 2 second delay
-        # to give overlay time to show
         import threading  # noqa: PLC0415
 
         update_thread = threading.Timer(2.0, launch_and_exit)
@@ -424,9 +350,6 @@ def handle_update_install(install_clicks: int, status_data: dict | None):
 
         logger.info("Updater scheduled to launch - app will close shortly")
 
-        # NO toast during update - overlay provides all feedback
-        # Toast rendering blocks Dash UI updates, preventing overlay from appearing
-        # Success toast will show after reconnect (handled by update_reconnect.js)
         return no_update
 
     except Exception as e:
@@ -446,16 +369,7 @@ def handle_update_install(install_clicks: int, status_data: dict | None):
     prevent_initial_call=True,
 )
 def handle_manual_update_instructions(n_clicks: int):
-    """Handle clicks on manual update instructions button in startup toast.
 
-    Opens GitHub releases page in browser.
-
-    Args:
-        n_clicks: Number of clicks on button
-
-    Returns:
-        Toast notification confirming browser opened
-    """
     if not n_clicks:
         return no_update
 
@@ -463,12 +377,11 @@ def handle_manual_update_instructions(n_clicks: int):
         "Manual update instructions button clicked - opening GitHub releases page"
     )
 
-    # Open GitHub releases page in browser
     import webbrowser  # noqa: PLC0415
 
     webbrowser.open(
         "https://github.com/niksavis/burndown-chart/releases",
-        new=2,  # Open in new tab
+        new=2,
         autoraise=True,
     )
 
@@ -479,9 +392,3 @@ def handle_manual_update_instructions(n_clicks: int):
         duration=3000,
         icon="external-link-alt",
     )
-
-
-# NOTE: Overlay trigger is handled by assets/update_button_handler.js
-# which attaches a native click event listener in capture phase.
-# This ensures overlay appears BEFORE Dash's callback queue processes,
-# solving the race condition where toast rendering blocked overlay display.

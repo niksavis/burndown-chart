@@ -1,8 +1,3 @@
-"""DORA/Flow metric detail callback handlers.
-
-Contains collapse toggles, lazy detail chart rendering, and progress state restore.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -26,7 +21,6 @@ logger = logging.getLogger(__name__)
     prevent_initial_call=True,
 )
 def toggle_flow_velocity_details(n_clicks, is_open):
-    """Toggle Flow Velocity detailed chart collapse."""
     return not is_open if n_clicks else is_open
 
 
@@ -37,7 +31,6 @@ def toggle_flow_velocity_details(n_clicks, is_open):
     prevent_initial_call=True,
 )
 def toggle_flow_time_details(n_clicks, is_open):
-    """Toggle Flow Time detailed chart collapse."""
     return not is_open if n_clicks else is_open
 
 
@@ -48,7 +41,6 @@ def toggle_flow_time_details(n_clicks, is_open):
     prevent_initial_call=True,
 )
 def toggle_flow_efficiency_details(n_clicks, is_open):
-    """Toggle Flow Efficiency detailed chart collapse."""
     return not is_open if n_clicks else is_open
 
 
@@ -59,7 +51,6 @@ def toggle_flow_efficiency_details(n_clicks, is_open):
     prevent_initial_call=True,
 )
 def toggle_flow_load_details(n_clicks, is_open):
-    """Toggle Flow Load detailed chart collapse."""
     return not is_open if n_clicks else is_open
 
 
@@ -70,7 +61,6 @@ def toggle_flow_load_details(n_clicks, is_open):
     prevent_initial_call=True,
 )
 def toggle_lead_time_details(n_clicks, is_open):
-    """Toggle Lead Time for Changes detailed chart collapse."""
     return not is_open if n_clicks else is_open
 
 
@@ -81,7 +71,6 @@ def toggle_lead_time_details(n_clicks, is_open):
     prevent_initial_call=True,
 )
 def toggle_deployment_frequency_details(n_clicks, is_open):
-    """Toggle Deployment Frequency detailed chart collapse."""
     return not is_open if n_clicks else is_open
 
 
@@ -92,7 +81,6 @@ def toggle_deployment_frequency_details(n_clicks, is_open):
     prevent_initial_call=True,
 )
 def toggle_change_failure_rate_details(n_clicks, is_open):
-    """Toggle Change Failure Rate detailed chart collapse."""
     return not is_open if n_clicks else is_open
 
 
@@ -103,12 +91,10 @@ def toggle_change_failure_rate_details(n_clicks, is_open):
     prevent_initial_call=True,
 )
 def toggle_mean_time_to_recovery_details(n_clicks, is_open):
-    """Toggle Mean Time to Recovery detailed chart collapse."""
     return not is_open if n_clicks else is_open
 
 
 def _get_metric_display_name(metric_name: str, metric_data: dict[str, Any]) -> str:
-    """Resolve display name for a metric chart."""
     alternative_name = metric_data.get("alternative_name")
     if alternative_name:
         return str(alternative_name)
@@ -116,7 +102,6 @@ def _get_metric_display_name(metric_name: str, metric_data: dict[str, Any]) -> s
 
 
 def _get_dora_tier_hex_color(tier_color: str) -> str:
-    """Map DORA tier colors to hex values for trend lines."""
     return {
         "green": "#198754",
         "blue": "#0dcaf0",
@@ -126,7 +111,6 @@ def _get_dora_tier_hex_color(tier_color: str) -> str:
 
 
 def _build_metric_details_chart(metric_name: str, metric_data: dict[str, Any]) -> Any:
-    """Create a detail chart for the expanded metric card."""
 
     weekly_labels = metric_data.get("weekly_labels", [])
     weekly_values = metric_data.get("weekly_values", [])
@@ -163,7 +147,6 @@ def _render_metric_details_chart(
     metric_name: str,
     current_children: Any,
 ) -> Any:
-    """Render the metric details chart only when the collapse is open."""
     if not is_open:
         return no_update
     if current_children:
@@ -189,7 +172,6 @@ def render_flow_velocity_details_chart(
     metrics_store: dict[str, Any] | None,
     current_children: Any,
 ) -> Any:
-    """Render Flow Velocity detail chart lazily."""
     return _render_metric_details_chart(
         is_open, metrics_store, "flow_velocity", current_children
     )
@@ -207,7 +189,6 @@ def render_flow_time_details_chart(
     metrics_store: dict[str, Any] | None,
     current_children: Any,
 ) -> Any:
-    """Render Flow Time detail chart lazily."""
     return _render_metric_details_chart(
         is_open, metrics_store, "flow_time", current_children
     )
@@ -225,7 +206,6 @@ def render_flow_efficiency_details_chart(
     metrics_store: dict[str, Any] | None,
     current_children: Any,
 ) -> Any:
-    """Render Flow Efficiency detail chart lazily."""
     return _render_metric_details_chart(
         is_open, metrics_store, "flow_efficiency", current_children
     )
@@ -243,7 +223,6 @@ def render_flow_load_details_chart(
     metrics_store: dict[str, Any] | None,
     current_children: Any,
 ) -> Any:
-    """Render Flow Load detail chart lazily."""
     return _render_metric_details_chart(
         is_open, metrics_store, "flow_load", current_children
     )
@@ -261,7 +240,6 @@ def render_deployment_frequency_details_chart(
     metrics_store: dict[str, Any] | None,
     current_children: Any,
 ) -> Any:
-    """Render Deployment Frequency detail chart lazily."""
     return _render_metric_details_chart(
         is_open, metrics_store, "deployment_frequency", current_children
     )
@@ -279,7 +257,6 @@ def render_lead_time_details_chart(
     metrics_store: dict[str, Any] | None,
     current_children: Any,
 ) -> Any:
-    """Render Lead Time for Changes detail chart lazily."""
     return _render_metric_details_chart(
         is_open, metrics_store, "lead_time_for_changes", current_children
     )
@@ -297,7 +274,6 @@ def render_change_failure_rate_details_chart(
     metrics_store: dict[str, Any] | None,
     current_children: Any,
 ) -> Any:
-    """Render Change Failure Rate detail chart lazily."""
     return _render_metric_details_chart(
         is_open, metrics_store, "change_failure_rate", current_children
     )
@@ -315,7 +291,6 @@ def render_mean_time_to_recovery_details_chart(
     metrics_store: dict[str, Any] | None,
     current_children: Any,
 ) -> Any:
-    """Render Mean Time to Recovery detail chart lazily."""
     return _render_metric_details_chart(
         is_open, metrics_store, "mean_time_to_recovery", current_children
     )
@@ -331,7 +306,6 @@ def render_mean_time_to_recovery_details_chart(
     prevent_initial_call="initial_duplicate",
 )
 def restore_calculate_metrics_progress(pathname):
-    """Restore metrics calculation button state if task is in progress."""
 
     active_task = TaskProgress.get_active_task()
     if active_task and active_task.get("task_id") == "calculate_metrics":

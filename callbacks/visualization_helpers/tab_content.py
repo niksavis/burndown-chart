@@ -1,10 +1,3 @@
-"""
-Tab Content Builders for Visualizations
-
-This module contains functions for building tab content layouts
-in the visualization callbacks.
-"""
-
 import logging
 
 import pandas as pd
@@ -40,31 +33,12 @@ def create_burndown_tab_content(
     show_points: bool = True,
     has_points_data: bool = True,
 ):
-    """
-    Create content for the burndown tab with burndown, items, and points charts.
 
-    Args:
-        df: DataFrame with statistics data
-        items_trend: Dictionary with items trend and forecast data
-        points_trend: Dictionary with points trend and forecast data
-        burndown_fig: Burndown chart figure
-        items_fig: Weekly items chart figure
-        points_fig: Weekly points chart figure (None if no data or disabled)
-        settings: Settings dictionary
-        show_points: Whether points tracking is enabled
-        has_points_data: Whether points data exists in selected period
-
-    Returns:
-        html.Div: Burndown tab content with all three charts
-    """
     chart_height = settings.get("chart_height", 700)
 
-    # Build the content list starting with burndown chart
     content = [
-        # Weekly trend indicators in a row
         html.Div(
             [
-                # Items trend box
                 create_trend_header_with_forecasts(
                     items_trend,
                     "Weekly Items Trend",
@@ -74,7 +48,6 @@ def create_burndown_tab_content(
             ]
             + (
                 [
-                    # Points trend box - only show if points tracking is enabled
                     create_trend_header_with_forecasts(
                         points_trend,
                         "Weekly Items Trend",
@@ -87,7 +60,6 @@ def create_burndown_tab_content(
             ),
             className="row mb-3",
         ),
-        # Burndown chart with title
         html.H5(
             [
                 html.I(className="fas fa-chart-line me-2 text-brand"),
@@ -103,10 +75,8 @@ def create_burndown_tab_content(
         ),
     ]
 
-    # Add Items per Week chart section
     content.extend(
         [
-            # Items per Week section header (standardized H5 styling)
             html.H5(
                 [
                     html.I(
@@ -116,7 +86,6 @@ def create_burndown_tab_content(
                 ],
                 className="mb-3 mt-4",
             ),
-            # Items chart (trend header removed - already shown at top)
             dcc.Graph(
                 id="items-chart",
                 figure=items_fig,
@@ -126,10 +95,8 @@ def create_burndown_tab_content(
         ]
     )
 
-    # Add Points per Week section
     content.extend(
         [
-            # Points per Week section header (standardized H5 styling)
             html.H5(
                 [
                     html.I(
@@ -142,9 +109,7 @@ def create_burndown_tab_content(
         ]
     )
 
-    # Determine which content to show for points section
     if not show_points:
-        # Case 1: Points tracking disabled
         content.append(
             html.Div(
                 [
@@ -163,7 +128,6 @@ def create_burndown_tab_content(
             )
         )
     elif not has_points_data:
-        # Case 2: Points tracking enabled but no data in period
         content.append(
             html.Div(
                 [
@@ -183,8 +147,6 @@ def create_burndown_tab_content(
             )
         )
     else:
-        # Case 3: Points tracking enabled with data - show chart
-        # Points trend header removed - already shown at top
         content.append(
             dcc.Graph(
                 id="points-chart",
@@ -198,22 +160,11 @@ def create_burndown_tab_content(
 
 
 def create_items_tab_content(items_trend: dict, items_fig):
-    """
-    Create content for the items tab.
 
-    Args:
-        items_trend: Dictionary with items trend and forecast data
-        items_fig: Weekly items chart figure
-
-    Returns:
-        html.Div: Items tab content
-    """
     return html.Div(
         [
-            # Enhanced header with trend indicator and forecast pills
             html.Div(
                 [
-                    # Column for items trend
                     create_trend_header_with_forecasts(
                         items_trend,
                         "Weekly Items Trend",
@@ -223,7 +174,6 @@ def create_items_tab_content(items_trend: dict, items_fig):
                 ],
                 className="mb-4",
             ),
-            # Consolidated items weekly chart with forecast
             dcc.Graph(
                 id="items-chart",
                 figure=items_fig,
@@ -235,22 +185,11 @@ def create_items_tab_content(items_trend: dict, items_fig):
 
 
 def create_points_tab_content(points_trend: dict, points_fig):
-    """
-    Create content for the points tab.
 
-    Args:
-        points_trend: Dictionary with points trend and forecast data
-        points_fig: Weekly points chart figure
-
-    Returns:
-        html.Div: Points tab content
-    """
     return html.Div(
         [
-            # Enhanced header with trend indicator and forecast pills
             html.Div(
                 [
-                    # Column for points trend
                     create_trend_header_with_forecasts(
                         points_trend,
                         "Weekly Points Trend",
@@ -260,7 +199,6 @@ def create_points_tab_content(points_trend: dict, points_fig):
                 ],
                 className="mb-4",
             ),
-            # Consolidated points weekly chart with forecast
             dcc.Graph(
                 id="points-chart",
                 figure=points_fig,
@@ -276,17 +214,6 @@ def create_scope_tracking_tab_content(
     settings: dict,
     show_points: bool = True,
 ) -> html.Div:
-    """
-    Create content for the scope tracking tab.
-
-    Args:
-        df: DataFrame with statistics data (already filtered by data_points_count).
-        settings: Settings dictionary.
-        show_points: Whether points tracking is enabled.
-
-    Returns:
-        html.Div: Scope tracking tab content.
-    """
 
     scope_creep_threshold = settings.get(
         "scope_creep_threshold", DEFAULT_SETTINGS["scope_creep_threshold"]
@@ -308,8 +235,6 @@ def create_scope_tracking_tab_content(
 
     df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
 
-    # CRITICAL FIX: Do NOT re-filter here — data is already filtered in the callback
-    # to ensure consistency with Dashboard's Actionable Insights (T073 fix).
     df_filtered = df
 
     current_remaining_items = settings.get("total_items", 0)

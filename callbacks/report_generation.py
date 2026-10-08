@@ -1,5 +1,3 @@
-"""Callbacks for HTML report generation (simplified synchronous version)."""
-
 import logging
 from datetime import datetime
 
@@ -18,7 +16,6 @@ logger = logging.getLogger(__name__)
     prevent_initial_call=False,
 )
 def update_report_weeks_display(data_points):
-    """Update the report weeks display to match the Data Points slider."""
     if data_points is None:
         logger.debug("Report weeks display: data_points is None, defaulting to 12")
         return "12"
@@ -37,10 +34,7 @@ def update_report_weeks_display(data_points):
     prevent_initial_call=True,
 )
 def generate_and_download_report(n_clicks, sections, data_points):
-    """Generate report synchronously and trigger download.
 
-    Simplified implementation without progress bar.
-    """
     if not n_clicks:
         return no_update, no_update
 
@@ -48,7 +42,6 @@ def generate_and_download_report(n_clicks, sections, data_points):
         try:
             profile_id = get_active_profile_id()
         except ValueError:
-            # No active profile - user hasn't set up any data yet
             logger.warning("Report generation attempted with no active profile")
             toast = create_warning_toast(
                 "Please create a profile and fetch JIRA data "
@@ -77,14 +70,12 @@ def generate_and_download_report(n_clicks, sections, data_points):
             f"(raw data_points={data_points})"
         )
 
-        # Generate report (blocks until complete)
         html_content, metadata = generate_html_report(
             sections=sections,
             time_period_weeks=time_period,
             profile_id=profile_id,
         )
 
-        # Create filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         profile_name = metadata["profile_name"].replace(" ", "_").replace("/", "_")
         query_name = metadata["query_name"].replace(" ", "_").replace("/", "_")
@@ -92,7 +83,6 @@ def generate_and_download_report(n_clicks, sections, data_points):
 
         logger.info(f"Report generated: {filename} ({len(html_content):,} bytes)")
 
-        # Trigger download using content (path doesn't work for HTML)
         return {"content": html_content, "filename": filename}, no_update
 
     except Exception as e:
@@ -106,17 +96,13 @@ def generate_and_download_report(n_clicks, sections, data_points):
         return no_update, toast
 
 
-# Progress polling callback removed - using simple synchronous generation instead
-
-
 @callback(
     Output("report-size-estimate", "children"),
     Input("report-sections-checklist", "value"),
 )
 def update_report_size_estimate(sections):
-    """Estimate report file size based on selected sections."""
     sections = sections or []
-    base_size = 50  # KB
+    base_size = 50
     section_sizes = {"burndown": 300, "dora": 500, "flow": 500, "budget": 100}
     total_kb = base_size + sum(section_sizes.get(s, 0) for s in sections)
     size_mb = total_kb / 1024

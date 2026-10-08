@@ -1,8 +1,3 @@
-"""Helper functions for field mapping.
-
-Provides display helpers and mock data for field mapping modal.
-"""
-
 from typing import Any
 
 import dash_bootstrap_components as dbc
@@ -10,27 +5,17 @@ from dash import html
 
 
 def create_dora_flow_mappings_display(field_mappings: dict) -> html.Div:
-    """Create a read-only display of DORA/Flow field mappings.
 
-    Args:
-        field_mappings: Nested dict with 'dora' and 'flow' keys
-
-    Returns:
-        html.Div with formatted display of current mappings
-    """
     content = []
 
-    # DORA Metrics Section
     if "dora" in field_mappings:
         content.append(html.H5("DORA Metrics Configuration", className="mt-3 mb-3"))
         dora = field_mappings["dora"]
 
         for metric_name, metric_fields in dora.items():
-            # Format metric name nicely
             display_name = metric_name.replace("_", " ").title()
             content.append(html.H6(display_name, className="text-primary mt-3"))
 
-            # Create table of field mappings
             rows = []
             for field_name, field_value in metric_fields.items():
                 rows.append(
@@ -51,17 +36,14 @@ def create_dora_flow_mappings_display(field_mappings: dict) -> html.Div:
                 )
             )
 
-    # Flow Metrics Section
     if "flow" in field_mappings:
         content.append(html.H5("Flow Metrics Configuration", className="mt-4 mb-3"))
         flow = field_mappings["flow"]
 
         for metric_name, metric_fields in flow.items():
-            # Format metric name nicely
             display_name = metric_name.replace("_", " ").title()
             content.append(html.H6(display_name, className="text-primary mt-3"))
 
-            # Create table of field mappings
             rows = []
             for field_name, field_value in metric_fields.items():
                 if isinstance(field_value, list):
@@ -84,7 +66,6 @@ def create_dora_flow_mappings_display(field_mappings: dict) -> html.Div:
                 )
             )
 
-    # Add informational alert
     return html.Div(
         [
             dbc.Alert(
@@ -107,15 +88,8 @@ def create_dora_flow_mappings_display(field_mappings: dict) -> html.Div:
 
 
 def get_mock_jira_fields() -> list[dict[str, Any]]:
-    """Get mock Jira fields for testing or when API fails.
 
-    Includes standard Jira fields that work with Apache Kafka JIRA.
-
-    Returns:
-        List of mock field metadata
-    """
     return [
-        # Standard Jira fields (always available)
         {
             "field_id": "created",
             "field_name": "Created",
@@ -136,7 +110,6 @@ def get_mock_jira_fields() -> list[dict[str, Any]]:
             "field_name": "Status",
             "field_type": "select",
         },
-        # Mock custom fields (for full Jira instances)
         {
             "field_id": "customfield_10001",
             "field_name": "Deployment Date",
@@ -181,13 +154,7 @@ def get_mock_jira_fields() -> list[dict[str, Any]]:
 
 
 def get_mock_mappings() -> dict[str, dict[str, str]]:
-    """Get mock field mappings for Phase 4 stub.
 
-    Phase 5+ will extract actual values from form.
-
-    Returns:
-        Mock field mappings structure
-    """
     return {
         "dora": {
             "deployment_date": "customfield_10001",

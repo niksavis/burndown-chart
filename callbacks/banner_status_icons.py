@@ -1,15 +1,3 @@
-"""
-Banner Status Icons Callback
-
-Animates profile and query icons in the top banner during operations.
-Provides visual feedback even when Settings panel is closed.
-
-Visual States:
-- Default: Blue folder + search (idle)
-- Update Data: Orange folder + spinner (background JIRA sync)
-- UI Operations: Purple spinner (query/slider changes trigger recalc)
-"""
-
 import json
 import logging
 from datetime import datetime
@@ -37,7 +25,7 @@ logger = logging.getLogger(__name__)
     [
         State("profile-status-icon", "className"),
     ],
-    prevent_initial_call=False,  # Allow initial call to set default state on load
+    prevent_initial_call=False,
 )
 def update_banner_status_icons(
     n_intervals,
@@ -47,27 +35,9 @@ def update_banner_status_icons(
     calc_results,
     current_profile_class,
 ):
-    """Update banner icons based on task progress and UI operations.
 
-    Priority:
-    1. Update Data (orange) - background JIRA operations
-    2. UI operations (purple spinner) - query/slider changes
-    3. Idle (blue) - no operations
-
-    Args:
-        n_intervals: Polling interval for Update Data
-        query_value: Query selector (triggers recalc)
-        pert_value: PERT slider (triggers recalc)
-        data_points_value: Data points slider (triggers recalc)
-        calc_results: Signals calculation completion
-        current_profile_class: Current icon state
-
-    Returns:
-        Tuple of (profile icon class, query icon class)
-    """
     trigger_id = ctx.triggered_id if ctx.triggered else None
 
-    # Handle initial load: return default idle state immediately
     if not ctx.triggered:
         logger.debug("[BannerStatus] Initial load - showing default idle icons")
         return "fas fa-folder me-1", "fas fa-search me-1"
@@ -76,7 +46,6 @@ def update_banner_status_icons(
         backend = get_backend()
         progress_data = backend.get_task_state()
 
-        # PRIORITY 1: Update Data operation (highest priority - background sync)
         if progress_data:
             status = progress_data.get("status", "idle")
             phase = progress_data.get("phase", "fetch")
@@ -106,7 +75,6 @@ def update_banner_status_icons(
                         )
                         return "fas fa-folder me-1", "fas fa-search me-1"
 
-                # Background operation active - orange indicators
                 profile_icon_class = "fas fa-folder me-1 text-warning"
 
                 if phase == "fetch":
@@ -118,18 +86,13 @@ def update_banner_status_icons(
 
                 return profile_icon_class, query_icon_class
 
-        # PRIORITY 2: UI operations (query switch, slider changes)
         if trigger_id in ["query-selector", "pert-factor-slider", "data-points-input"]:
-            # UI change detected - show purple spinner (recalculation starting)
             return "fas fa-spinner fa-spin me-1 text-purple", "fas fa-search me-1"
 
-        # PRIORITY 3: Calculation complete - clear loading state
         if trigger_id == "calculation-results":
-            # If we were showing purple, clear it
             if current_profile_class and "text-purple" in current_profile_class:
                 return "fas fa-folder me-1", "fas fa-search me-1"
 
-        # DEFAULT: No operation - blue icons
         return "fas fa-folder me-1", "fas fa-search me-1"
 
     except (OSError, json.JSONDecodeError) as e:

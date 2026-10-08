@@ -1,8 +1,3 @@
-"""Sprint Tracker Filter Callbacks
-
-Handles filtering of sprint data by issue type.
-"""
-
 import logging
 
 import dash_bootstrap_components as dbc
@@ -42,16 +37,7 @@ logger = logging.getLogger(__name__)
 def filter_sprint_by_issue_type(
     issue_type_filter: str, selected_sprint: str, show_points_list: list
 ):
-    """Filter Sprint Tracker by issue type.
 
-    Args:
-        issue_type_filter: Issue type selected ("all", "Story", "Task", "Bug")
-        selected_sprint: Currently selected sprint name
-        show_points_list: Story points toggle state
-
-    Returns:
-        Updated sprint data container filtered by issue type
-    """
     if not issue_type_filter:
         return no_update
 
@@ -107,7 +93,6 @@ def filter_sprint_by_issue_type(
         if not sprint_snapshots:
             return create_no_sprints_state()
 
-        # Use provided sprint or detect active sprint
         if selected_sprint and selected_sprint in sprint_snapshots:
             selected_sprint_id = selected_sprint
             sprint_start_date = None
@@ -125,7 +110,6 @@ def filter_sprint_by_issue_type(
 
         sprint_data = sprint_snapshots[selected_sprint_id]
 
-        # Debug: Log issue types in sprint data
         issue_states = sprint_data.get("issue_states", {})
         issue_types_in_sprint = set(
             state.get("issue_type") for state in issue_states.values()
@@ -135,7 +119,6 @@ def filter_sprint_by_issue_type(
             f"{issue_types_in_sprint}, Filter: {issue_type_filter}"
         )
 
-        # Load flow status configuration - same lists used for metrics and visualization
         flow_start_statuses = settings.get("flow_start_statuses", [])
         flow_wip_statuses = settings.get("wip_statuses", [])
         flow_end_statuses = settings.get("flow_end_statuses", [])
@@ -167,7 +150,6 @@ def filter_sprint_by_issue_type(
             sprint_data, flow_end_statuses, flow_wip_statuses
         )
 
-        # Calculate sprint scope changes
         scope_changes = calculate_sprint_scope_changes(sprint_data, scope_window_start)
         scope_change_points = calculate_sprint_scope_change_points(
             sprint_data,
@@ -181,22 +163,17 @@ def filter_sprint_by_issue_type(
             sprint_end_date=sprint_end_date,
         )
 
-        # Extract sprint_changes with issue lists
-        # for progress bars
         sprint_changes = {
             "added": sprint_data.get("added_issues", []),
             "removed": sprint_data.get("removed_issues", []),
         }
 
-        # Determine if story points should be shown (checklist uses "show" as value)
         show_points = "show" in (show_points_list or [])
 
-        # Build summary card data
         summary_card_data = create_sprint_summary_card(
             progress_data, show_points, flow_wip_statuses
         )
 
-        # Create UI components
         summary_cards = create_sprint_summary_cards(
             selected_sprint_id,
             summary_card_data,
@@ -219,7 +196,6 @@ def filter_sprint_by_issue_type(
             issue_states=all_issue_states,
         )
 
-        # Create visualizations
         progress_bars = create_sprint_progress_bars(
             sprint_data,
             status_changelog,
@@ -229,12 +205,11 @@ def filter_sprint_by_issue_type(
             flow_start_statuses=flow_start_statuses,
             flow_wip_statuses=flow_wip_statuses,
             flow_end_statuses=flow_end_statuses,
-            sprint_changes=sprint_changes,  # Pass issue lists for icon indicators
+            sprint_changes=sprint_changes,
             sprint_state=sprint_state,
-            scope_changes=scope_changes,  # Pass scope changes for inline badges
+            scope_changes=scope_changes,
         )
 
-        # Return only data container content (not the controls)
         return html.Div(
             [
                 summary_cards,

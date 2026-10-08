@@ -1,5 +1,3 @@
-"""Metrics refresh callbacks for Flow and DORA calculations."""
-
 import logging
 from datetime import datetime, timedelta
 
@@ -12,11 +10,6 @@ from data.metrics_snapshots import add_forecasts_to_week
 from data.task_progress import TaskProgress
 
 logger = logging.getLogger(__name__)
-
-
-#######################################################################
-# REFRESH METRICS CALLBACK
-#######################################################################
 
 
 @callback(
@@ -34,7 +27,6 @@ def calculate_metrics_from_settings(
     button_clicks: int | None,
     data_points: int | None,
 ):
-    """Calculate Flow and DORA metrics from Settings panel button."""
     logger.info(
         f"[CALCULATE METRICS] Callback triggered - button_clicks={button_clicks}"
     )
@@ -79,7 +71,6 @@ def calculate_metrics_from_settings(
                             except ValueError, AttributeError:
                                 pass
 
-                    # Include fixVersion release dates in range calculation
                     fix_versions = fields.get("fixVersions") or []
                     for fv in fix_versions:
                         release_date_str = fv.get("releaseDate")

@@ -1,15 +1,3 @@
-"""JQL Query Test Callback.
-
-This module handles the JQL query validation and testing callback:
-- Test JQL query validity against JIRA API
-- ScriptRunner function detection and warnings
-- Loading state management (clientside)
-
-Related modules:
-- data.jira: JIRA API integration and JQL testing
-- data.persistence: JIRA configuration loading
-"""
-
 from __future__ import annotations
 
 import logging
@@ -24,16 +12,10 @@ from data.jira import (
 from data.jira.validation import test_jql_query, validate_jql_for_scriptrunner
 from data.persistence import load_jira_configuration
 
-# Get logger
 logger = logging.getLogger(__name__)
 
 
 def register(app: Any) -> None:
-    """Register JQL query test callbacks.
-
-    Args:
-        app: Dash application instance
-    """
 
     @app.callback(
         [
@@ -45,15 +27,7 @@ def register(app: Any) -> None:
         prevent_initial_call=True,
     )
     def test_jql_query_validity(n_clicks: int | None, jql_query: str) -> tuple:
-        """Test JQL query validity - useful for ScriptRunner function validation.
 
-        Args:
-            n_clicks: Number of button clicks
-            jql_query: JQL query string to test
-
-        Returns:
-            Tuple of (results_html, results_style)
-        """
         if not n_clicks:
             raise PreventUpdate
 
@@ -74,10 +48,8 @@ def register(app: Any) -> None:
             )
 
         try:
-            # Load JIRA configuration
             loaded_jira_config = load_jira_configuration()
 
-            # Check if JIRA is configured
             is_configured = (
                 loaded_jira_config.get("configured", False)
                 and loaded_jira_config.get("base_url", "").strip() != ""
@@ -86,15 +58,12 @@ def register(app: Any) -> None:
             if not is_configured:
                 return _create_unconfigured_result()
 
-            # Build JIRA config for testing
             jira_config = _build_jira_config(loaded_jira_config, jql_query)
 
-            # Check for ScriptRunner function warnings
             is_compatible, scriptrunner_warning = validate_jql_for_scriptrunner(
                 jql_query
             )
 
-            # Test the query
             is_valid, test_message = test_jql_query(jira_config)
 
             if is_valid:
@@ -112,7 +81,6 @@ def register(app: Any) -> None:
             logger.error(f"Error testing JQL query: {e}")
             return _create_exception_result(str(e))
 
-    # Clientside callback for Test Query button loading state
     app.clientside_callback(
         """
         function(n_clicks) {
@@ -182,11 +150,7 @@ def register(app: Any) -> None:
     )
 
 
-# Helper functions
-
-
 def _create_unconfigured_result() -> tuple:
-    """Create result for unconfigured JIRA."""
     return (
         html.Div(
             [
@@ -206,15 +170,6 @@ def _create_unconfigured_result() -> tuple:
 
 
 def _build_jira_config(loaded_jira_config: dict, jql_query: str) -> dict:
-    """Build JIRA config for testing.
-
-    Args:
-        loaded_jira_config: Loaded JIRA configuration
-        jql_query: JQL query string
-
-    Returns:
-        JIRA config dictionary
-    """
 
     base_url = loaded_jira_config.get("base_url", "https://jira.atlassian.com")
     api_version = loaded_jira_config.get("api_version", "v2")
@@ -232,18 +187,8 @@ def _build_jira_config(loaded_jira_config: dict, jql_query: str) -> dict:
 def _create_success_result(
     test_message: str, is_compatible: bool, scriptrunner_warning: str
 ) -> tuple:
-    """Create success result display.
 
-    Args:
-        test_message: Test result message
-        is_compatible: Whether query is compatible (no ScriptRunner functions)
-        scriptrunner_warning: Warning message for ScriptRunner functions
-
-    Returns:
-        Tuple of (results_html, results_style)
-    """
     if is_compatible:
-        # Pure success: no ScriptRunner functions
         success_content = [
             html.I(className="fas fa-check-circle me-2 text-success"),
             html.Strong("JQL Query Valid", className="text-dark"),
@@ -252,7 +197,6 @@ def _create_success_result(
         ]
         alert_class = "alert alert-light border-success mb-0"
     else:
-        # Success with warning: ScriptRunner functions detected
         success_content = [
             html.I(className="fas fa-check-circle me-2 text-success"),
             html.Strong("JQL Query Valid", className="text-dark"),
@@ -276,16 +220,7 @@ def _create_success_result(
 def _create_error_result(
     test_message: str, is_compatible: bool, scriptrunner_warning: str
 ) -> tuple:
-    """Create error result display.
 
-    Args:
-        test_message: Error message from test
-        is_compatible: Whether query is compatible (no ScriptRunner functions)
-        scriptrunner_warning: Warning message for ScriptRunner functions
-
-    Returns:
-        Tuple of (results_html, results_style)
-    """
     error_content = [
         html.I(className="fas fa-times-circle me-2 text-danger"),
         html.Strong("JQL Query Invalid", className="text-dark"),
@@ -301,7 +236,6 @@ def _create_error_result(
         ),
     ]
 
-    # Add specific guidance for ScriptRunner issues
     if not is_compatible:
         error_content.extend(
             [
@@ -328,7 +262,6 @@ def _create_error_result(
 
 
 def _create_import_error_result() -> tuple:
-    """Create result for import error."""
     return (
         html.Div(
             [
@@ -345,14 +278,7 @@ def _create_import_error_result() -> tuple:
 
 
 def _create_exception_result(error_message: str) -> tuple:
-    """Create result for general exception.
 
-    Args:
-        error_message: Exception message
-
-    Returns:
-        Tuple of (results_html, results_style)
-    """
     return (
         html.Div(
             [
