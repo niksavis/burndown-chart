@@ -21,7 +21,7 @@ Every command takes the ledger directory as its first argument and prints one JS
 - **Read `ready` before you propose work.** Take the top row that nobody holds. Do not
   invent a task.
 - **Run `dor` before you build.** `ready` leaves out every record labelled `refine` or
-  failing `dor`. `dor` names missing card fields, INVEST rationales, conversation references and planned checks.
+  failing `dor`. `dor` names missing card fields and the evidence required by its review contract.
 - **Criteria and requirements are fields.** Pass them as `--acceptance` and
   `--requirements`. A description that holds either heading is refused.
 - **Confirm before completing.** Record actual results with `confirm`, then name the delivered
@@ -92,11 +92,18 @@ beside the log adds sections (`extend`) or replaces them (`override`), for all r
 for one `issue_type`. A field named after a section, such as `--field risks="<text>"`,
 satisfies it.
 
+A record has one of six types: `task`, `bug`, `feature`, `chore`, `epic` or `research`. An
+`epic` holds features, tasks, bugs, chores and research records. A `feature` holds tasks, bugs
+and chores. A task, bug, chore or research record holds no children. `GET /api/v1` lists the
+types as `record_types` and the allowed children as `child_types`.
+
 ## INVEST
 
-Before an agent starts a card, review these six qualities and record a rationale for each
-with `review --evidence`. Resolve a failed quality before claiming. The tracker enforces
-recorded, filled evidence. It cannot prove that a rationale is semantically correct.
+The full review records these six qualities with `review --evidence`. It is required for
+features, epics, research and records without an explicit compact type. A `task`, `bug` or
+`chore` can use the compact checks-only review below. Existing full reviews remain valid
+for these types too. Resolve a failed quality before claiming; the tracker checks recorded
+evidence and cannot prove a rationale's semantic quality.
 
 | Quality | Observable check | Action when it fails |
 | --- | --- | --- |
@@ -107,13 +114,14 @@ recorded, filled evidence. It cannot prove that a rationale is semantically corr
 | Small | Does the card have one outcome that can be built and confirmed in one session? | Use `child` for each separately confirmable outcome. Preserve the parent intent. |
 | Testable | Does each criterion name an input or event and an observable response? | Rewrite `--acceptance`. Name the demonstration or test and its expected result before building. |
 
-`dor`, `ready` and `claim` require this recorded review, references to actual same-card
-conversation comments, and a planned check for every criterion. A dependency can be valid
-and still keep a reviewed card out of `ready`.
+`dor`, `ready` and `claim` require a current review and a planned check for every criterion.
+The full form also requires the six rationales and actual same-card conversation references.
+A compact review needs no conversation comment. A dependency can still keep a reviewed
+card out of `ready`.
 
 ## Card, Conversation, Confirmation
 
-Use all three parts of C3 throughout the card's life:
+Keep the card and confirmation linked. Record conversations when facts or decisions need them:
 
 1. **Card:** capture the person's intent, then fill the trigger, acceptance criteria, and
    requirements with `update`. Run `show` to read the saved card. Keep scope and outcomes
@@ -129,7 +137,20 @@ Use all three parts of C3 throughout the card's life:
    in `--reason`. A comment alone does not satisfy completion confirmation.
 
 Read `show` first. Its `comment_log` gives each comment's `seq`; its `process` report gives
-stored review and confirmation evidence. `review` takes this JSON shape:
+stored review and confirmation evidence. For an explicit `task`, `bug` or `chore`,
+`review` accepts this compact JSON shape:
+
+```json
+{
+  "checks": [{
+    "criterion": "When a task is saved, show shall return its title.",
+    "command": ["python3", "check_saved_title.py"],
+    "expected": "The saved title appears in show."
+  }]
+}
+```
+
+The full shape remains available for every type and required for other types:
 
 ```json
 {
@@ -155,12 +176,14 @@ criterion and planned argv. The tracker displays these commands; it does not exe
 Every criterion must appear once. Pass the JSON as one argument:
 
 ```sh
-python3 .basicly/kit/tracker/cli.py review .basicly/ledger <id> --evidence '<review JSON>'
-python3 .basicly/kit/tracker/cli.py claim .basicly/ledger <id>
+python3 .basicly/core/kit/tracker/cli.py review .basicly/ledger <id> --evidence '<review JSON>'
+python3 .basicly/core/kit/tracker/cli.py claim .basicly/ledger <id>
 ```
 
 After running the agreed check, `confirm` takes the following shape. Record only output
 you actually observed; preserve a failed result in a comment and keep the card open.
+Canonical redaction markers may remain within meaningful observed text. A marker alone
+or an unfinished placeholder cannot confirm a criterion.
 
 ```json
 {
@@ -214,6 +237,7 @@ cause. It refuses:
 
 - a record id that the ledger does not hold, and an edge that makes a cycle;
 - a status outside `open`, `in_progress`, `blocked`, `deferred`, `closed`;
+- a type outside the six, and a parent and child whose types the hierarchy does not allow;
 - a priority outside 0 (critical) to 4 (backlog), and a `close` without `--reason`;
 - a field that no code reads, an import-history field, or a derived date. `fields` prints
   each field, its role and its reader;

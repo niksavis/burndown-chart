@@ -15,7 +15,7 @@ def _add_shape_arguments(parser: Any) -> None:
         "--acceptance",
         default="",
         metavar="TEXT",
-        help="the acceptance criteria a check is derived from",
+        help="the acceptance criteria a check is derived from; one criterion per line",
     )
     parser.add_argument(
         "--requirements",
@@ -61,7 +61,9 @@ def parser() -> argparse.ArgumentParser:
 
     listing = sub.add_parser("list", help="query the records the ledger holds")
     listing.add_argument("directory", help=DIRECTORY_HELP)
-    listing.add_argument("--status", default=None, help="only records at this status")
+    listing.add_argument(
+        "--status", action="append", default=None, help="only records at this status; repeat it"
+    )
     listing.add_argument("--limit", type=int, default=None, help="at most this many records")
 
     compaction = sub.add_parser(
@@ -268,7 +270,7 @@ def _add_commit_check(sub: Any) -> None:
 
 def _add_process_parsers(sub: Any) -> None:
     for action in ("review", "confirm"):
-        process = sub.add_parser(action, help="record current INVEST/C3 process evidence")
+        process = sub.add_parser(action, help="record current review or completion evidence")
         process.add_argument("directory", help=DIRECTORY_HELP)
         process.add_argument("record", help="the card id")
         process.add_argument("--evidence", required=True, help="the structured evidence as JSON")

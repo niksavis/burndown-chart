@@ -1,0 +1,7 @@
+extends:
+  - .basicly/lefthook.yml
+
+pre-commit:
+  commands:
+    consumer-checks:
+      run: uv run --no-project --no-python-downloads python run_consumer_hooks.py

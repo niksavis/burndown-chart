@@ -49,8 +49,10 @@ tracker: wrote the skill to .agents/skills/tracker/SKILL.md
   block sits in a marked region. A second run does not duplicate it, and `uninstall` removes
   it byte for byte. Without the flag, the installer only tells where the block is, because
   an installer must not edit an instruction file unasked.
-- `--fold-on-merge` wires a `post-merge` git hook that runs `compact` on the default branch
-  and commits the result (§4.0). Without it, the installer says that no fold is wired.
+- `--fold-on-merge` wires a read-only `post-merge` reminder on the default branch.
+  It reports the explicit compaction command when shards remain and never folds, stages
+  or commits. The installer replaces an older automatic-fold block while keeping foreign
+  hook content. Without the flag, no reminder is wired.
 
 After the install, plain `python3` runs the kit, with no `uvx`, no network and nothing on
 `PATH`. Each subcommand takes the ledger directory as its first argument. The command refuses
@@ -84,13 +86,15 @@ unready card. Under the default template, `ready`, `dor`, `claim`, and a move to
 A trigger sentence includes three filled parts: situation or persona, motivation or goal,
 and outcome or benefit. The parser retains the complete sentence, including its outcome.
 It refuses empty parts, punctuation alone, and named placeholders. A filled trigger does
-not prove value, independence, or testability. The agent reviews INVEST and records Card,
-Conversation, Confirmation as described in `GUIDANCE.md`. Acceptance criteria and
+not prove value, independence, or testability. The agent records a current review and
+criterion checks as described in `GUIDANCE.md`. Acceptance criteria and
 requirements are typed fields. Every entry in a list must be filled.
 
-New claims require six filled INVEST rationales, actual same-card comment sequence
-references, and one planned argv and expected result per criterion. `review --evidence`
-records these with an internally computed semantic revision and generic writer identity.
+New claims require one planned argv and expected result per criterion. Explicit `task`,
+`bug` and `chore` types may use checks-only review evidence. The full review requires six
+filled INVEST rationales and actual same-card comment sequence references; it remains
+valid for every type and required for other or missing types. `review --evidence` records
+either form with an internally computed semantic revision and generic writer identity.
 Card, dependency edge or direct dependency contract edits invalidate the evidence; holder and status changes do not.
 These checks establish recorded evidence, not automated proof of semantic INVEST quality.
 
@@ -126,6 +130,9 @@ sources of truth: two branches each rebuild it, and git cannot union-merge a rec
 changed on both sides. That breaks requirement 1 in §4.3.
 
 - A reader rebuilds the snapshot when it finds the snapshot stale.
+- If access controls prevent snapshot publication, a reader returns the current fold
+  and reports the unavailable cache on stderr. It never serves a stale snapshot instead.
+  Explicit refresh and rebuild commands still require write access; other I/O errors fail.
 - The first line of the snapshot is a header. It carries the id of the last folded event,
   the event count, the log line count and the snapshot format version, which is 2.
 - A snapshot is stale when its line count, last event or format version differs from the
@@ -183,6 +190,9 @@ change two different paths, and the forge has nothing to flag.
 - The kit derives the writer name from `.git/HEAD` by a file read, not a subprocess.
 - In a linked worktree, the kit follows the `.git` file to that worktree's own `HEAD`, so
   each lane is its own writer.
+- A ledger directory that holds a `redirect` file names the base checkout. Every read and
+  write then uses the ledger at the same place under that checkout, and the writer is the
+  base checkout's `HEAD`. The kit refuses a redirect that names no ledger.
 - A directory outside a repository keeps the single trunk log, so an existing ledger reads
   and writes as before.
 - `events.append` accepts `writer=` for a caller that knows the writer better.
@@ -532,8 +542,10 @@ an unrecorded rank.
 - **Evidence does not change.** A decision, a found fact or a dispatch marker records one
   moment. So its id **is** derived from content, and a second recording of the same evidence
   changes nothing.
-- **No slugs in ids.** A slug adds hyphens that read as a prefix boundary, and that breaks a
-  commit-message gate that parses the prefix.
+- **No slugs in minted ids.** A minted id never carries a slug. An imported id keeps the slug
+  its source gave it, such as `dev-memory-audit-multi-target-2zx` from `br create --slug`, so a
+  commit that cites it still resolves. The commit-message gates resolve the longest hyphen
+  prefix that the ledger holds, so `dev-abc-related` still names `dev-abc`.
 
 ### 9.4.1 The declared collision budget, derived
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import errno
 import importlib.util
 import json
 import re
@@ -161,7 +162,7 @@ def record_from_dict(raw: Mapping[str, object]) -> Any:
     return events.RecordState(
         record=record,
         status=status,
-        fields=dict(fields),
+        fields={name: events.settled_field(name, value) for name, value in fields.items()},
         comments=list(comments),
         checkpoints=dict(checkpoints),
         artifacts=dict(artifacts),
@@ -193,13 +194,29 @@ def read_header(path: Path | str) -> Header | None:
     return Header.from_dict(_object_from_line(first, file_path, 1))
 
 
+PARSED_SNAPSHOTS = 8
+_PARSED = events.StampedFiles(PARSED_SNAPSHOTS)
+
+
 def read_snapshot(path: Path | str) -> Snapshot | None:
 
     file_path = Path(path)
+    stamp = events.file_stamp(file_path)
+    if stamp is None:
+        return None
     try:
         text = events.read_published(file_path)
     except FileNotFoundError:
         return None
+    parsed = _PARSED.held(file_path, stamp, text)
+    if not isinstance(parsed, Snapshot):
+        parsed = _parse_snapshot(file_path, text)
+        _PARSED.keep(file_path, stamp, text, parsed)
+    records = {name: events.copy_state(state) for name, state in parsed.records.items()}
+    return Snapshot(header=parsed.header, records=records)
+
+
+def _parse_snapshot(file_path: Path, text: str) -> Snapshot:
     lines = [line for line in text.splitlines() if line.strip()]
     if not lines:
         raise SnapshotError(f"{file_path.name} has no header line")
@@ -466,15 +483,20 @@ def rebuild(directory: Path | str) -> Snapshot:
     return write_snapshot(snapshot_path(ledger), _snapshot_of(fold_all(ledger), tally))
 
 
-def refresh(directory: Path | str) -> Snapshot:
+def _refreshed_snapshot(ledger: Path) -> Snapshot:
 
-    ledger = Path(directory)
     tally = scan_logs(ledger)
     try:
         taken = fold_resumed(ledger)
     except SnapshotError:
         taken = fold_all(ledger)
-    return write_snapshot(snapshot_path(ledger), _snapshot_of(taken, tally))
+    return _snapshot_of(taken, tally)
+
+
+def refresh(directory: Path | str) -> Snapshot:
+
+    ledger = Path(directory)
+    return write_snapshot(snapshot_path(ledger), _refreshed_snapshot(ledger))
 
 
 def load(directory: Path | str) -> Snapshot:
@@ -487,7 +509,18 @@ def load(directory: Path | str) -> Snapshot:
             current = None
         if current is not None:
             return current
-    return refresh(ledger)
+    current = _refreshed_snapshot(ledger)
+    try:
+        return write_snapshot(snapshot_path(ledger), current)
+    except OSError as exc:
+        if exc.errno not in {errno.EROFS, errno.EACCES, errno.EPERM}:
+            raise
+        print(
+            "tracker: snapshot cache cannot be written; "
+            "reading current events without refreshing it",
+            file=sys.stderr,
+        )
+        return current
 
 
 @dataclass(frozen=True)

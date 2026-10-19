@@ -39,6 +39,22 @@ Without a path, both subcommands use the current directory. `--skip NAME` skips 
 directory name, in addition to the built-in list (for example `.git`, `node_modules` and
 `.venv`).
 
+A repository that must commit generated files, such as vendor type files full of doc
+comments, keeps them out of filename-based hooks with a regex in its own `lefthook.yml`:
+
+```yaml
+pre-commit:
+  commands:
+    basicly-dispatch:
+      env:
+        BASICLY_SECRET_EXCLUDE: '^mods/[^/]+/\.claude-plugin/types/'
+```
+
+`basicly hooks-build` preserves this setting and carries forward a legacy top-level
+pre-commit `exclude:`. `secret-scan` reads the staged diff itself:
+in those paths it skips only the generic assignment rule and still refuses a specific secret.
+Keep the regex narrow.
+
 Exit codes:
 
 - **0**: no prose found, or `fix` refused no file.

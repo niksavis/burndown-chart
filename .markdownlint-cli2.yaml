@@ -1,0 +1,15 @@
+globs:
+  - '**/*.md'
+ignores:
+  - 'node_modules/**'
+  - '.venv/**'
+  - 'build/**'
+  - 'cache/**'
+  - 'logs/**'
+  - 'profiles/**'
+  - '.basicly/core/**'
+  - '.claude/skills/**'
+  - '.agents/skills/**'
+  - '.claude/CLAUDE.md'
+  - 'AGENTS.md'
+  - '.github/copilot-instructions.md'

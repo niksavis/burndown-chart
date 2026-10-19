@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
-import re
 import sys
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
@@ -28,6 +27,13 @@ def _load(name: str) -> Any:
 events = _load("events")
 shaping = _load("shaping")
 labels = _load("labels")
+evidence_checks = _load("evidence_checks")
+_text = evidence_checks.filled_text
+_command = evidence_checks.filled_command
+_check_fault = evidence_checks.check_fault
+criterion_key = evidence_checks.criterion_key
+criteria = evidence_checks.criteria
+check_shape = evidence_checks.check_shape
 REVIEW_FIELD = "process_review"
 CONFIRMATION_FIELD = "process_confirmation"
 RESOLUTION_FIELD = "close_resolution"
@@ -46,37 +52,10 @@ SEMANTIC_FIELDS = frozenset({
     "issue_type",
 })
 MANAGED_FIELDS = frozenset({REVIEW_FIELD, CONFIRMATION_FIELD})
-_PLACEHOLDER = re.compile(r"(?:todo|tbd|tbc|fixme)", re.IGNORECASE)
-_BULLET = re.compile(r"^[-*]\s+(?:\[[ xX]\]\s*)?")
 
 
 class ProcessEvidenceError(events.LedgerError):
     pass
-
-
-def _text(value: object) -> bool:
-    return (
-        isinstance(value, str)
-        and bool(re.search(r"[^\W_]", value))
-        and not shaping.unfilled(value)
-        and not _PLACEHOLDER.fullmatch(value.strip(" ,.:;!?-_"))
-    )
-
-
-def criteria(fields: Mapping[str, object]) -> tuple[str, ...]:
-    value = fields.get("acceptance_criteria")
-    entries = (
-        value.splitlines()
-        if isinstance(value, str)
-        else value
-        if isinstance(value, (list, tuple))
-        else ()
-    )
-    return tuple(
-        _BULLET.sub("", entry.strip())
-        for entry in entries
-        if isinstance(entry, str) and entry.strip()
-    )
 
 
 def _semantic(event: Any, record: str, names=SEMANTIC_FIELDS) -> bool:
@@ -95,7 +74,8 @@ def revision(
     *,
     template=None,
 ) -> str:
-    held = dict(fields) if fields is not None else dict(events.fold(found).records[record].fields)
+    states = events.fields_by_record(found)
+    held = dict(fields) if fields is not None else dict(states[record])
     headings = shaping.required(held, template)
     names = SEMANTIC_FIELDS | frozenset(shaping.field_of(heading) for heading in headings)
     semantic = sorted({event.id for event in found if _semantic(event, record, names)})
@@ -111,11 +91,9 @@ def revision(
     targets = sorted({
         target for (target, _kind), active in edges.items() if active and isinstance(target, str)
     })
-    states = events.fold(found).records
     dependencies = {}
     for target in targets:
-        state = states.get(target)
-        fields = state.fields if state is not None else {}
+        fields = states.get(target, {})
         target_headings = shaping.required(fields, template)
         target_names = SEMANTIC_FIELDS | frozenset(
             shaping.field_of(heading) for heading in target_headings
@@ -181,45 +159,28 @@ def _conversation(found: Sequence[Any], record: str, references: object) -> bool
     return len(set(references)) == len(references)
 
 
-def _command(value: object) -> bool:
-    return (
-        isinstance(value, list)
-        and bool(value)
-        and isinstance(value[0], str)
-        and bool(value[0].strip())
-        and all(isinstance(part, str) and not shaping.unfilled(part) for part in value)
-    )
-
-
 def _checks(fields: Mapping[str, object], checks: object, *, completed: bool = False) -> bool:
-    expected = criteria(fields)
-    if not expected or len(set(expected)) != len(expected) or not isinstance(checks, list):
-        return False
-    held = []
-    keys = (
-        {"criterion", "command", "result", "exit_code"}
-        if completed
-        else {"criterion", "command", "expected"}
-    )
-    for check in checks:
-        if (
-            not isinstance(check, dict)
-            or set(check) != keys
-            or not _text(check.get("criterion"))
-            or not _command(check.get("command"))
-        ):
-            return False
-        if completed:
-            if (
-                not _text(check.get("result"))
-                or type(check.get("exit_code")) is not int
-                or check["exit_code"] != 0
-            ):
-                return False
-        elif not _text(check.get("expected")):
-            return False
-        held.append(check["criterion"])
-    return len(held) == len(set(held)) and set(held) == set(expected)
+    return _check_fault(fields, checks, completed=completed) is None
+
+
+def _compact_type(fields: Mapping[str, object]) -> bool:
+    return fields.get("issue_type") in ("task", "bug", "chore")
+
+
+def review_note(
+    found: Sequence[Any],
+    record: str,
+    fields: Mapping[str, object],
+    drafts: Sequence[Any] = (),
+    *,
+    template=None,
+) -> str:
+    saved = _saved(found, record, fields, REVIEW_FIELD)
+    if not saved:
+        return "no review is recorded; run review --evidence"
+    if saved.get("revision") != revision(found, record, fields, drafts, template=template):
+        return "the recorded review is void because the record changed after it; run review again"
+    return ""
 
 
 def readiness(
@@ -239,6 +200,8 @@ def readiness(
     current = bool(saved) and saved.get("revision") == revision(
         found, record, held, drafts, template=template
     )
+    if _compact_type(held) and (not current or set(saved) == {"checks", "revision", "writer"}):
+        return () if current and _checks(held, saved.get("checks")) else (PLAN_HEADING,)
     rationales = saved.get("invest") if current else {}
     rationales = rationales if isinstance(rationales, Mapping) else {}
     missing = [
@@ -278,10 +241,29 @@ def review_draft(
     state = events.fold(found).records.get(record)
     if state is None or state.tombstoned:
         raise ProcessEvidenceError("the ledger holds no record " + record)
-    if not isinstance(payload, dict) or set(payload) != {"invest", "conversation", "checks"}:
+    if not isinstance(payload, dict):
+        raise ProcessEvidenceError("review requires a JSON object")
+    compact = _compact_type(state.fields) and set(payload) == {"checks"}
+    if not compact and set(payload) != {"invest", "conversation", "checks"}:
         raise ProcessEvidenceError(
-            "review requires invest, conversation and checks; revision and writer are computed"
+            "review requires invest, conversation and checks; task, bug and chore may use "
+            "checks only; revision and writer are computed"
         )
+    if not compact:
+        _full_review(found, record, payload)
+    if fault := _check_fault(state.fields, payload["checks"]):
+        raise ProcessEvidenceError(f"Confirmation Plan refused: {fault}")
+    if (criterion := _machine_path(payload["checks"])) is not None:
+        raise ProcessEvidenceError(
+            f"Confirmation Plan command for {criterion!r} holds a machine path that the ledger "
+            "redacts, which would void the review; name the program on PATH, such as python3 "
+            "or uv run, or a path relative to the repository"
+        )
+    value = {**payload, "revision": revision(found, record, template=template)}
+    return _draft(record, REVIEW_FIELD, value, writer)
+
+
+def _full_review(found: Sequence[Any], record: str, payload: Mapping[str, Any]) -> None:
     rationales = payload["invest"]
     if (
         not isinstance(rationales, dict)
@@ -295,18 +277,6 @@ def review_draft(
         raise ProcessEvidenceError(
             "Conversation requires same-card comment seqs without forks; read show comment_log"
         )
-    if not _checks(state.fields, payload["checks"]):
-        raise ProcessEvidenceError(
-            "Confirmation Plan requires each criterion once, command argv and expected result"
-        )
-    if (criterion := _machine_path(payload["checks"])) is not None:
-        raise ProcessEvidenceError(
-            f"Confirmation Plan command for {criterion!r} holds a machine path that the ledger "
-            "redacts, which would void the review; name the program on PATH, such as python3 "
-            "or uv run, or a path relative to the repository"
-        )
-    value = {**payload, "revision": revision(found, record, template=template)}
-    return _draft(record, REVIEW_FIELD, value, writer)
 
 
 def confirmation_report(found: Sequence[Any], record: str, *, template=None) -> dict[str, Any]:
@@ -329,19 +299,21 @@ def confirmation_draft(
             "confirm requires a current review: " + ", ".join(str(part) for part in report["owed"])
         )
     state = events.fold(found).records[record]
-    if (
-        not isinstance(payload, dict)
-        or set(payload) != {"checks"}
-        or not _checks(state.fields, payload["checks"], completed=True)
-    ):
+    if not isinstance(payload, dict) or set(payload) != {"checks"}:
         raise ProcessEvidenceError(
-            "Completion Confirmation requires each criterion, argv, result and exit_code 0"
+            "Completion Confirmation refused: evidence holds the one key checks; "
+            + check_shape(completed=True)
         )
+    if fault := _check_fault(state.fields, payload["checks"], completed=True):
+        raise ProcessEvidenceError(f"Completion Confirmation refused: {fault}")
     review = report["review"]
     if not isinstance(review, Mapping):
         raise ProcessEvidenceError("confirm requires a recorded review")
-    planned = {check["criterion"]: check["command"] for check in review["checks"]}
-    if any(planned[check["criterion"]] != check["command"] for check in payload["checks"]):
+    planned = {criterion_key(check["criterion"]): check["command"] for check in review["checks"]}
+    if any(
+        planned[criterion_key(check["criterion"])] != check["command"]
+        for check in payload["checks"]
+    ):
         raise ProcessEvidenceError(
             "Completion Confirmation command argv must match the agreed plan for that criterion"
         )
@@ -363,12 +335,13 @@ def closing_owed(
     ) and _checks(fields, saved.get("checks"), completed=True)
     review = _saved(found, record, fields, REVIEW_FIELD)
     planned = {
-        check["criterion"]: check["command"]
+        criterion_key(check["criterion"]): check["command"]
         for check in review.get("checks", [])
         if isinstance(check, dict) and "criterion" in check and "command" in check
     }
     complete = complete and all(
-        planned.get(check["criterion"]) == check["command"] for check in saved.get("checks", [])
+        planned.get(criterion_key(check["criterion"])) == check["command"]
+        for check in saved.get("checks", [])
     )
     return (*missing, *((COMPLETION_HEADING,) if not complete else ()))
 
