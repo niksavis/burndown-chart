@@ -165,6 +165,84 @@ MOUNTED_BACKLOGS = {
     "mounted-health-bug-duration": "burndownchart-lokdeu",
     "mounted-health-budget": "burndownchart-q4yq9r",
 }
+HEALTH_CONTRACTS += make_contracts(
+    "health-calibration",
+    "data.project_health_calculator._calculate_quality_dimension",
+    "tab-dashboard",
+    (
+        ("quality-policy-score", "quality.score", 63.59675219186259),
+        ("quality-policy-weight", "quality.weight", 20),
+    ),
+    selection="Corrected signals: resolved100%, CFR25%, recovery54h, openbug capacity0",
+    derivation="Resolution30 + CFR25/6 + recovery20*(1-ln54/ln168) + density15 + age10",
+)
+for name, score in (
+    ("on_plan", 85),
+    ("ahead", 100),
+    ("pressure", 70.5),
+    ("threshold", 52),
+    ("medium", 46),
+    ("exhausted", 0),
+):
+    HEALTH_CONTRACTS += make_contracts(
+        "health-financial-calibration",
+        "data.project_health_calculator._calculate_financial_dimension",
+        "tab-dashboard",
+        ((f"financial-{name}-score", f"{name}.score", score),),
+        selection=f"Explicit financial policy calibration {name}; not measured financial inputs",
+        derivation=(
+            "Onplan40+20+25=85; ahead40+35+25=100; pressure36+12+22.5=70.5; "
+            "threshold32+0+20=52; medium16+20+10=46; exhausted0+0+0=0"
+        ),
+    )
+HEALTH_CONTRACTS += make_contracts(
+    "health-composite-calibration",
+    "data.project_health_calculator.calculate_comprehensive_project_health",
+    "tab-dashboard",
+    (
+        ("health-independent-composite", "overall_score", 72),
+        ("health-composite-quality", "dimensions.quality.score", 63.59675219186259),
+        ("health-composite-financial", "dimensions.financial.score", 85),
+        (
+            "health-composite-efficiency",
+            "dimensions.efficiency.score",
+            89.70795453645152,
+        ),
+        (
+            "health-composite-sustainability",
+            "dimensions.sustainability.score",
+            58.19230769230769,
+        ),
+    ),
+    backlog="burndownchart-imp016",
+    selection="All six dimensions, corrected signal inputs, explicit onplan financial calibration",
+    derivation=(
+        "Independent normalized scores weighted25/20/20/15/10/10 yield71.77272027099204, "
+        "rounded72. This is not the current mounted UI score."
+    ),
+)
+for dimension, weight in (
+    ("delivery", 25),
+    ("predictability", 20),
+    ("quality", 20),
+    ("efficiency", 15),
+    ("sustainability", 10),
+    ("financial", 10),
+):
+    HEALTH_CONTRACTS += make_contracts(
+        "health-composite-calibration",
+        "data.project_health_calculator.calculate_comprehensive_project_health",
+        "tab-dashboard",
+        (
+            (
+                f"health-composite-{dimension}-weight",
+                f"dimensions.{dimension}.weight",
+                weight,
+            ),
+        ),
+        backlog="burndownchart-imp016",
+        derivation="All six dimensions available: weights25+20+20+15+10+10=100",
+    )
 HEALTH_CONTRACTS = tuple(
     replace(
         contract, backlog=MOUNTED_BACKLOGS.get(contract.calculation, contract.backlog)

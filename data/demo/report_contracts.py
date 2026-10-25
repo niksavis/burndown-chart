@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from data.demo.contract_types import make_contracts
 
 REPORT_CONTRACTS = make_contracts(
@@ -85,4 +87,59 @@ REPORT_CONTRACTS += make_contracts(
         "The eight weeks from December 8 through January 29 include partial ISO week 5. "
         "Records and snapshots must use the same selected weeks."
     ),
+)
+
+REPORT_BACKLOGS = {
+    "report-remaining-points": "burndownchart-imp021",
+    "report-total-points": "burndownchart-imp021",
+    "report-point-completion": "burndownchart-imp021",
+    "report-point-forecast": "burndownchart-imp021",
+    "report-task-frequency": "burndownchart-08ew9g",
+    "report-failure-rate": "burndownchart-08ew9g",
+    "report-recovery-hours": "burndownchart-qtlipm",
+}
+REPORT_CONTRACTS += make_contracts(
+    "report",
+    "data.report.generator_metrics.calculate_all_metrics",
+    "exported-html",
+    (
+        ("report-budget-consumed", "budget.consumed_amount", 8700),
+        ("report-budget-remaining", "budget.remaining_amount", 300),
+        ("report-budget-utilization", "budget.consumed_percentage", 290 / 3),
+        ("report-budget-burn", "budget.burn_rate", 1110),
+        ("report-budget-runway", "budget.runway_weeks", 10 / 37),
+    ),
+    backlog="burndownchart-imp012",
+    derivation="Historical allocation8700, funding9000, burn1110 and runway300/1110",
+)
+REPORT_CONTRACTS += make_contracts(
+    "report",
+    "data.report.domain_metrics.calculate_bug_metrics",
+    "exported-html",
+    (
+        ("report-bugs-total", "bug_analysis.total_bugs", 8),
+        ("report-bugs-open", "bug_analysis.open_bugs", 0),
+        ("report-bugs-resolution", "bug_analysis.resolution_rate", 100),
+        ("report-bugs-investment", "bug_analysis.bug_investment_pct", 25),
+    ),
+    derivation="8resolved bugs/8total=100%;8bugs/32completed items=25%investment",
+)
+REPORT_CONTRACTS += make_contracts(
+    "report-four-weeks",
+    "data.report.domain_metrics.calculate_scope_metrics",
+    "exported-html",
+    (
+        ("report-window-initial-items", "scope.initial_items", 8),
+        ("report-window-initial-points", "scope.initial_points", 16),
+        ("report-window-created-items", "scope.created_items", 24),
+        ("report-window-created-points", "scope.created_points", 48),
+    ),
+    backlog="burndownchart-imp021",
+    derivation="Last4weeks create24/48, complete16/32; remaining16/32 implies initial8/16",
+)
+REPORT_CONTRACTS = tuple(
+    replace(
+        contract, backlog=REPORT_BACKLOGS.get(contract.calculation, contract.backlog)
+    )
+    for contract in REPORT_CONTRACTS
 )

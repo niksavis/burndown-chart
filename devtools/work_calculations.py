@@ -3,7 +3,12 @@ from data.active_work_manager import get_active_work_data
 from data.demo.config import AS_OF
 from data.persistence import PersistenceBackend, load_app_settings
 from data.project_filter import filter_development_issues
-from data.sprint_manager import calculate_sprint_progress, get_sprint_dates
+from data.sprint_manager import (
+    calculate_sprint_progress,
+    calculate_sprint_scope_change_points,
+    calculate_sprint_scope_changes,
+    get_sprint_dates,
+)
 from data.sprint_snapshot_calculator import calculate_daily_sprint_snapshots
 from data.sprint_tracker_data import load_sprint_tracker_dataset
 
@@ -37,7 +42,34 @@ def active_work(
         flow_wip_statuses=workflow["flow_wip_statuses"],
         parent_issue_types=general["parent_issue_types"],
     )
-    return {entry["epic_key"]: entry for entry in result["timeline"]}
+    return {
+        entry["epic_key"]: {
+            **entry,
+            "children": {child["issue_key"]: child for child in entry["child_issues"]},
+        }
+        for entry in result["timeline"]
+    }
+
+
+def sprint_scope(profile_id: str) -> dict:
+    dataset = load_sprint_tracker_dataset(profile_id, "main", force_refresh=True)
+    result = {}
+    for name, sprint in dataset["sprint_snapshots"].items():
+        dates = get_sprint_dates(
+            name, dataset["tracked_issues"], dataset["sprint_field"]
+        )
+        if dates is None:
+            raise ValueError(f"Synthetic sprint has no dates: {name}")
+        result[name] = {
+            "items": calculate_sprint_scope_changes(sprint, dates["start_date"]),
+            "points": calculate_sprint_scope_change_points(
+                sprint,
+                dataset["tracked_issues"],
+                dates["start_date"],
+                dates["end_date"],
+            ),
+        }
+    return result
 
 
 def sprint_work(profile_id: str, *, daily: bool) -> dict:

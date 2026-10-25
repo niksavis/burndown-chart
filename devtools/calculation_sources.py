@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Any
 
 import pandas as pd
@@ -35,12 +36,19 @@ from devtools.dashboard_observation import observe_mounted_confidence
 from devtools.forecast_calculations import forecast_calculations
 from devtools.health_calculations import health_calculations
 from devtools.health_observation import observe_mounted_health
+from devtools.recommendation_calculations import recommendation_calculations
 from devtools.report_calculations import report_calculations
 from devtools.scope_calculations import scope_calculations
-from devtools.work_calculations import active_work, sprint_work
+from devtools.work_calculations import active_work, sprint_scope, sprint_work
 from ui.dashboard_enhanced.stats import _calculate_velocity_statistics
 
 LEAD_SAMPLE = (1, 2, 3, 4, 7, 8, 9, 10, 13, 14, 15, 16, 19, 20, 21, 22, 25, 26, 27, 28)
+DIRECT_SOURCES: dict[str, Callable[[], dict]] = {
+    "recommendation-policies": recommendation_calculations,
+    "persisted-metrics": load_snapshots,
+    "mounted-confidence": observe_mounted_confidence,
+    "mounted-health": observe_mounted_health,
+}
 
 
 class CalculationSources:
@@ -104,14 +112,12 @@ class CalculationSources:
         raise ValueError(f"Unknown statistical diagnostic source: {source}")
 
     def _calculate(self, profile_id: str, source: str) -> dict:
-        if source == "persisted-metrics":
-            return load_snapshots()
+        if source in DIRECT_SOURCES:
+            return DIRECT_SOURCES[source]()
+        if source == "sprint-scope":
+            return sprint_scope(profile_id)
         if source.startswith("scope-"):
             return scope_calculations(source)
-        if source == "mounted-confidence":
-            return observe_mounted_confidence()
-        if source == "mounted-health":
-            return observe_mounted_health()
         if source.startswith("health-"):
             return health_calculations(source)
         if source.startswith("budget-") and not source.startswith("budget-at-"):
@@ -126,8 +132,10 @@ class CalculationSources:
             "metric-forecast",
         }:
             return forecast_calculations(self.backend, profile_id, source)
-        if source == "report":
-            return report_calculations(profile_id)
+        if source in {"report", "report-four-weeks"}:
+            return report_calculations(
+                profile_id, weeks=4 if source == "report-four-weeks" else 8
+            )
         if source in {"active-work", "active-completed"}:
             return active_work(
                 self.backend, profile_id, completed=source == "active-completed"

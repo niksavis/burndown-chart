@@ -19,7 +19,7 @@ No current wrong result becomes a golden expected value.
 | Active Work and Sprint |46epic children, two unparented; known tracked membership and moved/reopened issues | `work_contracts.py` |
 | Bugs | Eight bugs,54hour resolution; stalled4open with known ages and closure rates | `contracts.py`, `ancillary_contracts.py` |
 | Health | Empty availability, stage bands, policy calibrations and the actual Dashboard caller inputs | `health_contracts.py` |
-| Recommendations | Created/completed populations, stable and accelerating/declining sequences | `recommendation_contracts.py` |
+| Recommendations | Created/completed populations, stable and accelerating/declining sequences | `recommendation_contracts.py`, `policy_contracts.py` |
 | Historical budget | Recorded completion cohorts allocated at their effective historical cost | `budget_contracts.py` |
 | Exported report | Same source population, units and selected weeks as the app | `report_contracts.py` |
 | EWMA and current-week blend | Constant observations and configured Thursday60/40 weights | `ancillary_contracts.py` |
@@ -44,5 +44,7 @@ Some distinctions are necessary to interpret the catalogue:
   Missing financial inputs and capacity units are tracked by `burndownchart-q4yq9r` and `burndownchart-67xisu`.
 - Production filtering belongs to the actual weekly and rendering paths as well as direct calculator calls.
 
-The specialist completion review identified remaining adapter and availability coverage.
-Those items remain listed in [Offline development](offline_development.md#remaining-coverage-work).
+The catalogue contains 530 checks, with 102 explicit discrepancies in the latest diagnostic run.
+Additional contracts cover positive health dimensions, a conditional composite of 72, all seven correlation policies,
+work ages, sprint scope and four-week report baselines.
+See [Offline development](offline_development.md#calculation-coverage-and-known-discrepancies) for interpretation and capture corrections.

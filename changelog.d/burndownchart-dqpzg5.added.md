@@ -2,3 +2,4 @@
 - Added browser journeys for registered tabs, budget and exported reports, plus persistent screenshot capture and independent numerical diagnostics.
 - Expanded the default validation gate from unit tests to the full local test inventory, including integration and browser tests.
 - Added passive chart-settlement diagnostics and independent checks for persisted weekly metrics and the Dashboard health inputs.
+- Added passive report capture checks, expanded calculation coverage and consistent cached static gates.

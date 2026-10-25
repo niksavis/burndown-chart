@@ -4,6 +4,7 @@ from data.demo.contract_types import CalculationContract
 from data.demo.contract_types import make_contracts as _contracts
 from data.demo.forecast_contracts import FORECAST_CONTRACTS
 from data.demo.health_contracts import HEALTH_CONTRACTS
+from data.demo.policy_contracts import POLICY_CONTRACTS
 from data.demo.recommendation_contracts import RECOMMENDATION_CONTRACTS
 from data.demo.report_contracts import REPORT_CONTRACTS
 from data.demo.scope_contracts import SCOPE_CONTRACTS
@@ -16,6 +17,7 @@ CONTRACTS = (
     + ANCILLARY_CONTRACTS
     + SCOPE_CONTRACTS
     + HEALTH_CONTRACTS
+    + POLICY_CONTRACTS
     + BUDGET_CONTRACTS
     + WEEKLY_CONTRACTS
     + SNAPSHOT_CONTRACTS

@@ -1,6 +1,31 @@
 from data.demo.contract_types import make_contracts
 
-BUDGET_CONTRACTS = ()
+TIMELINE_CONTRACTS = make_contracts(
+    "budget-comparison",
+    "data.budget_calculator_comparison.get_budget_baseline_vs_actual",
+    "tab-dashboard",
+    (
+        ("budget-start-date", "baseline.start_date", "2025-12-08"),
+        ("budget-end-date", "baseline.allocated_end_date", "2026-02-16"),
+        ("budget-allocated-duration", "baseline.time_allocated_weeks", 10),
+        ("budget-calendar-elapsed", "actual.elapsed_weeks", 52 / 7),
+        ("budget-calendar-elapsed-pct", "actual.elapsed_pct", 520 / 7),
+        ("budget-timeline-consumed", "actual.consumed_eur", 8700),
+        ("budget-timeline-utilization", "actual.consumed_pct", 290 / 3),
+        ("budget-runway-end", "actual.runway_end_date", "2026-01-31"),
+        ("budget-burn-variance", "variance.burn_rate_variance_eur", 10),
+        ("budget-burn-variance-pct", "variance.burn_rate_variance_pct", 10 / 11),
+        ("budget-utilization-pace", "variance.utilization_vs_pace_pct", 470 / 21),
+    ),
+    backlog="burndownchart-imp012",
+    selection="Calendar-day timeline and historical allocation, not a cash-spend measurement",
+    derivation=(
+        "Dec8+10weeks=Feb16;52whole elapsed days;8700/9000=96.667%; "
+        "300/1110runway;1110-1100=10"
+    ),
+)
+
+BUDGET_CONTRACTS = TIMELINE_CONTRACTS
 for week, consumed, total in (
     ("2025-W50", 1000, 8000),
     ("2026-W01", 4200, 9500),

@@ -25,6 +25,19 @@ SCOPE_CONTRACTS += make_contracts(
     derivation="Original scope0 of current48items/96points gives original-scope share0",
 )
 SCOPE_CONTRACTS += make_contracts(
+    "scope-positive-window",
+    "data.scope_metrics.calculate_scope_change_rate",
+    "tab-scope-tracking",
+    (
+        ("positive-item-growth", "growth.items_rate", 300),
+        ("positive-point-growth", "growth.points_rate", 300),
+        ("positive-item-stability", "stability.items_stability", 0.25),
+        ("positive-point-stability", "stability.points_stability", 0.25),
+    ),
+    selection="Last4weeks carry8items/16points; create24/48 and complete16/32",
+    derivation="Created/original=24/8=48/16=300%; original/total=8/32=16/64=0.25",
+)
+SCOPE_CONTRACTS += make_contracts(
     "scope-threshold-calibration",
     "data.scope_metrics.check_scope_change_threshold",
     "tab-scope-tracking",

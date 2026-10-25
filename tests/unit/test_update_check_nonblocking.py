@@ -8,6 +8,7 @@ def test_update_check_thread_is_daemon():
 
     from app import update_check_thread
 
+    assert update_check_thread is not None
     assert update_check_thread.daemon is True, "Update check thread must be daemon"
     assert update_check_thread.name == "UpdateCheckThread"
 

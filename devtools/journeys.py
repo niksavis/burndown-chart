@@ -1,6 +1,7 @@
 import math
 import re
 from pathlib import Path
+from shutil import copyfile
 
 from playwright.sync_api import Locator, Page, expect
 
@@ -8,6 +9,7 @@ from devtools.plotly_observation import (
     wait_for_page_settlement,
     wait_for_plotly_settlement,
 )
+from devtools.report_observation import wait_for_report_settlement
 from ui.tabs import TAB_CONFIG, TabConfig
 
 TAB_MARKERS = {
@@ -135,21 +137,18 @@ def capture_exported_report(page: Page, output: Path) -> list[str]:
     page.goto(report.as_uri(), wait_until="load")
     expect(page).to_have_title(re.compile("Acme Corp.*Project Report"))
     expect(page.get_by_role("heading", name="Project Health Overview")).to_be_visible()
-    page.wait_for_function(
-        "typeof Chart !== 'undefined' && Object.keys(Chart.instances).length > 0"
-    )
-    page.evaluate(
-        "Object.values(Chart.instances).forEach(chart => {"
-        "chart.stop(); chart.update('none'); })"
-    )
+    wait_for_report_settlement(page)
     sections = page.locator(".container > .section")
     titles = []
     for index in range(sections.count()):
         section = sections.nth(index)
         title = section.locator("h2").inner_text().strip()
         titles.append(title)
-        section.screenshot(
-            path=str(output / f"report-section-{index + 1}.png"), animations="disabled"
+        prefix = f"report-section-{index + 1}-page"
+        capture_viewports(page, section, output, prefix)
+        copyfile(
+            output / f"{prefix}-1.png",
+            output / f"report-section-{index + 1}.png",
         )
     if len(titles) != 8:
         raise AssertionError(f"Expected eight exported report sections, got {titles}")

@@ -88,3 +88,56 @@ WORK_CONTRACTS += make_contracts(
     selection="Active Sprint4 daily records at January29 evaluation date",
     derivation="Both weeks created beforeJan29;6done/13points; future actuals unavailable",
 )
+WORK_CONTRACTS += make_contracts(
+    "active-work",
+    "data.active_work_manager.get_active_work_data",
+    "tab-active-work-timeline",
+    (
+        (
+            "old-work-blocked",
+            "DEMO-100.children.DEMO-6.health_indicators.is_blocked",
+            True,
+        ),
+        (
+            "recent-review-wip",
+            "DEMO-100.children.DEMO-47.health_indicators.is_wip",
+            True,
+        ),
+        (
+            "recent-testing-wip",
+            "DEMO-100.children.DEMO-48.health_indicators.is_wip",
+            True,
+        ),
+        (
+            "old-work-completed",
+            "DEMO-100.children.DEMO-1.health_indicators.is_completed",
+            True,
+        ),
+    ),
+    derivation=(
+        "Jan29noonUTC: issue6laststatusDec8(51whole days); "
+        "47Jan26evening(2days);48Jan27(1day);1Done"
+    ),
+)
+for scenario, sprint, removed, removed_points in (
+    ("complete", "Demo Sprint 4", 0, 0),
+    ("reopened", "Demo Sprint 1", 2, 6),
+):
+    WORK_CONTRACTS += make_contracts(
+        "sprint-scope",
+        "data.sprint_manager.calculate_sprint_scope_changes",
+        "tab-sprint-tracker",
+        (
+            ("scope-added", f"{sprint}.items.added", 10),
+            ("scope-removed", f"{sprint}.items.removed", removed),
+            ("scope-net", f"{sprint}.items.net_change", 10 - removed),
+            ("scope-added-points", f"{sprint}.points.added_points", 21),
+            ("scope-removed-points", f"{sprint}.points.removed_points", removed_points),
+            ("scope-net-points", f"{sprint}.points.net_points", 21 - removed_points),
+        ),
+        scenario=scenario,
+        derivation=(
+            "10tracked additions total21points; "
+            "reopened removes Bug2(2.5) and Task3(3.5)"
+        ),
+    )

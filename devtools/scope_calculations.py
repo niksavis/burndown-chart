@@ -11,6 +11,12 @@ from data.scope_metrics import (
 
 def scope_calculations(source: str) -> dict:
     frame = pd.DataFrame(load_unified_project_data()["statistics"])
+    if source == "scope-positive-window":
+        window = frame.tail(4).copy()
+        return {
+            "growth": calculate_scope_change_rate(window, 8, 16, 4),
+            "stability": calculate_scope_stability_index(window, 8, 16, 4),
+        }
     if source == "scope-zero-baseline":
         return {
             "growth": calculate_scope_change_rate(frame, 0, 0, 8),

@@ -141,7 +141,8 @@ Empty, singleton, zero-delivery, stalled, completed and default scenarios assert
 Changing the profile header alone cannot satisfy those assertions.
 It tests desktop and mobile viewports with both browser color preferences.
 Browser assertions reject external requests, failed assets, HTTP errors, page errors and console errors.
-Report charts are rendered at their final animation state before capture.
+Report captures passively wait for Chart.js element positions to reach their targets and remain stable.
+Overlapping fixed viewport images preserve that state during capture; section images retain the first viewport for compatibility.
 
 Inspect the resulting PNG files separately. The manifest records browser assertions; it does not certify visual correctness.
 The application currently uses its light presentation under both browser color preferences.
@@ -164,19 +165,27 @@ Page settlement also handles card/table surfaces that have no visible Plotly gra
 The observation adapter reads Plotly runtime layout fields and refuses missing layouts; it does not change figures.
 Forced resize remains diagnostic and is never used to make canonical screenshots fit.
 
-## Remaining coverage work
+## Calculation coverage and known discrepancies
 
-The executable contracts cover recorded weeks, scope, forecasts, Flow/DORA, work and Sprint progress,
-bug closure forecasts, historical budgets, selected health/recommendation policies and report values.
-Calibration contracts name their explicit inputs and assumptions. They do not establish caller agreement.
-Persisted weekly Flow and production task/failure populations now have independent contracts,
-and real Dashboard health inputs are observed at the comprehensive-health boundary.
-The remaining audit must cover positive Quality/Financial scores and the health composite,
-budget/pace/correlation recommendation families, work timing, sprint scope changes and remaining report adapters.
+The catalogue contains 530 independent checks across the scenario inventory. The latest diagnostic run reports 102 discrepancies; these remain explicit failures linked to backlog records, separate from the green software verification gate.
+Positive Quality/Financial scores, the conditional health composite, budget/pace/correlation recommendations,
+work timing, sprint scope changes and four-week report adapters now have executable contracts.
+The composite calibration uses explicit corrected inputs and expects 72; it does not certify the mounted Dashboard result.
+Recommendation zero-value failures are tracked by `burndownchart-ftzd2n`.
 Production lead eligibility remains a separate semantic defect; the controlled completed-item calibration remains explicit.
-The expanded browser assertion matrix passes all four viewport/preference combinations.
-The bounded Plotly probe established premature captures for the reproduced clipping and chart-size differences.
-The current passive-settlement matrix passes all four viewport/preference combinations with twenty scenarios.
-Report Chart.js element/scale settlement still needs a bounded probe; the existing stop/update step is not sufficient evidence.
-Passing browser assertions establish reachability and network behavior; the recorded visual defects remain unresolved.
 Dormant forecast-history widgets have no stored producer and must not receive fabricated history.
+
+The bounded report probe showed that stopping animations did not establish settled elements.
+A full-section screenshot could change Chart.js geometry during capture.
+Canonical journeys now wait passively and capture overlapping fixed viewports.
+The regression checks populated weekly bar baselines before and after every report screenshot under both OS preferences.
+The earlier floating bars and January forecast-marker observations were capture artifacts, not demonstrated calculation defects.
+Mobile report overflow remains a recorded product defect.
+
+## Gate execution
+
+`basicly verify --mode fast` runs the configured project static checks.
+`basicly verify --mode full` runs those checks and the complete offline unit, integration and browser inventory.
+The native content cache reuses only trusted equivalent passing inputs; changed inputs invalidate that evidence.
+Standalone Ruff and Prettier checks reuse the consumer hook's file-selection policy, so generated basicly files are treated consistently.
+The optional `validate.py --full` additionally runs dependency audit, dead-code analysis and performance tests.
