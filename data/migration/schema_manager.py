@@ -9,11 +9,12 @@ from data.migration.schema import (
     get_schema_version,
     set_schema_version,
 )
+from utils.runtime import profiles_directory
 
 logger = logging.getLogger(__name__)
 
 CURRENT_SCHEMA_VERSION = "1.0"
-DEFAULT_DB_PATH = Path("profiles/burndown.db")
+DEFAULT_DB_PATH = profiles_directory() / "burndown.db"
 
 
 def initialize_schema(db_path: Path = DEFAULT_DB_PATH, force: bool = False) -> bool:

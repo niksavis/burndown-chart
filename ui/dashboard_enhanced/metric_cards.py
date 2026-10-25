@@ -6,6 +6,7 @@ import dash_bootstrap_components as dbc
 from dash import html
 
 from ui.dashboard_enhanced.components import _create_sparkline_bars
+from utils.business_time import business_now
 
 
 def _create_forecast_card(
@@ -51,10 +52,16 @@ def _create_forecast_card(
         )
 
     ci_50_date = (
-        datetime.now() + timedelta(days=confidence_intervals["ci_50"])
+        business_now(
+            datetime,
+        )
+        + timedelta(days=confidence_intervals["ci_50"])
     ).strftime("%b %d, %Y")
     ci_95_date = (
-        datetime.now() + timedelta(days=confidence_intervals["ci_95"])
+        business_now(
+            datetime,
+        )
+        + timedelta(days=confidence_intervals["ci_95"])
     ).strftime("%b %d, %Y")
 
     status_color = "#28a745" if status == "on_track" else "#dc3545"

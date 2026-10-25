@@ -20,6 +20,7 @@ from data.metrics.helpers import get_current_iso_week
 from data.metrics_snapshots import save_metric_snapshot
 from data.persistence import load_app_settings
 from data.persistence.factory import get_backend
+from utils.business_time import business_now
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +191,7 @@ def calculate_and_save_weekly_metrics(
         trends = {
             "flow_time_trend": "stable",
             "flow_efficiency_trend": "stable",
-            "timestamp": datetime.now(UTC).isoformat(),
+            "timestamp": business_now(datetime, UTC).isoformat(),
         }
         save_metric_snapshot(week_label, "trends", trends)
 

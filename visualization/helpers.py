@@ -6,6 +6,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from data import calculate_weekly_averages
+from utils.business_time import business_now
 
 
 def fill_missing_weeks(weekly_df, start_date, end_date, value_columns):
@@ -60,7 +61,7 @@ def parse_deadline_milestone(deadline_str, milestone_str=None):
     try:
         deadline = pd.to_datetime(deadline_str, format="mixed", errors="coerce")
     except ValueError, TypeError:
-        deadline = pd.Timestamp.now() + pd.Timedelta(days=30)
+        deadline = pd.Timestamp(business_now(datetime)) + pd.Timedelta(days=30)
         logging.getLogger("burndown_chart").warning(
             f"Invalid deadline format: {deadline_str}. Using default."
         )
@@ -123,7 +124,9 @@ def calculate_forecast_completion_dates(pert_time_items, pert_time_points):
     ):
         items_completion_enhanced = "N/A (insufficient data)"
     else:
-        current_date = datetime.now()
+        current_date = business_now(
+            datetime,
+        )
         items_completion_date = current_date + timedelta(days=pert_time_items)
         items_completion_str = items_completion_date.strftime("%Y-%m-%d")
         items_completion_enhanced = (
@@ -136,7 +139,9 @@ def calculate_forecast_completion_dates(pert_time_items, pert_time_points):
     ):
         points_completion_enhanced = "N/A (insufficient data)"
     else:
-        current_date = datetime.now()
+        current_date = business_now(
+            datetime,
+        )
         points_completion_date = current_date + timedelta(days=pert_time_points)
         points_completion_str = points_completion_date.strftime("%Y-%m-%d")
         points_completion_enhanced = (
@@ -163,7 +168,9 @@ def prepare_metrics_data(
     med_weekly_points: float = 0.0,
 ) -> dict:
 
-    current_date = datetime.now()
+    current_date = business_now(
+        datetime,
+    )
 
     if deadline is None or pd.isna(deadline):
         days_to_deadline = 0
@@ -196,7 +203,9 @@ def generate_burndown_forecast(
     last_value, avg_rate, opt_rate, pes_rate, start_date, end_date
 ):
 
-    today = datetime.now()
+    today = business_now(
+        datetime,
+    )
     absolute_max_date = today + timedelta(days=3653)
     MAX_FORECAST_DAYS = 3653
 
@@ -357,7 +366,9 @@ def handle_forecast_error(e):
         "med_weekly_items": 0.0,
         "med_weekly_points": 0.0,
         "error": str(e),
-        "forecast_timestamp": datetime.now().isoformat(),
+        "forecast_timestamp": business_now(
+            datetime,
+        ).isoformat(),
     }
 
     return fig, safe_pert_data

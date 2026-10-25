@@ -13,6 +13,7 @@ from data.persistence import load_app_settings, load_unified_project_data
 from data.persistence.factory import get_backend
 from data.query_manager import get_active_query_id
 from data.time_period_calculator import format_year_week, get_iso_week
+from utils.business_time import business_now
 
 logger = logging.getLogger("burndown_chart")
 
@@ -90,7 +91,9 @@ def _try_load_flow(
 ) -> None:
     try:
         weeks = []
-        current_date = datetime.now()
+        current_date = business_now(
+            datetime,
+        )
         for _i in range(data_points_count or 12):
             year, week = get_iso_week(current_date)
             week_label = format_year_week(year, week)
@@ -199,7 +202,9 @@ def _try_load_bugs(
         settings = load_app_settings()
         bug_types = settings.get("bug_types", {})
 
-        date_to = datetime.now()
+        date_to = business_now(
+            datetime,
+        )
         date_from = date_to - timedelta(weeks=data_points_count or 12)
 
         all_bug_issues = filter_bug_issues(

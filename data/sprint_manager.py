@@ -4,6 +4,8 @@ from datetime import UTC, datetime
 
 from dateutil import parser as date_parser
 
+from utils.business_time import business_now
+
 logger = logging.getLogger(__name__)
 
 
@@ -938,9 +940,9 @@ def calculate_issue_status_timeline(
                     "Invalid next date format for "
                     f"{issue_key}: {next_change_date_str}, using now"
                 )
-                end_time = datetime.now(UTC)
+                end_time = business_now(datetime, UTC)
         else:
-            end_time = datetime.now(UTC) if include_current else start_time
+            end_time = business_now(datetime, UTC) if include_current else start_time
 
         duration = end_time - start_time
         duration_hours = duration.total_seconds() / 3600

@@ -1,9 +1,10 @@
 import logging
-from pathlib import Path
+
+from utils.runtime import profiles_directory
 
 logger = logging.getLogger(__name__)
 
-PROFILES_DIR = Path("profiles").absolute()
+PROFILES_DIR = profiles_directory()
 PROFILES_FILE = PROFILES_DIR / "profiles.json"
 DEFAULT_PROFILE_ID = "default"
 DEFAULT_QUERY_ID = "main"

@@ -7,6 +7,7 @@ from data.recommendations.budget_signals import (
     build_budget_forecast_signals_from_dashboard,
 )
 from data.types import MetricsResult
+from utils.business_time import business_now
 
 
 def _build_deadline_scenario_insights(
@@ -20,7 +21,10 @@ def _build_deadline_scenario_insights(
             deadline_date = pd.to_datetime(deadline)
             if not pd.isna(deadline_date):
                 current_date = datetime.combine(
-                    datetime.now().date(), datetime.min.time()
+                    business_now(
+                        datetime,
+                    ).date(),
+                    datetime.min.time(),
                 )
                 days_to_deadline = max(0, (deadline_date - current_date).days)
 

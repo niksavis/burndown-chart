@@ -202,6 +202,7 @@ def create_parameter_bar_collapsed(
                             ),
                         ]
                         + points_display,
+                        id=f"{bar_id}-summary",
                         className="d-flex align-items-center flex-wrap flex-grow-1",
                     ),
                     html.Div(

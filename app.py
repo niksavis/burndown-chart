@@ -12,7 +12,7 @@ from pathlib import Path
 import dash
 import diskcache
 from dash import DiskcacheManager
-from flask import jsonify
+from flask import Response, jsonify
 from waitress.server import create_server
 
 from callbacks import register_all_callbacks
@@ -34,6 +34,8 @@ from ui.app_config import (
     META_TAGS,
 )
 from utils.license_extractor import extract_license_on_first_run
+from utils.offline_assets import local_stylesheet
+from utils.runtime import demo_mode, runtime_workspace, verification_mode
 
 _server = None
 
@@ -59,7 +61,8 @@ cleanup_old_logs(log_dir=str(installation_context.logs_path), max_age_days=30)
 logger = logging.getLogger(__name__)
 logger.info("Starting Burndown application")
 
-cleanup_orphaned_temp_updaters()
+if not demo_mode() and not verification_mode():
+    cleanup_orphaned_temp_updaters()
 
 
 try:
@@ -79,7 +82,9 @@ except Exception as e:
     print(f"WARNING: Migration check failed - {e}. App will attempt to continue.")
 
 
-VERSION_CHECK_RESULT: UpdateProgress | None = restore_pending_update()
+VERSION_CHECK_RESULT: UpdateProgress | None = (
+    None if demo_mode() else restore_pending_update()
+)
 
 
 def _set_version_check_result(result: UpdateProgress) -> None:
@@ -87,13 +92,19 @@ def _set_version_check_result(result: UpdateProgress) -> None:
     VERSION_CHECK_RESULT = result
 
 
-update_check_thread = start_update_check(
-    _set_version_check_result, VERSION_CHECK_RESULT
+update_check_thread = (
+    None
+    if demo_mode()
+    else start_update_check(_set_version_check_result, VERSION_CHECK_RESULT)
 )
 
 ensure_valid_workspace()
 
-cache = diskcache.Cache("./cache")
+_runtime_workspace = runtime_workspace()
+cache = diskcache.Cache(
+    str(_runtime_workspace / "cache") if _runtime_workspace else "./cache"
+)
+atexit.register(cache.close)
 background_callback_manager = DiskcacheManager(cache)
 
 app = dash.Dash(
@@ -111,6 +122,19 @@ app = dash.Dash(
 )
 
 app.index_string = INDEX_STRING
+
+
+@app.server.after_request
+def remove_demo_remote_stylesheet_imports(response: Response) -> Response:
+    if demo_mode() and response.status_code == 200 and response.mimetype == "text/css":
+        response.direct_passthrough = False
+        source = response.get_data(as_text=True)
+        sanitized = local_stylesheet(source)
+        if sanitized != source:
+            response.set_data(sanitized)
+            response.headers.pop("ETag", None)
+    return response
+
 
 app.layout = serve_layout
 

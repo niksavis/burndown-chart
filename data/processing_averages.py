@@ -6,6 +6,7 @@ from data.metrics.blending import calculate_current_week_blend
 from data.metrics_calculator import calculate_forecast
 from data.metrics_snapshots import get_metric_weekly_values
 from data.time_period_calculator import format_year_week, get_iso_week
+from utils.business_time import business_now
 
 
 def calculate_weekly_averages(
@@ -30,7 +31,9 @@ def calculate_weekly_averages(
     try:
         if data_points_count is not None and data_points_count > 0:
             weeks = []
-            current_date = datetime.now()
+            current_date = business_now(
+                datetime,
+            )
             for _i in range(data_points_count):
                 year, week = get_iso_week(current_date)
                 week_label = format_year_week(year, week)

@@ -42,7 +42,7 @@ def calculate_flow_load_range(*args, **kwargs):  # noqa: PLC0415
 _snapshots_lock = threading.Lock()
 
 _snapshots_cache: dict[str, dict[str, Any]] | None = None
-_cache_query_id: str | None = None
+_cache_identity: tuple[object, str, str] | None = None
 
 _batch_mode_active = False
 _batch_snapshots = None
@@ -55,7 +55,7 @@ def _get_snapshots_file_path() -> Path:
 
 def load_snapshots() -> dict[str, dict[str, Any]]:
 
-    global _snapshots_cache, _cache_query_id
+    global _snapshots_cache, _cache_identity
 
     try:
         backend = get_backend()
@@ -67,7 +67,8 @@ def load_snapshots() -> dict[str, dict[str, Any]]:
             logger.info("No active profile/query, returning empty snapshots")
             return {}
 
-        if _snapshots_cache is not None and _cache_query_id == active_query_id:
+        identity = (backend, active_profile_id, active_query_id)
+        if _snapshots_cache is not None and _cache_identity == identity:
             return _snapshots_cache
 
         snapshots = {}
@@ -119,7 +120,7 @@ def load_snapshots() -> dict[str, dict[str, Any]]:
         logger.info(f"Loaded {len(snapshots)} weeks of metric snapshots from database")
 
         _snapshots_cache = snapshots
-        _cache_query_id = active_query_id
+        _cache_identity = identity
 
         return snapshots
     except Exception as e:
@@ -128,9 +129,9 @@ def load_snapshots() -> dict[str, dict[str, Any]]:
 
 
 def clear_snapshots_cache() -> None:
-    global _snapshots_cache, _cache_query_id
+    global _snapshots_cache, _cache_identity
     _snapshots_cache = None
-    _cache_query_id = None
+    _cache_identity = None
     logger.info("Cleared snapshots cache")
 
 

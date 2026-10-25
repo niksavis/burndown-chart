@@ -7,6 +7,7 @@ from dash import html
 
 from ui.budget_cards._forecast_alignment_card import _create_card_footer
 from ui.styles import create_metric_card_header
+from utils.business_time import business_now
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,9 @@ def create_budget_timeline_card(
 
         start_date = datetime.fromisoformat(start_date_str)
         allocated_end = datetime.fromisoformat(allocated_end_str)
-        current_date = datetime.now()
+        current_date = business_now(
+            datetime,
+        )
 
         if runway_end_str and runway_end_str not in [
             "N/A (no consumption)",

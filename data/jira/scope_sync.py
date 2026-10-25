@@ -23,6 +23,7 @@ from data.jira.scope_calculator import calculate_jira_project_scope
 from data.parent_filter import filter_parent_issues
 from data.project_filter import filter_development_issues
 from data.task_progress import TaskProgress
+from utils.runtime import demo_mode
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,12 @@ def sync_jira_scope_and_data(
     ui_config: dict | None = None,
     force_refresh: bool = False,
 ) -> tuple[bool, str, dict]:
-
+    if demo_mode():
+        return (
+            False,
+            "Jira synchronization is disabled in the offline demo workspace",
+            {},
+        )
     try:
         logger.warning("=" * 80)
         logger.warning(

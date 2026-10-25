@@ -8,6 +8,7 @@ from configuration import logger
 from data.iso_week_bucketing import get_week_label
 from data.persistence import load_unified_project_data, save_statistics
 from data.profile_manager import get_active_profile
+from utils.business_time import business_now
 
 
 def _create_capacity_metrics_content(capacity_metrics, total_capacity):
@@ -286,7 +287,7 @@ def register(app):
                 most_recent_date = max(date_objects)
                 new_date = (most_recent_date + timedelta(days=7)).strftime("%Y-%m-%d")
 
-                today = datetime.now().replace(
+                today = business_now(datetime).replace(
                     hour=0, minute=0, second=0, microsecond=0
                 )
                 proposed_date = datetime.strptime(new_date, "%Y-%m-%d")
@@ -299,9 +300,9 @@ def register(app):
                     )
                     raise PreventUpdate
             else:
-                new_date = datetime.now().strftime("%Y-%m-%d")
+                new_date = business_now(datetime).strftime("%Y-%m-%d")
         except ValueError, KeyError:
-            new_date = datetime.now().strftime("%Y-%m-%d")
+            new_date = business_now(datetime).strftime("%Y-%m-%d")
 
         try:
             date_obj = datetime.strptime(new_date, "%Y-%m-%d")

@@ -4,7 +4,16 @@ from unittest.mock import patch
 
 import pytest
 
+import data.installation_context as context_module
 from data.installation_context import InstallationContext, get_installation_context
+
+
+@pytest.fixture(autouse=True)
+def production_context_detection(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("BURNDOWN_TEST_WORKSPACE", raising=False)
+    monkeypatch.setattr(context_module, "_context", context_module._context)
+    with patch.object(Path, "mkdir"):
+        yield
 
 
 class TestInstallationContextDetection:
@@ -21,7 +30,7 @@ class TestInstallationContextDetection:
 
                 assert context.is_frozen is False
                 assert context.executable_dir.exists()
-                assert context.executable_dir.name == "burndown-chart"
+                assert context.executable_dir == Path(__file__).resolve().parents[3]
                 assert context.is_portable is True
         finally:
             if original_has_meipass and original_meipass is not None:

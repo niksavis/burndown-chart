@@ -20,6 +20,7 @@ from data.query_manager import (
     switch_query,
 )
 from data.task_progress import TaskProgress
+from utils.runtime import demo_mode
 
 
 def register(app):
@@ -203,7 +204,8 @@ def _task_start_failed(button_normal):
 
 
 def _prepare_jira_sync(jql_query, selected_query_id, force_refresh, button_normal):
-
+    if demo_mode():
+        return _offline_sync_state(button_normal)
     logger.info(
         "[Settings] Received jql_query from Store: "
         f"'{jql_query}' (type: {type(jql_query)})"
@@ -321,6 +323,8 @@ def _prepare_jira_sync(jql_query, selected_query_id, force_refresh, button_norma
 
 
 def _start_background_sync(jql_query, selected_query_id, force_refresh, button_normal):
+    if demo_mode():
+        return _offline_sync_state(button_normal)
     app_settings = load_app_settings()
     jira_config = load_jira_configuration()
     settings_jql = resolve_jql_query(jql_query, app_settings)
@@ -425,6 +429,15 @@ def _start_background_sync(jql_query, selected_query_id, force_refresh, button_n
         False,
         [] if force_refresh_bool else no_update,
     )
+
+
+def _offline_sync_state(button_normal):
+    message = "Jira synchronization is disabled in the offline demo workspace"
+    TaskProgress.fail_task("update_data", message)
+    state = list(_initial_state(button_normal))
+    state[2] = html.Div(message, className="text-warning small")
+    state[11] = state[2]
+    return tuple(state)
 
 
 def _should_force_refresh(force_refresh):

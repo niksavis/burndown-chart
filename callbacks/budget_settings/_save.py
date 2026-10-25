@@ -7,6 +7,7 @@ from data.database import get_db_connection
 from data.iso_week_bucketing import get_week_label
 from data.persistence import load_unified_project_data
 from ui.toast_notifications import create_toast
+from utils.business_time import business_now
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,7 @@ def save_budget_settings(
     budget_total = team_cost * time_allocated
 
     try:
-        now_iso = datetime.now(UTC).isoformat()
+        now_iso = business_now(datetime, UTC).isoformat()
 
         if effective_date:
             effective_dt = datetime.fromisoformat(effective_date)
@@ -77,7 +78,11 @@ def save_budget_settings(
             )
         else:
             effective_dt_iso = now_iso
-            current_week = get_week_label(datetime.now())
+            current_week = get_week_label(
+                business_now(
+                    datetime,
+                )
+            )
             logger.info(
                 f"Using current date for budget revision (week: {current_week})"
             )

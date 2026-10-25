@@ -1,6 +1,8 @@
 import logging
 from datetime import date, datetime
 
+from utils.business_time import business_today
+
 logger = logging.getLogger("burndown_chart")
 
 
@@ -57,7 +59,7 @@ def get_earliest_release_date(
 ) -> date | None:
 
     if today is None:
-        today = date.today()
+        today = business_today(date)
 
     try:
         valid_dates = []

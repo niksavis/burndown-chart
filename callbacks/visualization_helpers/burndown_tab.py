@@ -8,6 +8,7 @@ from callbacks.visualization_helpers.tab_content import create_burndown_tab_cont
 from callbacks.visualization_helpers.trend_data import prepare_trend_data
 from data.persistence import load_unified_project_data
 from data.velocity_projections import calculate_required_velocity
+from utils.business_time import business_now
 from visualization import create_forecast_plot
 from visualization.charts import apply_mobile_optimization
 from visualization.weekly_chart_items import create_weekly_items_chart
@@ -58,7 +59,12 @@ def _render_burndown_tab(
     if deadline:
         try:
             deadline_date = datetime.strptime(deadline, "%Y-%m-%d")
-            current_date = datetime.combine(datetime.now().date(), datetime.min.time())
+            current_date = datetime.combine(
+                business_now(
+                    datetime,
+                ).date(),
+                datetime.min.time(),
+            )
             project_data = load_unified_project_data()
             project_scope = project_data.get("project_scope", {})
             remaining_items = project_scope.get("remaining_items", 0)

@@ -6,13 +6,14 @@ from typing import Any
 
 from data.migration.migrator import run_migration_if_needed
 from data.persistence.factory import get_backend
+from utils.runtime import profiles_directory
 
 logger = logging.getLogger(__name__)
 
 
 def check_migration_needed() -> tuple[bool, dict[str, int]]:
 
-    profiles_dir = Path("profiles")
+    profiles_dir = profiles_directory()
 
     if not profiles_dir.exists():
         return False, {}
@@ -178,7 +179,7 @@ def get_migration_status() -> dict[str, Any]:
 def cleanup_json_files_after_migration() -> bool:
 
     try:
-        profiles_dir = Path("profiles")
+        profiles_dir = profiles_directory()
         if not profiles_dir.exists():
             return True
 

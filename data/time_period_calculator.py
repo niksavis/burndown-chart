@@ -1,6 +1,8 @@
 import logging
 from datetime import date, datetime, timedelta
 
+from utils.business_time import business_now, business_today
+
 logger = logging.getLogger(__name__)
 
 
@@ -62,7 +64,7 @@ def get_week_start_date(year: int, week: int) -> date:
         logger.warning(
             f"get_week_start_date called with invalid values: year={year}, week={week}"
         )
-        return date.today()
+        return business_today(date)
 
     try:
         jan_4 = date(year, 1, 4)
@@ -71,7 +73,7 @@ def get_week_start_date(year: int, week: int) -> date:
         return target_monday
     except (ValueError, OverflowError) as e:
         logger.error(f"Failed to calculate week start date for {year}-W{week}: {e}")
-        return date.today()
+        return business_today(date)
 
 
 def get_week_end_date(year: int, week: int) -> date:
@@ -80,7 +82,7 @@ def get_week_end_date(year: int, week: int) -> date:
         logger.warning(
             f"get_week_end_date called with invalid values: year={year}, week={week}"
         )
-        return date.today()
+        return business_today(date)
 
     try:
         monday = get_week_start_date(year, week)
@@ -88,7 +90,7 @@ def get_week_end_date(year: int, week: int) -> date:
         return sunday
     except (ValueError, OverflowError) as e:
         logger.error(f"Failed to calculate week end date for {year}-W{week}: {e}")
-        return date.today()
+        return business_today(date)
 
 
 def is_current_week(year: int, week: int) -> bool:
@@ -96,7 +98,11 @@ def is_current_week(year: int, week: int) -> bool:
     if not year or not week:
         return False
 
-    current_year, current_week = get_iso_week(datetime.now())
+    current_year, current_week = get_iso_week(
+        business_now(
+            datetime,
+        )
+    )
     return year == current_year and week == current_week
 
 
@@ -150,7 +156,7 @@ def get_recent_weeks(num_weeks: int, include_partial_current: bool = True) -> li
         return []
 
     try:
-        today = date.today()
+        today = business_today(date)
         start_date = today - timedelta(weeks=num_weeks - 1)
 
         return generate_week_range(start_date, today, include_partial_current)

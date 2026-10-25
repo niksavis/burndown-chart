@@ -8,6 +8,7 @@ from data.metrics.helpers import get_current_iso_week
 from data.metrics_snapshots import get_metric_snapshot
 from data.parent_filter import filter_parent_issues
 from data.project_filter import filter_development_issues
+from utils.business_time import business_now
 
 logger = logging.getLogger(__name__)
 
@@ -212,7 +213,7 @@ def compute_week_boundaries(
     except (ValueError, AttributeError) as e:
         raise ValueError(f"Invalid week label format: {week_label}") from e
 
-    now = datetime.now(UTC).replace(tzinfo=None)
+    now = business_now(datetime, UTC).replace(tzinfo=None)
     is_current_week = now < week_end
     completion_cutoff = min(week_end, now) if is_current_week else week_end
 

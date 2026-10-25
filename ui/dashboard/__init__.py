@@ -34,6 +34,7 @@ from ui.dashboard.utils import (
     get_health_status,
     safe_divide,
 )
+from utils.business_time import business_now
 
 __all__ = [
     "safe_divide",
@@ -111,7 +112,9 @@ def create_comprehensive_dashboard(
     last_date = (
         statistics_df["date"].iloc[-1]
         if not statistics_df.empty and "date" in statistics_df.columns
-        else datetime.now()
+        else business_now(
+            datetime,
+        )
     )
 
     formatted_last_date = (

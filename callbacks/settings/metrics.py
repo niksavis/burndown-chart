@@ -12,6 +12,7 @@ from data.metrics_snapshots import clear_snapshots_cache
 from data.persistence.adapters.statistics import load_statistics
 from data.persistence.factory import get_backend
 from data.task_progress import TaskProgress
+from utils.business_time import business_now
 
 
 def register(app):
@@ -110,7 +111,9 @@ def _calculate_weeks_from_statistics(statistics: list) -> tuple[int, list]:
     dates = [datetime.fromisoformat(stat["date"]) for stat in statistics]
     start_date = min(dates)
     end_date = max(dates)
-    now = datetime.now()
+    now = business_now(
+        datetime,
+    )
     if end_date < now:
         end_date = now
 

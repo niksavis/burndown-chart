@@ -4,8 +4,9 @@
 # Requirements:
 # pip install pillow
 
-from PIL import Image, ImageDraw
 from pathlib import Path
+
+from PIL import Image, ImageDraw
 
 
 def create_placeholder_icon():

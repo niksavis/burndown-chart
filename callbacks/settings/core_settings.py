@@ -139,6 +139,7 @@ def register(app):
         [
             Output("current-settings", "data", allow_duplicate=True),
             Output("current-settings", "modified_timestamp", allow_duplicate=True),
+            Output("current-statistics", "data", allow_duplicate=True),
         ],
         [
             Input("metrics-refresh-trigger", "data"),
@@ -186,7 +187,8 @@ def register(app):
                 f"data_points={settings.get('data_points_count')}"
             )
 
-            return settings, time.time()
+            statistics = load_unified_project_data().get("statistics", [])
+            return settings, time.time(), statistics
 
         except Exception as e:
             logger.error(

@@ -17,7 +17,7 @@ def get_version():
         print(f"Error: Configuration file not found: {config_file}", file=sys.stderr)
         sys.exit(1)
 
-    with open(config_file, "r", encoding="utf-8") as f:
+    with open(config_file, encoding="utf-8") as f:
         for line in f:
             if line.strip().startswith("__version__"):
                 # Extract version from line like: __version__ = "2.5.0"

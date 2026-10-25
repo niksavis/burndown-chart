@@ -6,6 +6,7 @@ from dash import dcc
 from plotly.subplots import make_subplots
 
 from configuration import COLOR_PALETTE
+from utils.business_time import business_now
 from utils.chart_tooltip_utils import create_hoverlabel_config, format_hover_template
 from utils.loading_overlay_utils import create_loading_overlay
 
@@ -243,7 +244,7 @@ def create_chart_with_loading(
             "toImageButtonOptions": {
                 "format": "png",
                 "filename": (
-                    f"{id.replace('-', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                    f"{id.replace('-', '_')}_{business_now(datetime).strftime('%Y%m%d_%H%M%S')}"
                 ),
                 "scale": 2,
             },
@@ -318,7 +319,9 @@ def _calculate_forecast_completion_dates(pert_time_items, pert_time_points):
     ):
         items_completion_enhanced = "N/A (insufficient data)"
     else:
-        current_date = datetime.now()
+        current_date = business_now(
+            datetime,
+        )
         items_completion_date = current_date + timedelta(days=pert_time_items)
         items_completion_str = items_completion_date.strftime("%Y-%m-%d")
         items_completion_enhanced = (
@@ -331,7 +334,9 @@ def _calculate_forecast_completion_dates(pert_time_items, pert_time_points):
     ):
         points_completion_enhanced = "N/A (insufficient data)"
     else:
-        current_date = datetime.now()
+        current_date = business_now(
+            datetime,
+        )
         points_completion_date = current_date + timedelta(days=pert_time_points)
         points_completion_str = points_completion_date.strftime("%Y-%m-%d")
         points_completion_enhanced = (
@@ -358,7 +363,9 @@ def _prepare_metrics_data(
     med_weekly_points=0.0,
 ):
 
-    current_date = datetime.now()
+    current_date = business_now(
+        datetime,
+    )
 
     if pd.isna(deadline):
         days_to_deadline = 0

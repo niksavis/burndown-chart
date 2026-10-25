@@ -14,6 +14,7 @@ from data.persistence.adapters import (
 )
 from ui.about_dialog import create_about_dialog
 from ui.delete_query_modal import create_delete_query_modal
+from ui.demo_banner import create_demo_banner
 from ui.field_mapping_modal import create_field_mapping_modal
 from ui.grid_utils import create_full_width_layout
 from ui.help_system import create_help_system_layout
@@ -26,6 +27,7 @@ from ui.query_creation_modal import create_query_creation_modal
 from ui.save_query_modal import create_save_query_modal
 from ui.tabs import create_desktop_tabs_only
 from ui.unsaved_changes_modal import create_unsaved_changes_modal
+from utils.business_time import business_now
 
 logger = logging.getLogger(__name__)
 
@@ -142,6 +144,7 @@ def create_app_layout(settings, statistics, is_sample_data):
 
     return dbc.Container(
         [
+            create_demo_banner(),
             html.Div(
                 id="app-notifications",
                 style={
@@ -361,7 +364,7 @@ def create_app_layout(settings, statistics, is_sample_data):
                                             className="fas fa-clock me-1",
                                             style={"fontSize": "0.8rem"},
                                         ),
-                                        f"{datetime.now().strftime('%b %d, %Y')}",
+                                        f"{business_now(datetime).strftime('%b %d, %Y')}",
                                     ],
                                     className="text-muted",
                                     style={"fontSize": "0.8rem"},

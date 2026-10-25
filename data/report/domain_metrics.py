@@ -29,6 +29,7 @@ from data.report.helpers import (
     calculate_weekly_breakdown,
 )
 from data.time_period_calculator import format_year_week, get_iso_week
+from utils.business_time import business_now
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +93,9 @@ def calculate_bug_metrics(
             f"with bug_types={bug_types}"
         )
 
-        date_to = datetime.now()
+        date_to = business_now(
+            datetime,
+        )
         date_from = (
             date_to - timedelta(weeks=weeks_count)
             if weeks_count > 0
@@ -325,7 +328,9 @@ def calculate_flow_metrics(
         logger.info(f"[FLOW METRICS] Using provided week labels: {week_labels}")
     else:
         weeks = []
-        current_date = datetime.now()
+        current_date = business_now(
+            datetime,
+        )
         for _i in range(weeks_count):
             year, week = get_iso_week(current_date)
             week_label = format_year_week(year, week)

@@ -6,6 +6,7 @@ from dash import html
 
 from configuration import COLOR_PALETTE
 from ui.styles import create_metric_card_header
+from utils.business_time import business_now
 
 
 def _create_card_footer(text: str, icon: str = "fa-info-circle") -> dbc.CardFooter:
@@ -32,7 +33,13 @@ def create_forecast_alignment_card(
     card_id: str | None = None,
 ) -> dbc.Card:
 
-    reference_date = last_date if last_date else datetime.now()
+    reference_date = (
+        last_date
+        if last_date
+        else business_now(
+            datetime,
+        )
+    )
 
     pert_weeks_items = pert_time_items / 7.0
     pert_weeks_points = pert_time_points / 7.0 if pert_time_points else pert_weeks_items

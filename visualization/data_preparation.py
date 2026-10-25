@@ -9,6 +9,7 @@ from data.processing import (
     compute_weekly_throughput,
     daily_forecast_burnup,
 )
+from utils.business_time import business_now
 from utils.dataframe_utils import ensure_dataframe
 
 logger = logging.getLogger(__name__)
@@ -172,7 +173,9 @@ def prepare_visualization_data(
             },
             "max_items": total_items,
             "max_points": total_points,
-            "start_date": datetime.now(),
+            "start_date": business_now(
+                datetime,
+            ),
             "last_items": total_items,
             "last_points": total_points,
         }
@@ -292,7 +295,9 @@ def prepare_visualization_data(
             else total_points,
             "start_date": df_calc["date"].iloc[-1]
             if not df_calc.empty
-            else datetime.now(),
+            else business_now(
+                datetime,
+            ),
             "last_items": df_calc["cum_items"].iloc[-1]
             if not df_calc.empty
             else total_items,
@@ -354,7 +359,13 @@ def prepare_visualization_data(
         else 0
     )
 
-    start_date = df_calc["date"].iloc[-1] if not df_calc.empty else datetime.now()
+    start_date = (
+        df_calc["date"].iloc[-1]
+        if not df_calc.empty
+        else business_now(
+            datetime,
+        )
+    )
 
     start_date_text = (
         start_date.strftime("%Y-%m-%d")

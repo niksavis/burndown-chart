@@ -1,6 +1,9 @@
+from datetime import datetime
+
 import pandas as pd
 
 from configuration import COLOR_PALETTE
+from utils.business_time import business_now
 
 
 def configure_axes(fig, forecast_data):
@@ -252,7 +255,7 @@ def add_deadline_marker(fig, deadline, milestone=None):
         yanchor="bottom",
     )
 
-    current_date = pd.Timestamp.now()
+    current_date = pd.Timestamp(business_now(datetime))
 
     if current_date < deadline:
         critical_start = deadline - pd.Timedelta(days=14)

@@ -2,6 +2,8 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 
+from utils.business_time import business_now
+
 
 def calculate_performance_trend(
     statistics_data: list[dict] | pd.DataFrame,
@@ -184,11 +186,23 @@ def process_statistics_data(
 def establish_baseline(statistics_data: dict | None) -> dict:
 
     if not statistics_data or not statistics_data.get("data"):
-        return {"items": 0, "points": 0, "date": datetime.now().strftime("%Y-%m-%d")}
+        return {
+            "items": 0,
+            "points": 0,
+            "date": business_now(
+                datetime,
+            ).strftime("%Y-%m-%d"),
+        }
 
     df = pd.DataFrame(statistics_data["data"])
     if "date" not in df.columns or df.empty:
-        return {"items": 0, "points": 0, "date": datetime.now().strftime("%Y-%m-%d")}
+        return {
+            "items": 0,
+            "points": 0,
+            "date": business_now(
+                datetime,
+            ).strftime("%Y-%m-%d"),
+        }
 
     earliest_date = pd.to_datetime(df["date"], format="mixed", errors="coerce").min()
 

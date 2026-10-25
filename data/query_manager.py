@@ -6,6 +6,7 @@ from typing import Any, cast
 from data.database import get_db_connection
 from data.persistence.factory import get_backend
 from data.time_formatting import get_relative_time_string
+from utils.runtime import profiles_directory
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +129,7 @@ def get_query_dropdown_options(profile_id: str | None = None) -> list[dict]:
 
     timestamp_map = {}
     try:
-        db_path = getattr(backend, "db_path", Path("profiles/burndown.db"))
+        db_path = getattr(backend, "db_path", profiles_directory() / "burndown.db")
 
         with get_db_connection(Path(db_path)) as conn:
             cursor = conn.cursor()

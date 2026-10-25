@@ -22,6 +22,7 @@ from ui.bug_analysis import (
 from ui.bug_charts import BugInvestmentChart, BugTrendChart
 from ui.empty_states import create_no_bugs_state
 from ui.loading_utils import create_content_placeholder
+from utils.business_time import business_now
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +83,9 @@ def _render_bug_analysis_content(
                     f"from {original_count} total"
                 )
 
-        date_to = datetime.now()
+        date_to = business_now(
+            datetime,
+        )
         date_from = date_to - timedelta(weeks=data_points_count or 12)
 
         all_bug_issues = filter_bug_issues(

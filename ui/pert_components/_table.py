@@ -4,6 +4,7 @@ import dash_bootstrap_components as dbc
 from dash import html
 
 from configuration.settings import FORECAST_HELP_TEXTS, VELOCITY_HELP_TEXTS
+from utils.business_time import business_now
 
 from ._forecast import _create_completion_forecast_section
 from ._helpers import _create_header_with_icon, _get_trend_icon_and_color
@@ -61,7 +62,7 @@ def create_pert_info_table(
         "green" if weeks_med_points * 7 <= days_to_deadline else "red"
     )
 
-    current_date = datetime.now()
+    current_date = business_now(datetime)
     items_completion_date = current_date + timedelta(days=pert_time_items)
     points_completion_date = current_date + timedelta(days=pert_time_points)
 

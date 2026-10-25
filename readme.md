@@ -88,6 +88,10 @@ cd burndown-chart
 
 **Note:** `requirements-dev.txt` includes testing/build tools. Use `requirements.txt` for production-only dependencies.
 
+For development without Jira, run `.venv/bin/python dev.py` after provisioning dependencies.
+The first launch generates an isolated synthetic database under `profiles/demo`.
+See [Offline development](docs/offline_development.md) for scenarios, diagnostics, verification and screenshot commands.
+
 ## Connecting to JIRA
 
 ### Get Your JIRA Token

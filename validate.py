@@ -3,6 +3,7 @@
 
 import argparse
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -54,22 +55,49 @@ def _staged_py_files() -> list[str]:
     return [f for f in result.stdout.splitlines() if f.endswith(".py")]
 
 
+def _hook_files(hook_id: str) -> list[str]:
+    import yaml  # noqa: PLC0415
+
+    config = yaml.safe_load((ROOT / ".pre-commit-consumer.yaml").read_text())
+    hook = next(
+        hook
+        for repo in config["repos"]
+        for hook in repo["hooks"]
+        if hook["id"] == hook_id
+    )
+    result = subprocess.run(
+        ["git", "ls-files", "-z"], cwd=ROOT, capture_output=True, check=True
+    )
+    include = re.compile(hook.get("files", "."))
+    exclude = re.compile(hook.get("exclude", "(?!)"))
+    suffixes = {".py", ".pyi"} if hook_id.startswith("ruff") else None
+    return [
+        name
+        for name in result.stdout.decode().split("\0")
+        if name
+        and (ROOT / name).is_file()
+        and include.search(name)
+        and not exclude.search(name)
+        and (suffixes is None or Path(name).suffix in suffixes)
+    ]
+
+
 def check_ruff(fix: bool = False, files: list[str] | None = None) -> int:
-    args = ["ruff", "check"] + (files if files else ["."])
+    args = ["ruff", "check"] + (files if files else _hook_files("ruff-check"))
     if fix:
         args.append("--fix")
     return _run("ruff (lint)", args)
 
 
 def check_ruff_format(fix: bool = False, files: list[str] | None = None) -> int:
-    args = ["ruff", "format"] + (files if files else ["."])
+    args = ["ruff", "format"] + (files if files else _hook_files("ruff-format"))
     if not fix:
         args.append("--check")
     return _run("ruff (format)", args)
 
 
 def check_djlint(fix: bool = False) -> int:
-    html_files = "report_assets/**/*.html"
+    html_files = "report_assets"
     if fix:
         return _run("djlint (reformat)", ["djlint", "--reformat", html_files])
     return _run("djlint (check)", ["djlint", "--check", html_files])
@@ -166,7 +194,7 @@ def check_prettier(fix: bool = False) -> int:
             mode,
             "--ignore-path",
             ".prettierignore",
-            "**/*.{js,css,json,yml,yaml}",
+            *_hook_files("prettier"),
         ],
     )
 
@@ -186,10 +214,10 @@ def check_coverage(*, include_performance: bool) -> int:
     return _run(
         "pytest (coverage)",
         [
-            "pytest",
-            "tests/unit/",
-            "-n",
-            "auto",
+            str(PYTHON),
+            "-m",
+            "devtools.offline_pytest",
+            "tests/",
             *marker_expression,
             "--cov=data",
             "--cov=ui",
@@ -229,6 +257,9 @@ def main() -> int:
         help="Auto-fix ruff and djlint violations where possible",
     )
     args = parser.parse_args()
+
+    if PYTHON.exists() and Path(sys.prefix).resolve() != VENV_BIN.parent.resolve():
+        return subprocess.call([str(PYTHON), str(Path(__file__)), *sys.argv[1:]])
 
     system = platform.system()
     print(f"[validate] Platform: {system} | Python: {sys.version.split()[0]}")

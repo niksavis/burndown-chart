@@ -14,6 +14,7 @@ from data.budget_calculator_core import (
     _get_velocity_points,
 )
 from data.database import get_db_connection
+from utils.business_time import business_now
 
 logger = logging.getLogger(__name__)
 
@@ -56,12 +57,12 @@ def get_budget_baseline_vs_actual(
                 if start_date.tzinfo is None:
                     start_date = start_date.replace(tzinfo=UTC)
             except Exception:
-                start_date = datetime.now(UTC)
+                start_date = business_now(datetime, UTC)
 
         allocated_end_date = start_date + timedelta(
             weeks=budget["time_allocated_weeks"]
         )
-        current_date = datetime.now(UTC)
+        current_date = business_now(datetime, UTC)
         elapsed_days = (current_date - start_date).days
         elapsed_weeks = elapsed_days / 7.0
         elapsed_pct = (

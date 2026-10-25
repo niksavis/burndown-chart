@@ -5,6 +5,7 @@ import pandas as pd
 from dash import html
 
 from ui.style_constants import COLOR_PALETTE
+from utils.business_time import business_now
 
 
 def _create_sparkline_bars(data_series, color="#0d6efd", height=40):
@@ -232,7 +233,9 @@ def create_modern_dashboard_content(
 ):
 
     current_date = (
-        statistics_df["date"].iloc[-1] if not statistics_df.empty else datetime.now()
+        statistics_df["date"].iloc[-1]
+        if not statistics_df.empty
+        else business_now(datetime)
     )
 
     completed_items = (

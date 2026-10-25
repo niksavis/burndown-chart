@@ -1,0 +1,12 @@
+[verify]
+fail_fast = true
+
+[[verify.checks]]
+name = "project-static-checks"
+command = ["python", "validate.py", "--fast"]
+modes = ["fast", "full"]
+
+[[verify.checks]]
+name = "offline-test-suite"
+command = ["python", "validate.py"]
+modes = ["full"]

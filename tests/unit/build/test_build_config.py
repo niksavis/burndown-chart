@@ -5,6 +5,7 @@ Tests that the build configuration file is well-formed and contains all required
 """
 
 from pathlib import Path
+
 import yaml
 
 
@@ -17,7 +18,7 @@ def get_build_config_path() -> Path:
 def load_build_config() -> dict:
     """Load and parse build_config.yaml."""
     config_path = get_build_config_path()
-    with open(config_path, "r", encoding="utf-8") as f:
+    with open(config_path, encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 

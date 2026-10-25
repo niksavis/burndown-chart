@@ -17,6 +17,7 @@ from data.persistence.factory import get_backend
 from data.processing import calculate_velocity_from_dataframe
 from data.time_period_calculator import format_year_week, get_iso_week
 from ui.dashboard import create_comprehensive_dashboard
+from utils.business_time import business_now
 from visualization import create_forecast_plot
 
 logger = logging.getLogger("burndown_chart")
@@ -60,7 +61,9 @@ def _render_dashboard_tab(
                 df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
                 current_date = df["date"].max()
             else:
-                current_date = datetime.now()
+                current_date = business_now(
+                    datetime,
+                )
 
             for _i in range(data_points_count):
                 year, week = get_iso_week(current_date)
@@ -123,7 +126,9 @@ def _render_dashboard_tab(
             last_date = (
                 df["date"].iloc[-1].date()
                 if not df.empty and "date" in df.columns
-                else datetime.now().date()
+                else business_now(
+                    datetime,
+                ).date()
             )
             days_to_deadline = max(0, (deadline_date.date() - last_date).days)
     except Exception:
@@ -177,7 +182,11 @@ def _load_budget_data(
         backend = get_backend()
         profile_id = backend.get_app_state("active_profile_id") or ""
         query_id = backend.get_app_state("active_query_id") or ""
-        current_week_label = get_week_label(datetime.now())
+        current_week_label = get_week_label(
+            business_now(
+                datetime,
+            )
+        )
 
         logger.info(
             f"[BUDGET DEBUG] profile_id={profile_id}, query_id={query_id}, "

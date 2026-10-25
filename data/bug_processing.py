@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 
+from utils.business_time import business_now
+
 dt = datetime
 
 
@@ -183,7 +185,12 @@ def calculate_bug_metrics_summary(
             if created_str:
                 try:
                     created = datetime.strptime(created_str[:19], "%Y-%m-%dT%H:%M:%S")
-                    age_days = (datetime.now() - created).days
+                    age_days = (
+                        business_now(
+                            datetime,
+                        )
+                        - created
+                    ).days
                     open_bug_ages.append(age_days)
                 except ValueError:
                     pass
@@ -424,7 +431,9 @@ def calculate_standard_deviation(values: list[float]) -> float:
 def calculate_future_date(weeks_ahead: int, base_date: datetime | None = None) -> str:
 
     if base_date is None:
-        base_date = datetime.now()
+        base_date = business_now(
+            datetime,
+        )
 
     future_date = base_date + timedelta(weeks=weeks_ahead)
     return future_date.date().isoformat()
