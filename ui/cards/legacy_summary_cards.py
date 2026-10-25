@@ -10,6 +10,7 @@ from configuration import COLOR_PALETTE
 from configuration.settings import PROJECT_HELP_TEXTS
 from ui.styles import create_metric_card_header
 from ui.tooltip_utils import create_info_tooltip
+from utils.business_time import business_now
 
 
 def create_project_summary_card(
@@ -49,7 +50,7 @@ def create_project_summary_card(
             deadline_str = deadline_date
             try:
                 deadline_obj = datetime.strptime(deadline_date, "%Y-%m-%d")
-                days_to_deadline = (deadline_obj - datetime.now()).days
+                days_to_deadline = (deadline_obj - business_now(datetime)).days
             except ValueError, TypeError:
                 days_to_deadline = None
         else:
@@ -68,7 +69,7 @@ def create_project_summary_card(
                         style={"fontSize": "1rem"},
                     )
                 else:
-                    current_date = datetime.now()
+                    current_date = business_now(datetime)
 
                     if pert_time_items is not None:
                         items_completion_date = current_date + timedelta(

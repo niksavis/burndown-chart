@@ -2,6 +2,8 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from utils.business_time import business_now
+
 logger = logging.getLogger(__name__)
 
 
@@ -117,7 +119,7 @@ def _get_generic_query_suggestions() -> dict[str, str]:
 
 def get_smart_profile_defaults() -> dict[str, Any]:
 
-    now = datetime.now()
+    now = business_now(datetime)
 
     defaults = {
         "name": {

@@ -91,7 +91,7 @@ def _issue(number: int, week: int, issue_type: str, done: bool) -> dict[str, Any
     )
     status = fields["status"]["name"]
     histories = [
-        _transition("Sprint", "", str(week // 2 + 1), created),
+        _transition("Sprint", "", f"Demo Sprint {week // 2 + 1}", created),
         _transition("status", "To Do", "In Progress", started),
         _transition("status", "In Progress", "Review", started + timedelta(hours=3)),
         _transition("status", "Review", "Testing", started + timedelta(days=1)),
@@ -218,8 +218,29 @@ def _change_scope(issues: list[dict[str, Any]]) -> None:
     changed["fields"]["updated"] = (AS_OF - timedelta(days=1)).isoformat()
 
 
+def _apply_delivery_pattern(issues: list[dict[str, Any]], scenario: str) -> None:
+    patterns = {
+        "accelerating": (1, 2, 2, 3, 3, 4, 5, 6),
+        "declining": (6, 5, 4, 3, 3, 2, 2, 1),
+    }
+    for issue in issues:
+        fields = issue["fields"]
+        if fields["project"]["key"] != "DEMO" or fields["issuetype"]["name"] == "Epic":
+            continue
+        number = int(issue["key"].split("-")[1]) - 1
+        week, position = divmod(number, 6)
+        if scenario in patterns:
+            state = (
+                "completed" if position < patterns[scenario][week] else "zero-delivery"
+            )
+            _apply_scenario(issue, state)
+        elif scenario == "variable-points":
+            fields["customfield_10001"] = week + 1
+
+
 def scenario_issues(scenario: str) -> list[dict[str, Any]]:
     issues = deepcopy(complete_issues())
+    _apply_delivery_pattern(issues, scenario)
     if scenario == "empty":
         return []
     if scenario == "singleton":
@@ -243,12 +264,14 @@ def scenario_issues(scenario: str) -> list[dict[str, Any]]:
         )
         issue["fields"]["updated"] = (AS_OF - timedelta(days=2)).isoformat()
         issues[1]["changelog"]["histories"].append(
-            _transition("Sprint", "1", "2", START + timedelta(days=8))
+            _transition(
+                "Sprint", "Demo Sprint 1", "Demo Sprint 2", START + timedelta(days=8)
+            )
         )
         issues[1]["fields"]["customfield_10002"] = [_sprint(1)]
         issues[1]["fields"]["updated"] = (START + timedelta(days=8)).isoformat()
         issues[2]["changelog"]["histories"].append(
-            _transition("Sprint", "1", "", START + timedelta(days=9))
+            _transition("Sprint", "Demo Sprint 1", "", START + timedelta(days=9))
         )
         issues[2]["fields"]["customfield_10002"] = []
         issues[2]["fields"]["updated"] = (START + timedelta(days=9)).isoformat()

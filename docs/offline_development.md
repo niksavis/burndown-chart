@@ -25,6 +25,18 @@ No system package or project dependency was changed.
 Other developers should provision dependencies for their own operating system.
 When a browser cache is shared, set `PLAYWRIGHT_SKIP_BROWSER_GC=1` before additional browser provisioning.
 
+For the local extraction layout used on this Linux host, set the runtime paths before browser commands:
+
+```sh
+export LD_LIBRARY_PATH="$HOME/.cache/burndown-browser-runtime/root/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04-x64
+```
+
+The cache was provisioned with `apt-get download libnspr4 libnss3 libasound2t64` in a dedicated directory.
+`dpkg-deb -x` extracted each downloaded archive into its `root` subdirectory.
+These commands download and extract libraries without a system package installation.
+Use the supported operating system prerequisites when this workaround does not apply.
+
 ## Start and preserve the local workspace
 
 ```sh
@@ -74,6 +86,8 @@ The independent remaining totals are 16 items and 32 points.
 The issue mix contains one completed Feature, Defect, Technical Debt and Risk per week.
 Other scenarios cover empty, singleton, zero delivery, stalled, sparse history, fractional points, completed/reopened work,
 missing signals, unmapped fields, no points, scope changes and deadline variants.
+Accelerating and declining scenarios exercise trend signals.
+The variable-points scenario keeps item throughput constant while point throughput changes.
 
 Run the independent contracts:
 
@@ -84,6 +98,8 @@ Run the independent contracts:
 Standard output is JSON. Progress and logs go to standard error.
 Exit status 1 means at least one calculation differs from its expectation.
 Every result names its producer, rendering surface, selected population, expected value and derivation.
+It also names the exact output field. A missing field fails even when an unavailable value was expected.
+Arithmetic and shape exceptions remain named failures in the JSON report, with an unsuccessful exit status.
 `data/demo/contracts.py` is the current executable manifest.
 `devtools/calculation_sources.py` calls the real producers against persisted synthetic data.
 The runner restores the selected profile and query after diagnosis.
@@ -104,6 +120,10 @@ Broader arithmetic repairs remain separate work. Do not change an expected value
 The default validation command now reads `tests/`, including unit, integration, visual and browser tests.
 It preserves the coverage threshold and excludes only tests marked `performance` in push mode.
 The offline pytest entry point rejects external socket connections in its process and runs without parallel workers.
+It creates a temporary workspace before collection, routes default SQLite, logs and application cache there,
+and refuses connections to the normal database. Each invocation gets its own workspace and child process.
+Ordinary tests retain the live business clock; the runner removes inherited demo settings.
+Automatic cleanup of shared updater files is suppressed during verification.
 Managed demo child servers install their own socket policy.
 `validate.py --full` retains the existing additional checks, including the online dependency audit.
 Use that audit while connected. The default test gate does not require Jira or a package registry.
@@ -112,6 +132,11 @@ The capture command owns server startup and shutdown.
 It refuses an existing output directory, preserves its selected workspace and writes a manifest after successful browser assertions.
 It visits the nine tabs in `ui.tabs.TAB_CONFIG`, captures budget content, downloads HTML through the real report button,
 and opens the exported file offline. Report captures cover all eight rendered sections.
+Overlapping viewport captures include lower tab content and the opened Sprint chart.
+The journey switches through `data.demo.config.SCENARIOS` and changes the history range through the actual slider.
+Scenario captures explicitly select their full available history.
+Empty, singleton, zero-delivery, stalled, completed and default scenarios assert visible data counts or absence.
+Changing the profile header alone cannot satisfy those assertions.
 It tests desktop and mobile viewports with both browser color preferences.
 Browser assertions reject external requests, failed assets, HTTP errors, page errors and console errors.
 Report charts are rendered at their final animation state before capture.
@@ -119,13 +144,17 @@ Report charts are rendered at their final animation state before capture.
 Inspect the resulting PNG files separately. The manifest records browser assertions; it does not certify visual correctness.
 The application currently uses its light presentation under both browser color preferences.
 Capturing a dark preference does not establish a complete dark theme.
+The owner chose to validate both OS preferences and track a complete theme separately as `burndownchart-8jm662`.
 Do not inject replacement colors to hide this limitation.
 
 ## Remaining coverage work
 
-The current executable contracts are a checkpoint, not an exhaustive calculation audit.
-Sprint, Active Work, health dimensions, recommendation thresholds, confidence/probability, historical budget consumption
-and report parity still need individual independent contracts.
-Alternate-scenario browser journeys and range changes also need explicit assertions.
-The local environment already exposes these surfaces for that work.
+The executable contracts cover recorded weeks, scope, forecasts, Flow/DORA, work and Sprint progress,
+bug closure forecasts, historical budgets, selected health/recommendation policies and report values.
+Calibration contracts name their explicit inputs and assumptions. They do not establish caller agreement.
+The remaining audit must cover persisted Flow/DORA populations, positive Quality/Financial health inputs,
+budget/pace/correlation recommendation families, work timing, sprint scope changes and remaining report adapters.
+The expanded browser assertion matrix passes all four viewport/preference combinations.
+The screenshot review still needs final Plotly geometry/axis settlement probes where responsive charts differ.
+Passing browser assertions establish reachability and network behavior; the recorded visual defects remain unresolved.
 Dormant forecast-history widgets have no stored producer and must not receive fabricated history.

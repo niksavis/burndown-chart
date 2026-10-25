@@ -1,6 +1,8 @@
 import logging
 from datetime import UTC, datetime
 
+from utils.business_time import business_now
+
 logger = logging.getLogger(__name__)
 
 
@@ -12,7 +14,7 @@ def _calculate_issue_health_priority(
     flow_wip_statuses: list[str],
 ) -> tuple[int, int, float]:
 
-    now = datetime.now(UTC)
+    now = business_now(datetime, UTC)
     status = issue_state.get("status", "Unknown")
 
     is_completed = status in flow_end_statuses

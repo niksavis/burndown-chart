@@ -14,7 +14,9 @@ def read_actual(backend: PersistenceBackend, contract: CalculationContract) -> A
     profile_id = f"demo-{contract.scenario}"
     if contract.source == "scope":
         scope = backend.get_scope(profile_id, "main")
-        return scope.get(contract.field) if scope is not None else None
+        if scope is None:
+            raise ValueError(f"No persisted scope for scenario {contract.scenario}")
+        return scope[contract.field]
     if contract.source == "statistics":
         values = backend.get_statistics(profile_id, "main")
         return sum(row[contract.field] for row in values) if values else None
@@ -38,6 +40,8 @@ def check_contract(contract: CalculationContract, actual: Any) -> dict[str, Any]
         "actual": actual,
         "passed": passed,
         "producer": contract.producer,
+        "source": contract.source,
+        "field": contract.field,
         "surface": contract.surface,
         "backlog": contract.backlog,
         "selection": contract.selection,
@@ -50,19 +54,30 @@ def diagnose(backend: PersistenceBackend) -> list[dict[str, Any]]:
     previous_profile = backend.get_app_state("active_profile_id")
     previous_query = backend.get_app_state("active_query_id")
     try:
-        results = []
-        for contract in CONTRACTS:
-            actual = (
-                read_actual(backend, contract)
-                if contract.source in {"scope", "statistics", "budget"}
-                else sources.read(contract)
-            )
-            results.append(check_contract(contract, actual))
-        return results
+        return [_evaluate(backend, sources, contract) for contract in CONTRACTS]
     finally:
         backend.set_app_state("active_profile_id", previous_profile)
         backend.set_app_state("active_query_id", previous_query)
         clear_snapshots_cache()
+
+
+def _evaluate(
+    backend: PersistenceBackend,
+    sources: CalculationSources,
+    contract: CalculationContract,
+) -> dict[str, Any]:
+    try:
+        actual = (
+            read_actual(backend, contract)
+            if contract.source in {"scope", "statistics", "budget"}
+            else sources.read(contract)
+        )
+    except (ArithmeticError, ValueError, TypeError, KeyError) as error:
+        result = check_contract(contract, None)
+        result["actual"] = {"error": type(error).__name__, "message": str(error)}
+        result["passed"] = False
+        return result
+    return check_contract(contract, actual)
 
 
 def main() -> int:

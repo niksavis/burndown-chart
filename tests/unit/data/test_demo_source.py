@@ -80,6 +80,24 @@ def test_scenarios_do_not_share_mutable_issue_or_profile_data() -> None:
     )
 
 
+@pytest.mark.parametrize("scenario", ["complete", "reopened"])
+def test_sprint_history_names_join_the_current_field_metadata(scenario: str) -> None:
+    from data.sprint_manager import _parse_sprint_name, _parse_sprint_object
+
+    for issue in scenario_issues(scenario):
+        sprints = issue["fields"]["customfield_10002"]
+        parsed = _parse_sprint_object(sprints[0]) if sprints else None
+        assert parsed is not None or not sprints
+        current = parsed["name"] if parsed else None
+        changes = [
+            history
+            for history in issue["changelog"]["histories"]
+            if history["items"][0]["field"] == "Sprint"
+        ]
+        latest = max(changes, key=lambda history: history["created"])
+        assert _parse_sprint_name(latest["items"][0]["toString"]) == current
+
+
 def test_scope_change_changes_a_development_story_and_sprint_changes_match_fields() -> (
     None
 ):

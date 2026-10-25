@@ -22,9 +22,11 @@ def is_loopback(host: str | bytes | None) -> bool:
 
 def require_local_network(event: str, arguments: tuple[Any, ...]) -> None:
     host = None
-    if event == "socket.getaddrinfo":
+    if event in {"socket.getaddrinfo", "socket.gethostbyname", "socket.gethostbyaddr"}:
         host = arguments[0]
-    elif event in {"socket.connect", "socket.bind", "socket.sendto"}:
+    elif event == "socket.getnameinfo":
+        host = arguments[0][0]
+    elif event in {"socket.connect", "socket.bind", "socket.sendto", "socket.sendmsg"}:
         address = arguments[1]
         if isinstance(address, tuple):
             host = address[0]

@@ -68,7 +68,7 @@ def register(app: Any) -> None:
                 new_import_export_state,
             )
 
-        return is_open, panel_state, no_update, no_update
+        return no_update, no_update, no_update, no_update
 
     @app.callback(
         Output("parameter-bar-collapsed", "children"),

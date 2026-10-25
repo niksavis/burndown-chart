@@ -3,7 +3,11 @@ from typing import Any
 import pandas as pd
 
 from data.budget_calculator_core import get_budget_at_week
-from data.bug_processing import calculate_bug_metrics_summary, calculate_bug_statistics
+from data.bug_processing import (
+    calculate_bug_metrics_summary,
+    calculate_bug_statistics,
+    forecast_bug_resolution,
+)
 from data.demo.config import AS_OF, START
 from data.demo.contracts import CalculationContract
 from data.dora_metrics import (
@@ -26,6 +30,13 @@ from data.metrics_snapshots import clear_snapshots_cache
 from data.persistence import PersistenceBackend
 from data.processing_averages import calculate_weekly_averages
 from data.processing_rates import calculate_rates
+from devtools.budget_calculations import budget_calculations
+from devtools.dashboard_observation import observe_mounted_confidence
+from devtools.forecast_calculations import forecast_calculations
+from devtools.health_calculations import health_calculations
+from devtools.report_calculations import report_calculations
+from devtools.scope_calculations import scope_calculations
+from devtools.work_calculations import active_work, sprint_work
 from ui.dashboard_enhanced.stats import _calculate_velocity_statistics
 
 LEAD_SAMPLE = (1, 2, 3, 4, 7, 8, 9, 10, 13, 14, 15, 16, 19, 20, 21, 22, 25, 26, 27, 28)
@@ -47,8 +58,10 @@ class CalculationSources:
         value: Any = self.cache[key]
         for part in contract.field.split("."):
             if not isinstance(value, dict):
-                return None
-            value = value.get(part)
+                raise TypeError(
+                    f"Calculation output is not an object before field {part}"
+                )
+            value = value[part]
         return value
 
     def _issues(self, profile_id: str) -> list[dict]:
@@ -57,6 +70,8 @@ class CalculationSources:
 
     def _statistics(self, profile_id: str, source: str) -> dict:
         statistics = self.backend.get_statistics(profile_id, "main")
+        if source == "statistics-weekly":
+            return {row["week_label"]: row for row in statistics}
         if source == "advanced-statistics":
             return _calculate_velocity_statistics(pd.DataFrame(statistics))
         if source == "averages":
@@ -88,7 +103,33 @@ class CalculationSources:
         raise ValueError(f"Unknown statistical diagnostic source: {source}")
 
     def _calculate(self, profile_id: str, source: str) -> dict:
-        if source in {"advanced-statistics", "averages", "rates"}:
+        if source.startswith("scope-"):
+            return scope_calculations(source)
+        if source == "mounted-confidence":
+            return observe_mounted_confidence()
+        if source.startswith("health-"):
+            return health_calculations(source)
+        if source.startswith("budget-") and not source.startswith("budget-at-"):
+            return budget_calculations(profile_id, source)
+        if source in {
+            "weekly-forecast",
+            "daily-forecast",
+            "recommendations",
+            "advanced-points",
+            "confidence-probability",
+            "pace",
+            "metric-forecast",
+        }:
+            return forecast_calculations(self.backend, profile_id, source)
+        if source == "report":
+            return report_calculations(profile_id)
+        if source in {"active-work", "active-completed"}:
+            return active_work(
+                self.backend, profile_id, completed=source == "active-completed"
+            )
+        if source in {"sprint-progress", "sprint-daily"}:
+            return sprint_work(profile_id, daily=source == "sprint-daily")
+        if source in {"advanced-statistics", "averages", "rates", "statistics-weekly"}:
             return self._statistics(profile_id, source)
         if source.startswith("budget-at-"):
             return (
@@ -97,6 +138,9 @@ class CalculationSources:
                 )
                 or {}
             )
+        return self._issue_calculations(profile_id, source)
+
+    def _issue_calculations(self, profile_id: str, source: str) -> dict:
         issues = self._issues(profile_id)
         development = [
             i
@@ -107,11 +151,16 @@ class CalculationSources:
             return _flow(source, development)
         if source.startswith("dora-"):
             return _dora(source, issues, development)
-        if source == "bugs":
+        if source in {"bugs", "bug-forecast"}:
             bugs = [issue for issue in development if issue["issue_type"] == "Bug"]
             weekly = calculate_bug_statistics(bugs, START, AS_OF)
-            return calculate_bug_metrics_summary(
+            summary = calculate_bug_metrics_summary(
                 bugs, bugs, weekly, all_project_issues=development
+            )
+            return (
+                forecast_bug_resolution(summary["open_bugs"], weekly)
+                if source == "bug-forecast"
+                else summary
             )
         raise ValueError(f"Unknown calculation diagnostic source: {source}")
 

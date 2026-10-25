@@ -164,3 +164,34 @@ def test_installation_context_uses_only_selected_workspace(monkeypatch) -> None:
         context = InstallationContext.detect()
         assert context.database_path == Path(directory) / "burndown.db"
         assert context.logs_path == Path(directory) / "logs"
+
+
+def test_verification_workspace_is_isolated_without_demo_time(monkeypatch) -> None:
+    from data.installation_context import InstallationContext
+    from utils.business_time import now
+    from utils.runtime import demo_mode, profiles_directory, runtime_workspace
+
+    with tempfile.TemporaryDirectory() as directory:
+        monkeypatch.delenv("BURNDOWN_DEMO_MODE", raising=False)
+        monkeypatch.setenv("BURNDOWN_TEST_WORKSPACE", directory)
+        monkeypatch.setenv("BURNDOWN_AS_OF", "2026-01-29T12:00:00+00:00")
+        assert not demo_mode()
+        assert runtime_workspace() == Path(directory)
+        assert profiles_directory() == Path(directory)
+        context = InstallationContext.detect()
+        assert context.database_path == Path(directory) / "burndown.db"
+        assert context.logs_path == Path(directory) / "logs"
+        assert abs((now(UTC) - datetime.now(UTC)).total_seconds()) < 2
+
+
+def test_demo_workspace_takes_precedence_over_verification_workspace(
+    monkeypatch,
+) -> None:
+    from utils.runtime import profiles_directory
+
+    with tempfile.TemporaryDirectory() as directory:
+        demo = Path(directory) / "demo"
+        monkeypatch.setenv("BURNDOWN_TEST_WORKSPACE", directory)
+        monkeypatch.setenv("BURNDOWN_DEMO_MODE", "1")
+        monkeypatch.setenv("BURNDOWN_DEMO_WORKSPACE", str(demo))
+        assert profiles_directory() == demo

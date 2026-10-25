@@ -24,6 +24,9 @@ SCENARIOS = (
     "due-today",
     "scope-change",
     "unmapped-fields",
+    "accelerating",
+    "declining",
+    "variable-points",
 )
 FIELD_MAPPINGS = {
     "workflow": {

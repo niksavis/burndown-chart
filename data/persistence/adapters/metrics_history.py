@@ -6,6 +6,7 @@ from data.persistence.adapters.unified_data import (
     load_unified_project_data,
     save_unified_project_data,
 )
+from utils.business_time import business_now
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,7 @@ def save_metrics_snapshot(
 
         history = unified_data["metrics_history"][metric_type]
 
-        today_date = datetime.now().date().isoformat()
+        today_date = business_now(datetime).date().isoformat()
         existing_today = [
             i
             for i, s in enumerate(history)
@@ -69,7 +70,7 @@ def save_metrics_snapshot(
                 f"[Metrics] Added {metric_type} snapshot for {time_period_days}d period"
             )
 
-        cutoff_date = (datetime.now() - timedelta(days=90)).isoformat()
+        cutoff_date = (business_now(datetime) - timedelta(days=90)).isoformat()
         history[:] = [s for s in history if s.get("timestamp", "") >= cutoff_date]
 
         history.sort(key=lambda x: x.get("timestamp", ""))

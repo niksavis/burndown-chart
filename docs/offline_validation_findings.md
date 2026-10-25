@@ -54,7 +54,52 @@ Budget displays the latest settings: 9,000 total, ten weeks and 1,100 per week.
 | Desktop tabs | Several icons appear as missing glyphs | Trace icon font/class compatibility |
 | Mobile tab viewports | Lower charts and the weekly table are below the first screenshot | Add captures after scrolling |
 | Sprint Tracker | Default view shows the Show Charts button | Add the burnup and cumulative-flow journey |
+| Empty scenario header | Body is empty, but header retains previous remaining scope | IMP-040; keep distinct from corrected Dashboard data routing |
+| Sprint future actuals | Completion series extends beyond the January 29 evaluation date | IMP-048 |
 
 The executable numerical diagnostics remain separate from browser rendering assertions.
 They compare persisted data through actual calculation producers with independent expected values.
 They return failure for known disagreements rather than preserve incorrect values as reference results.
+
+## Expanded review findings
+
+The specialist inspected another 27 images from the expanded desktop-light capture.
+These covered lower Dashboard, Burndown, Scope, Flow and DORA content, Active Work, Sprint and Weekly Data,
+opened Sprint charts, a four-week history selection and eleven scenario views.
+That review found that several scenario headers changed while the completed count still showed 32 items.
+Those captures did not validate scenario data.
+
+Three focused regressions reproduced two routing causes: a profile switch reloaded settings without statistics,
+and the snapshot cache used only query identity despite profile/query composite storage.
+Both causes are corrected. Scenario journeys now assert visible counts and explicitly select full history;
+switching from a singleton had otherwise left the one-week selection active for later profiles.
+This preserves the distinction between a selected window and the complete eight-week project.
+
+The review also found Sprint timing based on the wall clock rather than the demo evaluation date.
+Sprint progress, issue-health timing and remaining forecast date reads now use the controlled business clock.
+Operational cache and progress timers still use real time.
+Focused regressions assert 75 percent elapsed and 3.5 days remaining for a fourteen-day sprint ending February 2,
+evaluated at January 29 noon UTC, and a one-day-old issue remains in the recent-health bucket.
+
+The expanded catalogue has 323 checks with independent derivations.
+Missing output fields and calculation errors fail explicitly, including when an expected value is unavailable.
+The broader numeric discrepancies remain visible diagnostics and separate backlog work.
+The final browser assertion matrix passes all four viewport/preference combinations.
+Each context visits all nine registered tabs, nineteen scenarios and eight exported report sections.
+The manifest records 73 PNGs per desktop context and 113 per mobile context, with no observed browser errors or external requests.
+These are rendering assertions, not a numerical or visual pass for every image.
+The adapter coverage audit and final responsive-chart settlement probes remain open.
+
+Persistent journeys exposed another state defect: summary rerenders recreate panel buttons without a click.
+The Parameters callback previously returned its captured panel state for that event, overwriting a later close.
+It now emits no update for a non-click event. A regression failed before this change and passed afterwards.
+Journeys use the dedicated collapse button and assert closure before opening another panel.
+
+The specialist inspected all 36 main-tab screenshots and eight budget viewport samples in this final matrix.
+No stale panel overlay appeared on those main tabs.
+Lower-chart inspection found different bar-axis ranges and horizontal Sprint-chart clipping between mobile captures.
+This does not establish an OS-preference cause: delayed responsive rendering and actual layout defects remain competing explanations.
+Check final Plotly geometry and axis settlement before treating those captures as equivalent visual evidence.
+
+The owner explicitly selected validation under both OS preferences.
+A complete application and report dark theme is separate work: `burndownchart-8jm662`.

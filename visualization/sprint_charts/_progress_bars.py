@@ -4,6 +4,8 @@ from datetime import UTC, datetime
 import dash_bootstrap_components as dbc
 from dash import html
 
+from utils.business_time import business_now
+
 from ._bar_multi import _process_issue_bar
 from ._bar_single import _create_simple_html_bars
 from ._health import _sort_issues_by_health_priority
@@ -285,7 +287,7 @@ def create_sprint_progress_bars(
 
         sprint_start = None
         sprint_end = None
-        now = datetime.now(UTC)
+        now = business_now(datetime, UTC)
 
         try:
             if sprint_start_date:
@@ -314,7 +316,7 @@ def create_sprint_progress_bars(
     sprint_duration_seconds = None
     sprint_start = None
     sprint_end = None
-    now = datetime.now(UTC)
+    now = business_now(datetime, UTC)
 
     try:
         if sprint_start_date:

@@ -35,7 +35,7 @@ from ui.app_config import (
 )
 from utils.license_extractor import extract_license_on_first_run
 from utils.offline_assets import local_stylesheet
-from utils.runtime import demo_mode, demo_workspace
+from utils.runtime import demo_mode, runtime_workspace, verification_mode
 
 _server = None
 
@@ -61,7 +61,7 @@ cleanup_old_logs(log_dir=str(installation_context.logs_path), max_age_days=30)
 logger = logging.getLogger(__name__)
 logger.info("Starting Burndown application")
 
-if not demo_mode():
+if not demo_mode() and not verification_mode():
     cleanup_orphaned_temp_updaters()
 
 
@@ -100,9 +100,9 @@ update_check_thread = (
 
 ensure_valid_workspace()
 
-_demo_workspace = demo_workspace()
+_runtime_workspace = runtime_workspace()
 cache = diskcache.Cache(
-    str(_demo_workspace / "cache") if _demo_workspace else "./cache"
+    str(_runtime_workspace / "cache") if _runtime_workspace else "./cache"
 )
 atexit.register(cache.close)
 background_callback_manager = DiskcacheManager(cache)

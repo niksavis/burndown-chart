@@ -5,9 +5,9 @@ import pandas as pd
 
 from configuration.logging_config import cleanup_old_logs, setup_logging
 from utils.business_time import business_now
-from utils.runtime import demo_workspace
+from utils.runtime import runtime_workspace
 
-_workspace = demo_workspace()
+_workspace = runtime_workspace()
 _log_directory = str(_workspace / "logs") if _workspace else "logs"
 
 setup_logging(

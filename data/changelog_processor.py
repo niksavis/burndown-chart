@@ -3,6 +3,8 @@ from datetime import UTC, datetime
 
 from dateutil import parser
 
+from utils.business_time import business_now
+
 logger = logging.getLogger("burndown_chart")
 
 
@@ -188,7 +190,9 @@ def calculate_time_in_status(
                     status_entry_time = None
 
         if current_status and status_entry_time:
-            time_diff = datetime.now(status_entry_time.tzinfo) - status_entry_time
+            time_diff = (
+                business_now(datetime, status_entry_time.tzinfo) - status_entry_time
+            )
             hours = time_diff.total_seconds() / 3600
             total_time_hours += hours
             logger.debug(

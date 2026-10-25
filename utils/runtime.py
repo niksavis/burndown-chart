@@ -16,4 +16,16 @@ def demo_workspace() -> Path | None:
 
 
 def profiles_directory() -> Path:
-    return demo_workspace() or Path("profiles").absolute()
+    return runtime_workspace() or Path("profiles").absolute()
+
+
+def verification_mode() -> bool:
+    return bool(os.environ.get("BURNDOWN_TEST_WORKSPACE"))
+
+
+def runtime_workspace() -> Path | None:
+    workspace = demo_workspace()
+    if workspace is not None:
+        return workspace
+    verification = os.environ.get("BURNDOWN_TEST_WORKSPACE")
+    return Path(verification).resolve() if verification else None

@@ -96,17 +96,34 @@ def capture_registered_tabs(
             budget = page.locator(".budget-section")
             expect(budget).to_contain_text("Budget", timeout=30000)
             capture_viewports(page, budget, output, "budget")
+        capture_viewports(
+            page, page.locator("#tab-content"), output, tab["id"] + "-page"
+        )
+        if tab["id"] == "tab-sprint-tracker":
+            page.locator("#toggle-sprint-charts").click()
+            expect(page.locator("#sprint-charts-collapse")).to_be_visible()
+            page.wait_for_function(
+                "document.querySelector('#sprint-burnup-chart .js-plotly-plot')?.data?.length > 0",
+                timeout=30000,
+            )
+            capture_viewports(
+                page, page.locator("#sprint-charts-collapse"), output, "sprint-charts"
+            )
     return captured
 
 
 def capture_exported_report(page: Page, output: Path) -> list[str]:
-    page.locator("#toggle-import-export-panel").click()
     button = page.locator("#generate-report-button")
+    if not page.locator("#data-tabs").is_visible():
+        page.locator("#toggle-import-export-panel").click()
+    expect(page.locator("#data-tabs")).to_be_visible(timeout=30000)
+    page.locator("#data-tabs").get_by_role("tab", name="Reports", exact=True).click()
     expect(button).to_be_visible(timeout=30000)
     with page.expect_download(timeout=60000) as pending:
         button.click()
-    report = output / "report.html"
+    report = (output / "report.html").absolute()
     pending.value.save_as(report)
+    page.wait_for_load_state("networkidle")
     page.goto(report.as_uri(), wait_until="load")
     expect(page).to_have_title(re.compile("Acme Corp.*Project Report"))
     expect(page.get_by_role("heading", name="Project Health Overview")).to_be_visible()

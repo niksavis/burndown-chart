@@ -4,7 +4,16 @@ from unittest.mock import patch
 
 import pytest
 
+import data.installation_context as context_module
 from data.installation_context import InstallationContext, get_installation_context
+
+
+@pytest.fixture(autouse=True)
+def production_context_detection(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("BURNDOWN_TEST_WORKSPACE", raising=False)
+    monkeypatch.setattr(context_module, "_context", context_module._context)
+    with patch.object(Path, "mkdir"):
+        yield
 
 
 class TestInstallationContextDetection:

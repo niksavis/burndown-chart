@@ -2,10 +2,12 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 
+from utils.business_time import business_now
+
 
 def generate_realistic_sample_data():
 
-    end_date = datetime.now()
+    end_date = business_now(datetime)
     start_date = end_date - timedelta(days=12 * 7)
 
     dates = []
