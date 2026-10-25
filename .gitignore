@@ -279,6 +279,9 @@ models/*
 !tsconfig.json
 !*.example.json
 !.basicly/ledger/template.json
+!.basicly/generated-manifest.json
+!.claude/settings.json
+!.codex/hooks.json
 !.prettierrc.json
 !.vscode/*.json
 !.github/codebase_context_metrics.json
