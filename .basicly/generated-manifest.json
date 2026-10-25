@@ -1,0 +1,128 @@
+{
+  "version": "1",
+  "generated_at": "2026-10-25T18:36:21.814906+00:00",
+  "outputs": {
+    ".claude/CLAUDE.md": {
+      "hash": "sha256:edbc6c9adf4005f97ddf8b53930f5e2010923db53a58d74cb5b3c7e9a2b42f1a",
+      "source_fragments": [
+        "knowledge-priming",
+        "code-is-authoritative",
+        "core-rules",
+        "mistake-proofing",
+        "data-safety",
+        "secure-coding",
+        "decision-protocol",
+        "external-facts",
+        "require-explicit-confirmation",
+        "project-overview",
+        "harness-loop",
+        "quality-gate",
+        "catalog-authoring",
+        "claude-defaults",
+        "session-completion",
+        "python-environment",
+        "git-discipline",
+        "trunk-based-workflow",
+        "app-release-process",
+        "platform-hermetic-tests",
+        "non-interactive-shell",
+        "repo-code-standards"
+      ]
+    },
+    ".claude/rules/chart-presentation.md": {
+      "hash": "sha256:f6df87719f36f01ec4b1b7d66fd20900b260fbdb5e52bc11b2ca40d0b219444b",
+      "source_fragments": [
+        "chart-presentation"
+      ]
+    },
+    ".claude/rules/calculation-integrity.md": {
+      "hash": "sha256:f7bc35665bc5035fd514d56caeea366793cf1574ddb7863bf8c33a080d3d93fc",
+      "source_fragments": [
+        "calculation-integrity"
+      ]
+    },
+    ".claude/rules/layered-architecture.md": {
+      "hash": "sha256:1511df162a730ab8bf8a4e2b29dec4d0fe68c22fff8d04631bfa67ed97d85446",
+      "source_fragments": [
+        "layered-architecture"
+      ]
+    },
+    ".claude/rules/data-architecture.md": {
+      "hash": "sha256:a15c987c0042e26503ad302288e828ad5dcba3610b464d0cee2a3148a406a22b",
+      "source_fragments": [
+        "data-architecture"
+      ]
+    },
+    ".claude/rules/dependency-onboarding.md": {
+      "hash": "sha256:dd21bacd9508a2a8dfbe8752283f78c2daa99c58de34919215b0b3f4b0c34cc8",
+      "source_fragments": [
+        "dependency-onboarding"
+      ]
+    },
+    ".claude/rules/testing-standards.md": {
+      "hash": "sha256:fbb329b9592f32a094b8120bc7743ac3c211358d894a3ae0a61ed78c9f41c13c",
+      "source_fragments": [
+        "testing-standards"
+      ]
+    },
+    "AGENTS.md": {
+      "hash": "sha256:3c9c3c65b936c3a91334e2e16cb87f8a694fe840759637be0aafa30cbbc2df3b",
+      "source_fragments": [
+        "knowledge-priming",
+        "code-is-authoritative",
+        "core-rules",
+        "mistake-proofing",
+        "data-safety",
+        "secure-coding",
+        "decision-protocol",
+        "external-facts",
+        "require-explicit-confirmation",
+        "project-overview",
+        "harness-loop",
+        "quality-gate",
+        "catalog-authoring",
+        "session-completion",
+        "python-environment",
+        "git-discipline",
+        "trunk-based-workflow",
+        "app-release-process",
+        "platform-hermetic-tests",
+        "non-interactive-shell",
+        "repo-code-standards",
+        "chart-presentation",
+        "calculation-integrity",
+        "layered-architecture",
+        "data-architecture",
+        "dependency-onboarding",
+        "testing-standards"
+      ]
+    },
+    ".github/copilot-instructions.md": {
+      "hash": "sha256:f55dac62080e33aebf334e180f5fe81e9d1890f45e6401049e7f960e8aaaaecc",
+      "source_fragments": [
+        "knowledge-priming",
+        "code-is-authoritative",
+        "core-rules",
+        "mistake-proofing",
+        "data-safety",
+        "secure-coding",
+        "decision-protocol",
+        "external-facts",
+        "require-explicit-confirmation",
+        "project-overview",
+        "harness-loop",
+        "quality-gate",
+        "catalog-authoring",
+        "copilot-defaults",
+        "session-completion",
+        "python-environment",
+        "git-discipline",
+        "trunk-based-workflow",
+        "app-release-process",
+        "platform-hermetic-tests",
+        "non-interactive-shell",
+        "repo-code-standards"
+      ]
+    }
+  }
+}
