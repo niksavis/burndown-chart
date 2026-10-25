@@ -22,9 +22,9 @@ def _save_budget(profile_id: str, scenario: str) -> None:
         profile_id,
         "main",
         {
-            "time_allocated_weeks": 8,
-            "budget_total_eur": 8000,
-            "team_cost_per_week_eur": 1000,
+            "time_allocated_weeks": 10,
+            "budget_total_eur": 9000,
+            "team_cost_per_week_eur": 1100,
             "currency_symbol": "EUR",
             "cost_rate_type": "weekly",
             "baseline_velocity_items": 4,

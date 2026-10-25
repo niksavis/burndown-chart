@@ -1,0 +1,4 @@
+[[verify.checks]]
+name = "offline-test-suite"
+command = ["python", "validate.py"]
+modes = ["full"]

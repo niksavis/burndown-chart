@@ -1,9 +1,10 @@
+import importlib
 import math
 
 import pytest
 
 from data.demo.contracts import CONTRACTS, CalculationContract
-from data.demo.diagnostics import check_contract
+from devtools.diagnostics import check_contract
 
 
 @pytest.mark.parametrize(
@@ -40,4 +41,11 @@ def test_missing_budget_is_distinct_from_measured_zero() -> None:
 def test_contracts_have_unique_addresses_and_real_producer_references() -> None:
     addresses = [(contract.scenario, contract.calculation) for contract in CONTRACTS]
     assert len(addresses) == len(set(addresses))
-    assert all(contract.producer.startswith("data.") for contract in CONTRACTS)
+    for contract in CONTRACTS:
+        module, name = contract.producer.rsplit(".", 1)
+        if ".sqlite.budget.BudgetMixin" in module:
+            module, class_name = module.rsplit(".", 1)
+            owner = getattr(importlib.import_module(module), class_name)
+        else:
+            owner = importlib.import_module(module)
+        assert callable(getattr(owner, name))

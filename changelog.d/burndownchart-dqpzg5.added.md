@@ -1,0 +1,3 @@
+- Added an isolated offline development launcher with deterministic eight-week synthetic scenarios, local SQLite data, guarded reset and fixed business dates.
+- Added browser journeys for registered tabs, budget and exported reports, plus persistent screenshot capture and independent numerical diagnostics.
+- Expanded the default validation gate from unit tests to the full local test inventory, including integration and browser tests.

@@ -3,8 +3,10 @@ import math
 from typing import Any
 
 from data.demo.contracts import CONTRACTS, CalculationContract
+from data.metrics_snapshots import clear_snapshots_cache
 from data.persistence import PersistenceBackend
 from data.persistence.factory import get_backend
+from devtools.calculation_sources import CalculationSources
 from utils.runtime import demo_mode
 
 
@@ -38,14 +40,29 @@ def check_contract(contract: CalculationContract, actual: Any) -> dict[str, Any]
         "producer": contract.producer,
         "surface": contract.surface,
         "backlog": contract.backlog,
+        "selection": contract.selection,
+        "derivation": contract.derivation,
     }
 
 
 def diagnose(backend: PersistenceBackend) -> list[dict[str, Any]]:
-    return [
-        check_contract(contract, read_actual(backend, contract))
-        for contract in CONTRACTS
-    ]
+    sources = CalculationSources(backend)
+    previous_profile = backend.get_app_state("active_profile_id")
+    previous_query = backend.get_app_state("active_query_id")
+    try:
+        results = []
+        for contract in CONTRACTS:
+            actual = (
+                read_actual(backend, contract)
+                if contract.source in {"scope", "statistics", "budget"}
+                else sources.read(contract)
+            )
+            results.append(check_contract(contract, actual))
+        return results
+    finally:
+        backend.set_app_state("active_profile_id", previous_profile)
+        backend.set_app_state("active_query_id", previous_query)
+        clear_snapshots_cache()
 
 
 def main() -> int:

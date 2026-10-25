@@ -186,10 +186,10 @@ def check_coverage(*, include_performance: bool) -> int:
     return _run(
         "pytest (coverage)",
         [
-            "pytest",
-            "tests/unit/",
-            "-n",
-            "auto",
+            str(PYTHON),
+            "-m",
+            "devtools.offline_pytest",
+            "tests/",
             *marker_expression,
             "--cov=data",
             "--cov=ui",
@@ -229,6 +229,9 @@ def main() -> int:
         help="Auto-fix ruff and djlint violations where possible",
     )
     args = parser.parse_args()
+
+    if PYTHON.exists() and Path(sys.prefix).resolve() != VENV_BIN.parent.resolve():
+        return subprocess.call([str(PYTHON), str(Path(__file__)), *sys.argv[1:]])
 
     system = platform.system()
     print(f"[validate] Platform: {system} | Python: {sys.version.split()[0]}")

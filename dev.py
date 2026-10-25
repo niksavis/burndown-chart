@@ -24,7 +24,7 @@ def _build_seed(workspace: Path, empty: bool) -> None:
     command = [sys.executable, "-m", "data.demo.seed"]
     if empty:
         command.append("--empty")
-    subprocess.run(command, env=environment, check=True)
+    subprocess.run(command, env=environment, stdout=sys.stderr, check=True)
 
 
 def _arguments() -> argparse.Namespace:
@@ -80,11 +80,12 @@ def main() -> int:
         print(
             f"Offline demo {outcome}; evaluation date {DEFAULT_DEMO_AS_OF}",
             flush=True,
+            file=sys.stderr,
         )
         if arguments.action == "seed":
             return 0
         if arguments.action == "diagnose":
-            runpy.run_module("data.demo.diagnostics", run_name="__main__")
+            runpy.run_module("devtools.diagnostics", run_name="__main__")
             return 0
         sys.argv = [
             "app.py",

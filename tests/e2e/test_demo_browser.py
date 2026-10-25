@@ -6,7 +6,7 @@ import pytest
 from playwright.sync_api import ViewportSize, sync_playwright
 
 from devtools.browser_observer import BrowserObservation
-from devtools.journeys import capture_registered_tabs
+from devtools.journeys import capture_exported_report, capture_registered_tabs
 from devtools.server import running_demo_server
 from ui.tabs import TAB_CONFIG
 
@@ -38,6 +38,7 @@ def test_demo_tabs_and_budget_render_offline(
                     assert page.evaluate(
                         "matchMedia('(prefers-color-scheme: dark)').matches"
                     ) is (theme == "dark")
+                    assert len(capture_exported_report(page, output)) == 8
                     observation.assert_clean()
                 finally:
                     browser.close()

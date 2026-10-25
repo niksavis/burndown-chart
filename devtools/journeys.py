@@ -1,7 +1,8 @@
+import math
 import re
 from pathlib import Path
 
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Locator, Page, expect
 
 from ui.tabs import TAB_CONFIG, TabConfig
 
@@ -18,14 +19,41 @@ TAB_MARKERS = {
 }
 
 
+def capture_viewports(page: Page, region: Locator, output: Path, prefix: str) -> None:
+    viewport = page.viewport_size
+    if viewport is None:
+        raise ValueError("UI capture requires a bounded viewport")
+    bounds = region.evaluate(
+        "element => ({top: element.getBoundingClientRect().top + window.scrollY, "
+        "height: element.getBoundingClientRect().height})"
+    )
+    step = max(200, viewport["height"] - 320)
+    count = math.ceil(bounds["height"] / step)
+    if count > 100:
+        raise ValueError("Capture region exceeds one hundred viewports")
+    for index in range(count):
+        page.evaluate(
+            "top => window.scrollTo({top, behavior: 'instant'})",
+            arg=max(0, bounds["top"] - 200 + index * step),
+        )
+        page.screenshot(
+            path=str(output / f"{prefix}-{index + 1}.png"), animations="disabled"
+        )
+
+
 def select_tab(page: Page, tab: TabConfig, *, mobile: bool) -> None:
+    page.evaluate("window.scrollTo({top: 0, behavior: 'instant'})")
     if mobile:
         primary = page.locator(f"#bottom-nav-{tab['id']}")
         if primary.count():
             primary.click()
         else:
             page.locator("#bottom-nav-more-menu").click()
+            expect(page.locator("#mobile-overflow-menu")).to_have_css(
+                "transform", "matrix(1, 0, 0, 1, 0, 0)"
+            )
             page.locator(f"#overflow-menu-{tab['id']}").click()
+            expect(page.locator("#mobile-overflow-overlay")).to_be_hidden()
     else:
         page.get_by_role("tab", name=re.compile(re.escape(tab["label"]) + "$")).click()
 
@@ -60,11 +88,44 @@ def capture_registered_tabs(
         if index:
             select_tab(page, tab, mobile=mobile)
         wait_for_tab(page, tab["id"])
-        page.evaluate("window.scrollTo(0, 0)")
+        page.evaluate("window.scrollTo({top: 0, behavior: 'instant'})")
+        page.wait_for_function("window.scrollY === 0")
         page.screenshot(path=str(output / f"{tab['id']}.png"), animations="disabled")
         captured.append(tab["id"])
         if tab["id"] == "tab-dashboard":
             budget = page.locator(".budget-section")
             expect(budget).to_contain_text("Budget", timeout=30000)
-            budget.screenshot(path=str(output / "budget.png"), animations="disabled")
+            capture_viewports(page, budget, output, "budget")
     return captured
+
+
+def capture_exported_report(page: Page, output: Path) -> list[str]:
+    page.locator("#toggle-import-export-panel").click()
+    button = page.locator("#generate-report-button")
+    expect(button).to_be_visible(timeout=30000)
+    with page.expect_download(timeout=60000) as pending:
+        button.click()
+    report = output / "report.html"
+    pending.value.save_as(report)
+    page.goto(report.as_uri(), wait_until="load")
+    expect(page).to_have_title(re.compile("Acme Corp.*Project Report"))
+    expect(page.get_by_role("heading", name="Project Health Overview")).to_be_visible()
+    page.wait_for_function(
+        "typeof Chart !== 'undefined' && Object.keys(Chart.instances).length > 0"
+    )
+    page.evaluate(
+        "Object.values(Chart.instances).forEach(chart => {"
+        "chart.stop(); chart.update('none'); })"
+    )
+    sections = page.locator(".container > .section")
+    titles = []
+    for index in range(sections.count()):
+        section = sections.nth(index)
+        title = section.locator("h2").inner_text().strip()
+        titles.append(title)
+        section.screenshot(
+            path=str(output / f"report-section-{index + 1}.png"), animations="disabled"
+        )
+    if len(titles) != 8:
+        raise AssertionError(f"Expected eight exported report sections, got {titles}")
+    return titles
