@@ -27,6 +27,7 @@ SCENARIOS = (
     "accelerating",
     "declining",
     "variable-points",
+    "unreleased-version",
 )
 FIELD_MAPPINGS = {
     "workflow": {

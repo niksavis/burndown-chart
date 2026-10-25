@@ -26,7 +26,7 @@ from data.flow_metrics import (
 )
 from data.metrics._weekly_dora_calc import _calculate_deployment_frequency
 from data.metrics._weekly_issue_prep import load_and_merge_changelog
-from data.metrics_snapshots import clear_snapshots_cache
+from data.metrics_snapshots import clear_snapshots_cache, load_snapshots
 from data.persistence import PersistenceBackend
 from data.processing_averages import calculate_weekly_averages
 from data.processing_rates import calculate_rates
@@ -34,6 +34,7 @@ from devtools.budget_calculations import budget_calculations
 from devtools.dashboard_observation import observe_mounted_confidence
 from devtools.forecast_calculations import forecast_calculations
 from devtools.health_calculations import health_calculations
+from devtools.health_observation import observe_mounted_health
 from devtools.report_calculations import report_calculations
 from devtools.scope_calculations import scope_calculations
 from devtools.work_calculations import active_work, sprint_work
@@ -103,10 +104,14 @@ class CalculationSources:
         raise ValueError(f"Unknown statistical diagnostic source: {source}")
 
     def _calculate(self, profile_id: str, source: str) -> dict:
+        if source == "persisted-metrics":
+            return load_snapshots()
         if source.startswith("scope-"):
             return scope_calculations(source)
         if source == "mounted-confidence":
             return observe_mounted_confidence()
+        if source == "mounted-health":
+            return observe_mounted_health()
         if source.startswith("health-"):
             return health_calculations(source)
         if source.startswith("budget-") and not source.startswith("budget-at-"):

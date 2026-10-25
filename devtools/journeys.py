@@ -4,6 +4,10 @@ from pathlib import Path
 
 from playwright.sync_api import Locator, Page, expect
 
+from devtools.plotly_observation import (
+    wait_for_page_settlement,
+    wait_for_plotly_settlement,
+)
 from ui.tabs import TAB_CONFIG, TabConfig
 
 TAB_MARKERS = {
@@ -70,6 +74,7 @@ def wait_for_tab(page: Page, tab_id: str) -> None:
             timeout=30000,
         )
     expect(page.locator(".dash-error-card")).to_have_count(0)
+    wait_for_page_settlement(page, "#tab-content")
 
 
 def capture_registered_tabs(
@@ -105,6 +110,9 @@ def capture_registered_tabs(
             page.wait_for_function(
                 "document.querySelector('#sprint-burnup-chart .js-plotly-plot')?.data?.length > 0",
                 timeout=30000,
+            )
+            wait_for_plotly_settlement(
+                page, ["#sprint-charts-collapse .js-plotly-plot"]
             )
             capture_viewports(
                 page, page.locator("#sprint-charts-collapse"), output, "sprint-charts"

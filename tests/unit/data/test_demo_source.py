@@ -109,3 +109,32 @@ def test_scope_change_changes_a_development_story_and_sprint_changes_match_field
     assert "Demo Sprint 2" in changed[1]["fields"]["customfield_10002"][0]
     assert changed[2]["fields"]["customfield_10002"] == []
     assert changed[2]["changelog"]["histories"][-1]["items"][0]["toString"] == ""
+
+
+def test_nominal_recorded_deployments_have_consistent_release_flags() -> None:
+    deployments = [
+        issue
+        for issue in scenario_issues("complete")
+        if issue["fields"]["project"]["key"] == "OPS"
+    ]
+    for deployment in deployments:
+        version = deployment["fields"]["fixVersions"][0]
+        assert version["released"] is True
+        assert datetime.fromisoformat(version["releaseDate"]).date() <= AS_OF.date()
+
+
+def test_unknown_demo_scenario_is_refused_by_name() -> None:
+    with pytest.raises(ValueError, match="Unknown demo scenario: misspelled"):
+        scenario_issues("misspelled")
+
+
+def test_unreleased_version_is_an_explicit_eligibility_edge() -> None:
+    issue = next(
+        issue
+        for issue in scenario_issues("unreleased-version")
+        if issue["key"] == "OPS-8"
+    )
+    assert issue["fields"]["status"]["name"] == "Done"
+    version = issue["fields"]["fixVersions"][0]
+    assert version["released"] is False
+    assert version["releaseDate"] == "2026-01-29"

@@ -88,6 +88,8 @@ Other scenarios cover empty, singleton, zero delivery, stalled, sparse history, 
 missing signals, unmapped fields, no points, scope changes and deadline variants.
 Accelerating and declining scenarios exercise trend signals.
 The variable-points scenario keeps item throughput constant while point throughput changes.
+The `unreleased-version` scenario isolates a completed operational task with an elapsed release date and a false version flag.
+Nominal recorded releases have consistent flags. Unknown scenario names are refused rather than treated as complete data.
 
 Run the independent contracts:
 
@@ -147,14 +149,34 @@ Capturing a dark preference does not establish a complete dark theme.
 The owner chose to validate both OS preferences and track a complete theme separately as `burndownchart-8jm662`.
 Do not inject replacement colors to hide this limitation.
 
+For the bounded chart-readiness investigation:
+
+```sh
+.venv/bin/python -m devtools.plotly_settlement --workspace profiles/demo-plotly --output profiles/demo-plotly-stages
+```
+
+This captures two mobile graphs under both OS preferences at three stages: current readiness,
+passive settlement and a separate resize diagnostic. Each of the twelve PNGs has before/after geometry and figure-state JSON.
+Canonical journeys wait for loaded fonts, completed collapse transitions, no Dash loading marker,
+and 500 milliseconds of continuous stable graph identity, geometry, axes and trace data, bounded by ten seconds.
+A new loading interval restarts that quiet interval. Named graphs must exist and be visible.
+Page settlement also handles card/table surfaces that have no visible Plotly graph.
+The observation adapter reads Plotly runtime layout fields and refuses missing layouts; it does not change figures.
+Forced resize remains diagnostic and is never used to make canonical screenshots fit.
+
 ## Remaining coverage work
 
 The executable contracts cover recorded weeks, scope, forecasts, Flow/DORA, work and Sprint progress,
 bug closure forecasts, historical budgets, selected health/recommendation policies and report values.
 Calibration contracts name their explicit inputs and assumptions. They do not establish caller agreement.
-The remaining audit must cover persisted Flow/DORA populations, positive Quality/Financial health inputs,
+Persisted weekly Flow and production task/failure populations now have independent contracts,
+and real Dashboard health inputs are observed at the comprehensive-health boundary.
+The remaining audit must cover positive Quality/Financial scores and the health composite,
 budget/pace/correlation recommendation families, work timing, sprint scope changes and remaining report adapters.
+Production lead eligibility remains a separate semantic defect; the controlled completed-item calibration remains explicit.
 The expanded browser assertion matrix passes all four viewport/preference combinations.
-The screenshot review still needs final Plotly geometry/axis settlement probes where responsive charts differ.
+The bounded Plotly probe established premature captures for the reproduced clipping and chart-size differences.
+The current passive-settlement matrix passes all four viewport/preference combinations with twenty scenarios.
+Report Chart.js element/scale settlement still needs a bounded probe; the existing stop/update step is not sufficient evidence.
 Passing browser assertions establish reachability and network behavior; the recorded visual defects remain unresolved.
 Dormant forecast-history widgets have no stored producer and must not receive fabricated history.

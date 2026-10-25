@@ -7,6 +7,7 @@ from data.demo.health_contracts import HEALTH_CONTRACTS
 from data.demo.recommendation_contracts import RECOMMENDATION_CONTRACTS
 from data.demo.report_contracts import REPORT_CONTRACTS
 from data.demo.scope_contracts import SCOPE_CONTRACTS
+from data.demo.snapshot_contracts import SNAPSHOT_CONTRACTS
 from data.demo.weekly_contracts import WEEKLY_CONTRACTS
 from data.demo.work_contracts import WORK_CONTRACTS
 
@@ -17,6 +18,7 @@ CONTRACTS = (
     + HEALTH_CONTRACTS
     + BUDGET_CONTRACTS
     + WEEKLY_CONTRACTS
+    + SNAPSHOT_CONTRACTS
     + REPORT_CONTRACTS
     + FORECAST_CONTRACTS
     + RECOMMENDATION_CONTRACTS

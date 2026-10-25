@@ -2,7 +2,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from typing import Any
 
-from data.demo.config import AS_OF, START
+from data.demo.config import AS_OF, SCENARIOS, START
 
 
 def _transition(field: str, before: str, after: str, at: datetime) -> dict[str, Any]:
@@ -43,7 +43,7 @@ def _issue_fields(
     release = {
         "name": f"Demo release {week + 1}",
         "releaseDate": (created + timedelta(days=3)).date().isoformat(),
-        "released": week < 7,
+        "released": True,
     }
     fields = {
         "summary": f"Synthetic {issue_type.lower()} {number}",
@@ -238,7 +238,34 @@ def _apply_delivery_pattern(issues: list[dict[str, Any]], scenario: str) -> None
             fields["customfield_10001"] = week + 1
 
 
+def _reopen_and_change_membership(issues: list[dict[str, Any]]) -> None:
+    issue = issues[0]
+    issue["fields"]["resolutiondate"] = None
+    issue["fields"]["status"] = {
+        "name": "In Progress",
+        "statusCategory": {"key": "indeterminate"},
+    }
+    issue["changelog"]["histories"].append(
+        _transition("status", "Done", "In Progress", AS_OF - timedelta(days=2))
+    )
+    issue["fields"]["updated"] = (AS_OF - timedelta(days=2)).isoformat()
+    issues[1]["changelog"]["histories"].append(
+        _transition(
+            "Sprint", "Demo Sprint 1", "Demo Sprint 2", START + timedelta(days=8)
+        )
+    )
+    issues[1]["fields"]["customfield_10002"] = [_sprint(1)]
+    issues[1]["fields"]["updated"] = (START + timedelta(days=8)).isoformat()
+    issues[2]["changelog"]["histories"].append(
+        _transition("Sprint", "Demo Sprint 1", "", START + timedelta(days=9))
+    )
+    issues[2]["fields"]["customfield_10002"] = []
+    issues[2]["fields"]["updated"] = (START + timedelta(days=9)).isoformat()
+
+
 def scenario_issues(scenario: str) -> list[dict[str, Any]]:
+    if scenario not in SCENARIOS:
+        raise ValueError(f"Unknown demo scenario: {scenario}")
     issues = deepcopy(complete_issues())
     _apply_delivery_pattern(issues, scenario)
     if scenario == "empty":
@@ -253,28 +280,12 @@ def scenario_issues(scenario: str) -> list[dict[str, Any]]:
     for issue in issues:
         _apply_scenario(issue, scenario)
     if scenario == "reopened":
-        issue = issues[0]
-        issue["fields"]["resolutiondate"] = None
-        issue["fields"]["status"] = {
-            "name": "In Progress",
-            "statusCategory": {"key": "indeterminate"},
-        }
-        issue["changelog"]["histories"].append(
-            _transition("status", "Done", "In Progress", AS_OF - timedelta(days=2))
-        )
-        issue["fields"]["updated"] = (AS_OF - timedelta(days=2)).isoformat()
-        issues[1]["changelog"]["histories"].append(
-            _transition(
-                "Sprint", "Demo Sprint 1", "Demo Sprint 2", START + timedelta(days=8)
-            )
-        )
-        issues[1]["fields"]["customfield_10002"] = [_sprint(1)]
-        issues[1]["fields"]["updated"] = (START + timedelta(days=8)).isoformat()
-        issues[2]["changelog"]["histories"].append(
-            _transition("Sprint", "Demo Sprint 1", "", START + timedelta(days=9))
-        )
-        issues[2]["fields"]["customfield_10002"] = []
-        issues[2]["fields"]["updated"] = (START + timedelta(days=9)).isoformat()
+        _reopen_and_change_membership(issues)
     if scenario == "scope-change":
         _change_scope(issues)
+    if scenario == "unreleased-version":
+        for issue in issues:
+            for version in issue["fields"]["fixVersions"]:
+                if version["name"] == "Demo release 8":
+                    version["released"] = False
     return issues

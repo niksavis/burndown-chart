@@ -81,10 +81,10 @@ Operational cache and progress timers still use real time.
 Focused regressions assert 75 percent elapsed and 3.5 days remaining for a fourteen-day sprint ending February 2,
 evaluated at January 29 noon UTC, and a one-day-old issue remains in the recent-health bucket.
 
-The expanded catalogue has 323 checks with independent derivations.
+The expanded catalogue records independent derivations for its expected values.
 Missing output fields and calculation errors fail explicitly, including when an expected value is unavailable.
 The broader numeric discrepancies remain visible diagnostics and separate backlog work.
-The final browser assertion matrix passes all four viewport/preference combinations.
+The earlier browser assertion matrix passed all four viewport/preference combinations.
 Each context visits all nine registered tabs, nineteen scenarios and eight exported report sections.
 The manifest records 73 PNGs per desktop context and 113 per mobile context, with no observed browser errors or external requests.
 These are rendering assertions, not a numerical or visual pass for every image.
@@ -100,7 +100,7 @@ A focused regression verifies that the callback cannot replace those controls.
 The integrated product candidate subsequently passed 1,994 tests with 45.05 percent coverage.
 Scenario selection also waits for the completed panel-open state and dropdown expansion before choosing an option.
 
-The specialist inspected 68 PNGs in this final matrix: all 36 main-tab screenshots,
+The specialist inspected 68 PNGs in that matrix: all 36 main-tab screenshots,
 eight budget viewport samples, sixteen report-section views and eight mobile lower-chart views.
 The report samples cover sections 1, 3, 5 and 7 in each viewport/preference combination.
 No stale panel overlay appeared on those main tabs.
@@ -110,3 +110,47 @@ Check final Plotly geometry and axis settlement before treating those captures a
 
 The owner explicitly selected validation under both OS preferences.
 A complete application and report dark theme is separate work: `burndownchart-8jm662`.
+
+## Passive chart settlement
+
+The specialist inspected all twelve stage-probe PNGs and their state JSON.
+The probe preserves the original readiness capture, then waits passively, then resizes only for diagnosis.
+
+| Graph | Original readiness | Passive settlement | Resize diagnostic |
+| --- | --- | --- | --- |
+| Weekly items, both preferences | 332 by 300 pixels | 332 by 700 pixels | Matches passive |
+| Sprint, light preference | SVG/container 282/282 pixels | 282/282 pixels | Matches passive |
+| Sprint, dark preference | SVG/container 700/282 pixels, clipped | 282/282 pixels | Matches passive |
+
+Weekly axis ranges also settle identically, from approximately -0.3213/4.6261 to -0.2539/4.3512.
+The before/after-screenshot state is unchanged; taking a screenshot did not repair the layout.
+Passive captures are visually consistent across preferences and match the resized diagnostic.
+This establishes premature readiness for these reproduced differences, without establishing an OS-preference cause.
+It does not establish an exact zero-based axis or repair future Sprint actuals and weighted-average calculations.
+
+Canonical journeys now wait for continuous stable layout and data after fonts and loading settle.
+A regression showed that an intervening loading marker must restart the quiet interval; that behavior is enforced.
+An initial wider run correctly rejected a mistaken requirement for Plotly on the card-only DORA view.
+Page settlement now observes any visible charts, while a requested named graph must be visible.
+
+The catalogue now contains 436 checks. Its latest synthetic run reports 85 explicit discrepancies.
+Weekly Flow values agree with the independent table. TEST operational work still enters one production denominator.
+Mounted health exposes incorrect CFR/recovery, truncated bug durations, missing configured financial inputs,
+and zero stalled-bug capacity where open bug points imply 1/48 of project points.
+The complete project's bug capacity is correctly zero because none of its bugs are open.
+
+The current passive-settlement matrix passes all four combinations with twenty scenarios,
+nine registered tabs and eight report sections per context.
+It records 376 PNGs: 74 per desktop context and 114 per mobile context, with no observed browser or external-request errors.
+Integrated verification passed 2,000 tests with 45.10 percent coverage.
+
+The specialist inspected forty current PNGs: all eight report sections in all four contexts,
+plus Burndown and opened Sprint charts in all four contexts.
+The canonical mobile Sprint charts fit without forced resizing.
+The mobile Burndown main plot lies below its first viewport; that image alone does not validate its lower layout.
+
+Report Chart.js rendering still needs a bounded state/geometry probe.
+The current images show weekly bars floating above zero and different forecast/category positions between equal-size captures.
+The existing stop/update-without-animation step does not establish final element positions.
+Preserve these observations until dataset values, scale mappings and element geometry distinguish unfinished rendering from product defects.
+The report still clips mobile sections 5–8 and several annotations, and the known numerical disagreements remain visible.
