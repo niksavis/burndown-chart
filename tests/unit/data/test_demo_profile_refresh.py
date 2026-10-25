@@ -14,10 +14,12 @@ from data import metrics_snapshots
 class CallbackRegistry:
     def __init__(self) -> None:
         self.functions: dict[str, Callable[..., Any]] = {}
+        self.outputs: dict[str, Any] = {}
 
     def callback(self, *args: Any, **kwargs: Any) -> Callable:
         def capture(function: Callable[..., Any]) -> Callable[..., Any]:
             self.functions[function.__name__] = function
+            self.outputs[function.__name__] = args[0]
             return function
 
         return capture
@@ -30,6 +32,25 @@ def test_parameter_button_remount_does_not_replay_stale_panel_state() -> None:
         0, True, {"is_open": True}, False, False
     )
     assert result == (no_update, no_update, no_update, no_update)
+
+
+def test_summary_updates_do_not_replace_the_panel_controls() -> None:
+    app = CallbackRegistry()
+    register_parameter_panel(app)
+    with patch(
+        "callbacks.settings.parameter_panel.get_active_profile_and_query_display_names",
+        return_value={"profile_name": "Acme Corp", "query_name": "complete"},
+    ):
+        result = app.functions["update_parameter_summary"](
+            3, "2026-02-26", 16, 32, 8, {"show_points": True}
+        )
+    assert (
+        app.outputs["update_parameter_summary"].component_id
+        == "parameter-bar-collapsed-summary"
+    )
+    assert "btn-expand-parameters" not in str(result)
+    assert "settings-button" not in str(result)
+    assert "toggle-import-export-panel" not in str(result)
 
 
 @pytest.mark.parametrize(

@@ -1,3 +1,3 @@
 - Profile switches now reload statistics and keep metric snapshots separate for profiles that share a query ID.
-- Demo Sprint progress and issue ages use the selected business date. Parameter panels no longer replay stale state when their summary buttons are recreated.
+- Demo Sprint progress and issue ages use the selected business date. Parameter controls remain mounted while summary values refresh, preserving clicks and panel state.
 - Local verification selects a temporary database, log and cache workspace before test collection, preserving normal user data and live test clocks.

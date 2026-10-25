@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from playwright.sync_api import Page, expect
@@ -10,8 +11,10 @@ def select_scenario(page: Page, scenario: str) -> None:
     dropdown = page.locator("#profile-selector")
     if not dropdown.is_visible():
         page.locator("#settings-button").click()
+    wait_for_open_panel(page, "settings-collapse")
     expect(dropdown).to_be_visible()
     dropdown.click()
+    expect(dropdown).to_have_attribute("aria-expanded", "true")
     page.get_by_role("option", name=label, exact=True).click()
     expect(page.get_by_text(f"Switched to profile: {label}", exact=True)).to_be_visible(
         timeout=30000
@@ -45,7 +48,13 @@ def open_parameters(page: Page) -> None:
     panel = page.locator("#parameter-collapse")
     if not panel.is_visible():
         page.locator("#btn-expand-parameters").click()
-    expect(panel).to_be_visible()
+    wait_for_open_panel(page, "parameter-collapse")
+
+
+def wait_for_open_panel(page: Page, panel_id: str) -> None:
+    expect(page.locator(f"#{panel_id}")).to_have_class(
+        re.compile(r"\bshow\b"), timeout=30000
+    )
 
 
 def close_parameters(page: Page) -> None:

@@ -94,6 +94,11 @@ Persistent journeys exposed another state defect: summary rerenders recreate pan
 The Parameters callback previously returned its captured panel state for that event, overwriting a later close.
 It now emits no update for a non-click event. A regression failed before this change and passed afterwards.
 Journeys use the dedicated collapse button and assert closure before opening another panel.
+A later integrated run still lost one mobile Parameters click during a summary refresh.
+The summary callback now replaces only metric content, leaving all three panel buttons mounted.
+A focused regression verifies that the callback cannot replace those controls.
+The integrated product candidate subsequently passed 1,994 tests with 45.05 percent coverage.
+Scenario selection also waits for the completed panel-open state and dropdown expansion before choosing an option.
 
 The specialist inspected 68 PNGs in this final matrix: all 36 main-tab screenshots,
 eight budget viewport samples, sixteen report-section views and eight mobile lower-chart views.

@@ -71,7 +71,7 @@ def register(app: Any) -> None:
         return no_update, no_update, no_update, no_update
 
     @app.callback(
-        Output("parameter-bar-collapsed", "children"),
+        Output("parameter-bar-collapsed-summary", "children"),
         [
             Input("pert-factor-slider", "value"),
             Input("deadline-picker", "date"),
@@ -145,7 +145,7 @@ def register(app: Any) -> None:
             query_name=query_name,
         )
 
-        return banner_content.children[0]  # type: ignore[index]
+        return banner_content.children[0].children[0].children  # type: ignore[index]
 
     @app.callback(
         [
