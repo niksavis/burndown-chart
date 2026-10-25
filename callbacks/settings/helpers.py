@@ -70,7 +70,7 @@ def calculate_remaining_work_for_data_window(data_points_count, statistics):
             estimated_items,
             int(remaining_items),
             estimated_points,
-            f"{remaining_points:.0f}",
+            f"{remaining_points:,}",
             calc_results,
         )
 

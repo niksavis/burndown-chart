@@ -198,22 +198,22 @@ def _build_scope_indicators_section(
                             [
                                 create_forecast_pill(
                                     "Created",
-                                    f"{int(total_created_points)} points",
+                                    f"{total_created_points:,} points",
                                     "points",
                                 ),
                                 create_forecast_pill(
                                     "Completed",
-                                    f"{int(total_completed_points)} points",
+                                    f"{total_completed_points:,} points",
                                     "accent",
                                 ),
                                 create_forecast_pill(
                                     "Threshold",
-                                    f"{int(threshold_points)} points",
+                                    f"{threshold_points:,} points",
                                     "warning",
                                 ),
                                 html.Div(
                                     html.Small(
-                                        (f"baseline: {int(baseline_points)} points"),
+                                        (f"baseline: {baseline_points:,} points"),
                                         className="text-muted fst-italic",
                                     ),
                                     className="metric-baseline-note",

@@ -35,7 +35,13 @@ def test_diagnostics_emit_json_restore_selection_and_fail_on_discrepancies(
         if check["calculation"] == "fractional-points"
     )
     assert fractional["expected"] == 6.5
-    assert fractional["passed"] is (fractional["actual"] == 6.5)
+    assert fractional["passed"]
+    assert fractional["actual"] == 6.5
+    assert all(
+        check["passed"]
+        for check in report["checks"]
+        if check["backlog"] == "burndownchart-imp021"
+    )
     with closing(sqlite3.connect(generated_demo / "burndown.db")) as connection:
         selected = connection.execute(
             "SELECT value FROM app_state WHERE key = ?", ("active_profile_id",)

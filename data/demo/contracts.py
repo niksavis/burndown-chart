@@ -3,6 +3,7 @@ from data.demo.budget_contracts import BUDGET_CONTRACTS
 from data.demo.contract_types import CalculationContract
 from data.demo.contract_types import make_contracts as _contracts
 from data.demo.forecast_contracts import FORECAST_CONTRACTS
+from data.demo.fractional_contracts import FRACTIONAL_CONTRACTS
 from data.demo.health_contracts import HEALTH_CONTRACTS
 from data.demo.policy_contracts import POLICY_CONTRACTS
 from data.demo.recommendation_contracts import RECOMMENDATION_CONTRACTS
@@ -13,7 +14,8 @@ from data.demo.weekly_contracts import WEEKLY_CONTRACTS
 from data.demo.work_contracts import WORK_CONTRACTS
 
 CONTRACTS = (
-    WORK_CONTRACTS
+    FRACTIONAL_CONTRACTS
+    + WORK_CONTRACTS
     + ANCILLARY_CONTRACTS
     + SCOPE_CONTRACTS
     + HEALTH_CONTRACTS

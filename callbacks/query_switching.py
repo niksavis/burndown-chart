@@ -456,7 +456,7 @@ def load_query_cached_data(n_clicks, selected_query_id):
         total_items = scope.get("remaining_items", 0)
         total_points = scope.get("remaining_total_points", 0)
 
-        total_points_display = f"{total_points:.0f}"
+        total_points_display = f"{total_points:,}"
 
         settings = load_app_settings()
 

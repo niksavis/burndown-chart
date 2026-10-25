@@ -3,45 +3,39 @@
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 from data.jira import extract_story_points_value, jira_to_csv_format
 
 
-def test_story_points_extraction():
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ({"votes": 5}, 5.0),
+        (8, 8.0),
+        (3.5, 3.5),
+        ("13", 13.0),
+        ("2.5", 2.5),
+        (None, 0.0),
+        ("", 0.0),
+        (0, 0.0),
+        ({"value": 7}, 7.0),
+        ({"points": 4}, 4.0),
+        ({"count": 2}, 2.0),
+    ],
+)
+def test_story_points_extraction(value, expected) -> None:
+    assert extract_story_points_value(value, "customfield_10001") == expected
 
-    print("Testing Story Points Value Extraction...")
 
-    test_cases = [
-        ({"votes": 5, "hasVoted": False}, "votes", 5.0),
-        (8, "customfield_10020", 8.0),
-        (3.5, "customfield_10020", 3.5),
-        ("13", "customfield_10021", 13.0),
-        ("2.5", "customfield_10021", 2.5),
-        (None, "customfield_10020", 0.0),
-        ("", "customfield_10020", 0.0),
-        (0, "customfield_10020", 0.0),
-        ({"value": 7}, "some_field", 7.0),
-        ({"points": 4}, "some_field", 4.0),
-        ({"count": 2}, "some_field", 2.0),
-        ({"no_numeric_field": "text"}, "bad_field", 0.0),
-        ("not_a_number", "bad_field", 0.0),
-        (["array", "values"], "bad_field", 0.0),
-    ]
-
-    print(f"\n[Stats] Testing {len(test_cases)} different field value scenarios...")
-
-    for i, (input_value, field_name, expected_output) in enumerate(test_cases, 1):
-        result = extract_story_points_value(input_value, field_name)
-
-        status = "[OK]" if result == expected_output else "[X]"
-        print(
-            f"   {status} Test {i}: {input_value} → {result} "
-            f"(expected {expected_output})"
-        )
-
-        if result != expected_output:
-            print(f"      [FAILED] Expected {expected_output}, got {result}")
+@pytest.mark.parametrize(
+    "value", [{"no_numeric_field": "text"}, "not_a_number", ["array", "values"]]
+)
+def test_invalid_story_points_extraction(value) -> None:
+    with pytest.raises(ValueError, match="customfield_10001"):
+        extract_story_points_value(value, "customfield_10001")
 
 
 def test_votes_field_in_transformation():
@@ -144,6 +138,4 @@ def test_different_field_types():
 
 
 if __name__ == "__main__":
-    test_story_points_extraction()
-    test_votes_field_in_transformation()
-    test_different_field_types()
+    raise SystemExit(pytest.main([__file__]))

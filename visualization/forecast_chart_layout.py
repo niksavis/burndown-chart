@@ -112,7 +112,7 @@ def add_metrics_annotations(fig, metrics_data, data_points_count=None):
             "value": metrics_data.get("total_scope_points", 0)
             if points_data_available
             else None,
-            "format": "{:,.0f}" if points_data_available else "n/a",
+            "format": "{:,}" if points_data_available else "n/a",
         },
         {"label": "Deadline", "value": metrics_data["deadline"], "format": "{}"},
         {
@@ -126,7 +126,7 @@ def add_metrics_annotations(fig, metrics_data, data_points_count=None):
             "value": metrics_data.get("completed_points", 0)
             if points_data_available
             else None,
-            "format": "{:,.0f} ({:.1f}%)" if points_data_available else "n/a",
+            "format": "{:,} ({:.1f}%)" if points_data_available else "n/a",
             "extra_value": metrics_data.get("points_percent_complete", 0)
             if points_data_available
             else None,
@@ -144,7 +144,7 @@ def add_metrics_annotations(fig, metrics_data, data_points_count=None):
         {
             "label": "Remaining Points",
             "value": metrics_data["total_points"] if points_data_available else None,
-            "format": "{:,.0f}" if points_data_available else "n/a",
+            "format": "{:,}" if points_data_available else "n/a",
         },
         {
             "label": "Est. Days (Items)",

@@ -81,7 +81,7 @@ def generate_realistic_sample_data():
     return sample_df
 
 
-def read_and_clean_data(df):
+def read_and_clean_data(df: pd.DataFrame) -> pd.DataFrame:
 
     required_columns = ["date", "completed_items", "completed_points"]
     for col in required_columns:
@@ -105,7 +105,11 @@ def read_and_clean_data(df):
     ]
     for col in numeric_columns:
         if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
+            df[col] = (
+                pd.to_numeric(df[col], errors="coerce")
+                .fillna(0)
+                .astype(float if col.endswith("points") else int)
+            )
 
     df = df.sort_values("date", ascending=True)
 

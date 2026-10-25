@@ -162,6 +162,6 @@ def jira_to_csv_format(issues: list[dict], config: dict) -> list[dict]:
         logger.info(f"[JIRA] Generated {len(weekly_data)} weekly data points")
         return weekly_data
 
-    except Exception as e:
+    except (KeyError, TypeError) as e:
         logger.error(f"[JIRA] Transform failed: {e}")
         return []

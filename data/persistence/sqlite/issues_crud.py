@@ -10,6 +10,7 @@ from typing import Any
 from data.database import get_db_connection
 from data.exceptions import PersistenceError
 from data.persistence.sqlite.helpers import extract_nested_field, retry_on_db_lock
+from data.story_points import parse_story_points_value
 
 logger = logging.getLogger(__name__)
 
@@ -257,32 +258,18 @@ class IssuesCRUDMixin:
                         else issue.get("components")
                     )
 
-                    points = None
-                    if points_field and not is_flat_issue:
-                        points_raw = fields.get(points_field)
-
-                        if points_raw is not None:
-                            if isinstance(points_raw, dict):
-                                points_raw = points_raw.get("value")
-
-                            if points_raw is not None:
-                                try:
-                                    points = float(points_raw)
-                                except ValueError, TypeError:
-                                    logger.warning(
-                                        "Cannot convert points to float for "
-                                        f"{issue.get('key')}: {points_raw}"
-                                    )
-                                    points = None
-                            else:
-                                points = None
-                    elif is_flat_issue:
-                        points_raw = issue.get("points")
-                        if points_raw is not None:
-                            try:
-                                points = float(points_raw)
-                            except ValueError, TypeError:
-                                points = None
+                    points_raw = (
+                        issue.get("points")
+                        if is_flat_issue
+                        else fields.get(points_field)
+                        if points_field
+                        else None
+                    )
+                    points = (
+                        parse_story_points_value(points_raw, points_field)
+                        if points_raw is not None
+                        else None
+                    )
 
                     cursor.execute(
                         """
@@ -463,24 +450,12 @@ class IssuesCRUDMixin:
                         )
                         continue
 
-                    points = None
                     points_raw = custom_fields.get(points_field)
-
-                    if points_raw is not None:
-                        if isinstance(points_raw, dict):
-                            points_raw = points_raw.get("value")
-
-                        if points_raw is not None:
-                            try:
-                                points = float(points_raw)
-                            except ValueError, TypeError:
-                                logger.debug(
-                                    "Cannot convert points to float for "
-                                    f"issue ID {issue_id}: {points_raw}"
-                                )
-                                points = None
-                        else:
-                            points = None
+                    points = (
+                        parse_story_points_value(points_raw, points_field)
+                        if points_raw is not None
+                        else None
+                    )
 
                     cursor.execute(
                         "UPDATE jira_issues SET points = ? WHERE id = ?",

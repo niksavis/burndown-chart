@@ -106,7 +106,8 @@ Arithmetic and shape exceptions remain named failures in the JSON report, with a
 `devtools/calculation_sources.py` calls the real producers against persisted synthetic data.
 The runner restores the selected profile and query after diagnosis.
 
-Known failing contracts cover fractional truncation (IMP-021), sparse snapshot padding (IMP-014),
+Fractional truncation contracts (IMP-021) now pass. See [Fractional story points](fractional_story_points.md) for changed totals and forecasts.
+Known failing contracts cover sparse snapshot padding (IMP-014),
 zero-week exclusion (IMP-015), singleton NaN (IMP-018) and budget revisions (IMP-013).
 Separate findings track missing recovery timestamps (`burndownchart-qtlipm`) and fractional bug duration (`burndownchart-lokdeu`).
 Broader arithmetic repairs remain separate work. Do not change an expected value to make a wrong result pass.
@@ -167,7 +168,7 @@ Forced resize remains diagnostic and is never used to make canonical screenshots
 
 ## Calculation coverage and known discrepancies
 
-The catalogue contains 530 independent checks across the scenario inventory. The latest diagnostic run reports 102 discrepancies; these remain explicit failures linked to backlog records, separate from the green software verification gate.
+The catalogue contains 539 independent checks across the scenario inventory. The latest diagnostic run reports 84 discrepancies; these remain explicit failures linked to backlog records, separate from the green software verification gate.
 Positive Quality/Financial scores, the conditional health composite, budget/pace/correlation recommendations,
 work timing, sprint scope changes and four-week report adapters now have executable contracts.
 The composite calibration uses explicit corrected inputs and expects 72; it does not certify the mounted Dashboard result.
