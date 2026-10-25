@@ -2,6 +2,8 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from data.story_points import extract_story_points_value, parse_story_points_value
+
 logger = logging.getLogger(__name__)
 
 
@@ -69,7 +71,7 @@ def calculate_jira_project_scope(
             status_breakdown[status_name]["items"] += 1
             status_breakdown[status_name]["points"] += points
 
-        except Exception as e:
+        except KeyError as e:
             logger.warning(f"Error processing issue {issue.get('key', 'unknown')}: {e}")
             continue
 
@@ -157,120 +159,38 @@ def _classify_issue_status(
         return "TODO"
 
 
-def _extract_story_points(fields: dict[str, Any], points_field: str) -> int:
+def _story_points_input(fields: dict[str, Any], points_field: str) -> Any:
+    if not points_field or not points_field.strip():
+        return None
+    custom_fields = fields.get("custom_fields")
+    if isinstance(custom_fields, dict):
+        value = custom_fields.get(points_field)
+        if value is not None:
+            return value
+    return fields.get(points_field)
 
-    try:
-        if not points_field or points_field.strip() == "":
-            return 0
 
-        if points_field == "votes":
-            votes_data = fields.get("votes")
-            if votes_data is None:
-                return 0
-            vote_count = votes_data.get("votes", 0)
-            return int(vote_count) if vote_count is not None else 0
-
-        elif points_field.startswith("customfield_"):
-            value = None
-            if "custom_fields" in fields and isinstance(
-                fields.get("custom_fields"), dict
-            ):
-                value = fields["custom_fields"].get(points_field)
-            if value is None:
-                value = fields.get(points_field)
-            if value is None:
-                return 0
-
-            if isinstance(value, dict):
-                point_val = value.get("value", value.get("count", value.get("total")))
-                return int(point_val) if point_val is not None else 0
-            elif isinstance(value, str):
-                try:
-                    return int(float(value))
-                except ValueError, TypeError:
-                    return 0
-            elif isinstance(value, (int, float)):
-                return int(value)
-            else:
-                return 0
-
-        else:
-            value = fields.get(points_field)
-
-            if value is None:
-                return 0
-
-            if isinstance(value, (int, float)):
-                return int(value)
-
-            if isinstance(value, dict):
-                point_val = value.get("value", value.get("count", value.get("total")))
-                return int(point_val) if point_val is not None else 0
-
-            if isinstance(value, str):
-                try:
-                    return int(float(value))
-                except ValueError, TypeError:
-                    return 0
-
-            return 0
-
-    except (ValueError, TypeError, KeyError) as e:
-        logger.debug(f"Error extracting points from field '{points_field}': {e}")
-        return 0
+def _extract_story_points(fields: dict[str, Any], points_field: str) -> float:
+    return extract_story_points_value(
+        _story_points_input(fields, points_field), points_field
+    )
 
 
 def _issue_has_real_points(fields: dict[str, Any], points_field: str) -> bool:
-
-    try:
-        if not points_field or points_field.strip() == "":
-            return False
-
-        if points_field == "votes":
-            votes_data = fields.get(points_field)
-            if votes_data is None:
-                return False
-            vote_count = votes_data.get("votes", 0)
-            return vote_count > 0
-        elif points_field.startswith("customfield_"):
-            value = None
-            if "custom_fields" in fields and isinstance(
-                fields.get("custom_fields"), dict
-            ):
-                value = fields["custom_fields"].get(points_field)
-            if value is None:
-                value = fields.get(points_field)
-            if value is None:
-                return False
-
-            if isinstance(value, dict):
-                point_val = value.get(
-                    "value", value.get("count", value.get("total", 0))
-                )
-            elif isinstance(value, (int, float)):
-                point_val = value
-            elif isinstance(value, str):
-                try:
-                    point_val = float(value)
-                except ValueError:
-                    return False
-            else:
-                return False
-
-            return point_val >= 0
-        else:
-            value = fields.get(points_field)
-            return value is not None and value >= 0
-    except Exception:
+    points = parse_story_points_value(
+        _story_points_input(fields, points_field), points_field
+    )
+    if points is None:
         return False
+    return points > 0 if points_field == "votes" else points >= 0
 
 
 def _calculate_remaining_total_points(
     estimated_items: int,
-    estimated_points: int,
+    estimated_points: float,
     remaining_total_items: int,
     completed_items: int = 0,
-    completed_points: int = 0,
+    completed_points: float = 0,
 ) -> float:
 
     if estimated_items <= 0:

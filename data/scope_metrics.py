@@ -88,8 +88,8 @@ def calculate_scope_creep_rate(
 
 
 def calculate_total_project_scope(
-    df: pd.DataFrame, remaining_items: int, remaining_points: int
-) -> dict[str, int]:
+    df: pd.DataFrame, remaining_items: int, remaining_points: float
+) -> dict[str, int | float]:
 
     if df.empty:
         return {"total_items": remaining_items, "total_points": remaining_points}
@@ -100,7 +100,7 @@ def calculate_total_project_scope(
     total_items = remaining_items + total_completed_items
     total_points = remaining_points + total_completed_points
 
-    return {"total_items": int(total_items), "total_points": int(total_points)}
+    return {"total_items": int(total_items), "total_points": float(total_points)}
 
 
 def calculate_weekly_scope_growth(
@@ -149,7 +149,7 @@ def calculate_weekly_scope_growth(
     weekly["points_growth"] = weekly["created_points"] - weekly["completed_points"]
 
     weekly["week_label"] = weekly.apply(
-        lambda row: f"{row['year']}-W{row['week']:02d}", axis=1
+        lambda row: f"{int(row['year'])}-W{int(row['week']):02d}", axis=1
     )
 
     weekly["start_date"] = weekly.apply(

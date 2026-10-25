@@ -1,0 +1,2 @@
+- Preserve fractional story points in scope, stored issues, imports, statistics, forecasts and exported report data. Half-point estimates now increase totals that were previously truncated. In the default offline demo, remaining scope rises from 24 to 32 points and the point-based forecast rises from 21 to 28 days. Refresh source data to rebuild saved aggregates.
+- Display fractional scope and forecast totals, and render weekly scope growth when numeric rows contain fractional values. Refuse malformed or non-finite estimates with a field-specific error.

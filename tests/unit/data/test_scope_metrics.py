@@ -288,12 +288,11 @@ class TestCalculateTotalProjectScope(unittest.TestCase):
         result = calculate_total_project_scope(float_data, 10.3, 50.6)  # type: ignore[arg-type]
 
         self.assertIsInstance(result["total_items"], int)
-        self.assertIsInstance(result["total_points"], int)
+        self.assertIsInstance(result["total_points"], float)
 
         total_completed_items = float_data["completed_items"].sum()
-        total_completed_points = float_data["completed_points"].sum()
         expected_total_items = int(10.3 + total_completed_items)
-        expected_total_points = int(50.6 + total_completed_points)
+        expected_total_points = 111.6
 
         self.assertEqual(result["total_items"], expected_total_items)
         self.assertEqual(result["total_points"], expected_total_points)

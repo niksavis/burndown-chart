@@ -44,7 +44,10 @@ Some distinctions are necessary to interpret the catalogue:
   Missing financial inputs and capacity units are tracked by `burndownchart-q4yq9r` and `burndownchart-67xisu`.
 - Production filtering belongs to the actual weekly and rendering paths as well as direct calculator calls.
 
-The catalogue contains 530 checks, with 102 explicit discrepancies in the latest diagnostic run.
+The catalogue contains 539 checks, with 84 explicit discrepancies in the latest diagnostic run.
 Additional contracts cover positive health dimensions, a conditional composite of 72, all seven correlation policies,
 work ages, sprint scope and four-week report baselines.
 See [Offline development](offline_development.md#calculation-coverage-and-known-discrepancies) for interpretation and capture corrections.
+
+Fractional story-point contracts retain their independently enumerated expectations.
+See [Fractional story points](fractional_story_points.md) for the corrected behavior and remaining findings.

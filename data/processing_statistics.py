@@ -167,7 +167,11 @@ def process_statistics_data(
         "created_items",
         "created_points",
     ]
-    df[numeric_cols] = df[numeric_cols].fillna(0).astype(int)
+    df[numeric_cols] = (
+        df[numeric_cols]
+        .fillna(0)
+        .astype({col: float if col.endswith("points") else int for col in numeric_cols})
+    )
 
     df["cum_completed_items"] = df["completed_items"].cumsum()
     df["cum_completed_points"] = df["completed_points"].cumsum()

@@ -46,8 +46,8 @@ def calculate_weekly_breakdown(statistics: list[dict]) -> list[dict]:
                 "date": row["week"],
                 "created_items": int(row["created_items"]),
                 "completed_items": int(row["completed_items"]),
-                "created_points": int(row["created_points"]),
-                "completed_points": int(row["completed_points"]),
+                "created_points": float(row["created_points"]),
+                "completed_points": float(row["completed_points"]),
             }
         )
 
@@ -171,7 +171,7 @@ def calculate_historical_burndown(
 
     dates = [d.strftime("%Y-%m-%d") for d in df["date"]]
     remaining_items = [round(x) for x in df["historical_remaining_items"]]
-    remaining_points = [round(x) for x in df["historical_remaining_points"]]
+    remaining_points = [float(x) for x in df["historical_remaining_points"]]
 
     return {
         "dates": dates,

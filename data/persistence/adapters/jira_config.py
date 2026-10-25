@@ -27,11 +27,11 @@ def migrate_csv_to_json() -> dict[str, Any]:
                 {
                     "date": str(row.get("date", "")),
                     "completed_items": int(row.get("completed_items", 0)),
-                    "completed_points": int(row.get("completed_points", 0)),
+                    "completed_points": float(row.get("completed_points", 0)),
                     "created_items": int(row.get("created_items", 0)),
-                    "created_points": int(row.get("created_points", 0)),
+                    "created_points": float(row.get("created_points", 0)),
                     "velocity_items": int(row.get("completed_items", 0)),
-                    "velocity_points": int(row.get("completed_points", 0)),
+                    "velocity_points": float(row.get("completed_points", 0)),
                 }
             )
 

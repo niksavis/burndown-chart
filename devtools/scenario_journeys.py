@@ -4,6 +4,8 @@ from pathlib import Path
 from playwright.sync_api import Page, expect
 
 from data.demo.config import SCENARIOS
+from devtools.journeys import capture_viewports
+from devtools.plotly_observation import wait_for_page_settlement
 
 
 def select_scenario(page: Page, scenario: str) -> None:
@@ -73,6 +75,11 @@ def capture_scenarios(page: Page, output: Path) -> list[str]:
         page.screenshot(
             path=str(output / f"scenario-{scenario}.png"), animations="disabled"
         )
+        if scenario == "fractional-points":
+            wait_for_page_settlement(page, "#tab-content")
+            capture_viewports(
+                page, page.locator("#tab-content"), output, "fractional-dashboard-page"
+            )
         captured.append(scenario)
         print(f"Captured scenario {scenario}", flush=True)
     return captured
@@ -87,9 +94,14 @@ def assert_scenario_data(page: Page, scenario: str) -> None:
         expect(content.get_by_text("Project Health", exact=True)).to_have_count(0)
         return
     expect(content).to_contain_text("Project Health", timeout=30000)
+    if scenario == "fractional-points":
+        for label, expected in (("Completed", "6.5"), ("Remaining", "0.0")):
+            metric = content.get_by_text(label, exact=True).nth(1).locator("..")
+            expect(metric.locator(".mt-3.mb-1")).to_have_text(expected, timeout=30000)
     counts = {
         "complete": (32, 16),
         "singleton": (1, 0),
+        "fractional-points": (3, 0),
         "zero-delivery": (0, 48),
         "stalled": (16, 32),
         "completed": (48, 0),
