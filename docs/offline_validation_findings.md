@@ -95,7 +95,9 @@ The Parameters callback previously returned its captured panel state for that ev
 It now emits no update for a non-click event. A regression failed before this change and passed afterwards.
 Journeys use the dedicated collapse button and assert closure before opening another panel.
 
-The specialist inspected all 36 main-tab screenshots and eight budget viewport samples in this final matrix.
+The specialist inspected 68 PNGs in this final matrix: all 36 main-tab screenshots,
+eight budget viewport samples, sixteen report-section views and eight mobile lower-chart views.
+The report samples cover sections 1, 3, 5 and 7 in each viewport/preference combination.
 No stale panel overlay appeared on those main tabs.
 Lower-chart inspection found different bar-axis ranges and horizontal Sprint-chart clipping between mobile captures.
 This does not establish an OS-preference cause: delayed responsive rendering and actual layout defects remain competing explanations.
