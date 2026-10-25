@@ -59,15 +59,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - name: Catalog lint
-        run: uvx --from https://github.com/niksavis/basicly/releases/download/v0.26.10/basicly-0.26.10-py3-none-any.whl basicly catalog lint
+        run: uvx --from https://github.com/niksavis/basicly/releases/download/v0.27.0/basicly-0.27.0-py3-none-any.whl basicly catalog lint
       - name: Projection drift check
-        run: uvx --from https://github.com/niksavis/basicly/releases/download/v0.26.10/basicly-0.26.10-py3-none-any.whl basicly check
+        run: uvx --from https://github.com/niksavis/basicly/releases/download/v0.27.0/basicly-0.27.0-py3-none-any.whl basicly check
       - name: Skill projection drift check
-        run: uvx --from https://github.com/niksavis/basicly/releases/download/v0.26.10/basicly-0.26.10-py3-none-any.whl basicly skills-check
+        run: uvx --from https://github.com/niksavis/basicly/releases/download/v0.27.0/basicly-0.27.0-py3-none-any.whl basicly skills-check
       - name: Hook wiring drift check
         run: |
-          uvx --from https://github.com/niksavis/basicly/releases/download/v0.26.10/basicly-0.26.10-py3-none-any.whl basicly hooks-build --runtime-only
-          uvx --from https://github.com/niksavis/basicly/releases/download/v0.26.10/basicly-0.26.10-py3-none-any.whl basicly hooks-check
+          uvx --from https://github.com/niksavis/basicly/releases/download/v0.27.0/basicly-0.27.0-py3-none-any.whl basicly hooks-build --runtime-only
+          uvx --from https://github.com/niksavis/basicly/releases/download/v0.27.0/basicly-0.27.0-py3-none-any.whl basicly hooks-check
       # `basicly verify` is deliberately not a step here. No checks are declared under
       # [verify] in basicly.toml, so `--mode full` passes vacuously -- it printed
       # "No verify checks configured for mode 'full'" and then PASS. A green step that
