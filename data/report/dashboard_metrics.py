@@ -15,6 +15,7 @@ from data.project_health_calculator import (
 )
 from data.time_period_calculator import format_year_week, get_iso_week
 from data.types import MetricsResult
+from utils.business_time import business_now
 
 logger = logging.getLogger(__name__)
 
@@ -327,7 +328,9 @@ def calculate_dashboard_metrics(
     last_date = (
         df_for_velocity["date"].iloc[-1]
         if not df_for_velocity.empty
-        else datetime.now()
+        else business_now(
+            datetime,
+        )
     )
 
     last_date_display = (

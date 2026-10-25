@@ -2,6 +2,8 @@ import logging
 from datetime import date, datetime, timedelta
 from typing import Any
 
+from utils.business_time import business_now
+
 logger = logging.getLogger(__name__)
 
 
@@ -26,7 +28,9 @@ def get_last_n_weeks(
 ) -> list[tuple[str, date, date]]:
 
     if end_date is None:
-        end_date = datetime.now()
+        end_date = business_now(
+            datetime,
+        )
 
     weeks = []
     current_date = end_date

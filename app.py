@@ -34,6 +34,7 @@ from ui.app_config import (
     META_TAGS,
 )
 from utils.license_extractor import extract_license_on_first_run
+from utils.runtime import demo_mode, demo_workspace
 
 _server = None
 
@@ -59,7 +60,8 @@ cleanup_old_logs(log_dir=str(installation_context.logs_path), max_age_days=30)
 logger = logging.getLogger(__name__)
 logger.info("Starting Burndown application")
 
-cleanup_orphaned_temp_updaters()
+if not demo_mode():
+    cleanup_orphaned_temp_updaters()
 
 
 try:
@@ -79,7 +81,9 @@ except Exception as e:
     print(f"WARNING: Migration check failed - {e}. App will attempt to continue.")
 
 
-VERSION_CHECK_RESULT: UpdateProgress | None = restore_pending_update()
+VERSION_CHECK_RESULT: UpdateProgress | None = (
+    None if demo_mode() else restore_pending_update()
+)
 
 
 def _set_version_check_result(result: UpdateProgress) -> None:
@@ -87,13 +91,19 @@ def _set_version_check_result(result: UpdateProgress) -> None:
     VERSION_CHECK_RESULT = result
 
 
-update_check_thread = start_update_check(
-    _set_version_check_result, VERSION_CHECK_RESULT
+update_check_thread = (
+    None
+    if demo_mode()
+    else start_update_check(_set_version_check_result, VERSION_CHECK_RESULT)
 )
 
 ensure_valid_workspace()
 
-cache = diskcache.Cache("./cache")
+_demo_workspace = demo_workspace()
+cache = diskcache.Cache(
+    str(_demo_workspace / "cache") if _demo_workspace else "./cache"
+)
+atexit.register(cache.close)
 background_callback_manager = DiskcacheManager(cache)
 
 app = dash.Dash(

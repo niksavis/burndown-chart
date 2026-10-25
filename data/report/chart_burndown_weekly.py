@@ -4,6 +4,7 @@ from datetime import datetime
 from data.metrics.forecast_calculator import calculate_ewma_forecast
 from data.processing import generate_weekly_forecast
 from data.velocity_projections import calculate_required_velocity
+from utils.business_time import business_now
 
 
 def generate_weekly_breakdown_chart(
@@ -87,7 +88,12 @@ def generate_weekly_breakdown_chart(
     if deadline and remaining_items is not None and remaining_items > 0:
         try:
             deadline_date = datetime.strptime(deadline, "%Y-%m-%d")
-            current_date = datetime.combine(datetime.now().date(), datetime.min.time())
+            current_date = datetime.combine(
+                business_now(
+                    datetime,
+                ).date(),
+                datetime.min.time(),
+            )
             raw = calculate_required_velocity(
                 remaining_items,
                 deadline_date,

@@ -11,6 +11,7 @@ from jinja2.runtime import Undefined
 from data.iso_week_bucketing import get_iso_week_bounds
 from data.report_assets_embedder import embed_report_dependencies
 from data.time_period_calculator import format_year_week, get_iso_week
+from utils.business_time import business_now
 
 logger = logging.getLogger(__name__)
 
@@ -54,11 +55,15 @@ def render_template(
 
     template = env.get_template("report_template.html")
 
-    generated_at = datetime.now().strftime("%A, %Y-%m-%d %H:%M:%S")
+    generated_at = business_now(
+        datetime,
+    ).strftime("%A, %Y-%m-%d %H:%M:%S")
 
     weeks_count = metrics.get("dashboard", {}).get("weeks_count", time_period_weeks)
 
-    current_date = datetime.now()
+    current_date = business_now(
+        datetime,
+    )
     weeks_list = []
     for _i in range(weeks_count):
         year, week = get_iso_week(current_date)
@@ -72,7 +77,9 @@ def render_template(
         start_monday, _ = get_iso_week_bounds(oldest_week_date)
         start_date = start_monday.strftime("%Y-%m-%d")
 
-        end_date = datetime.now().strftime("%Y-%m-%d")
+        end_date = business_now(
+            datetime,
+        ).strftime("%Y-%m-%d")
 
         first_week = weeks_list[-1]
         last_week = weeks_list[0]
@@ -113,7 +120,9 @@ def parse_week_label(week_label: str) -> datetime:
         return datetime.strptime(week_label + "-1", "%G-W%V-%u")
     except ValueError:
         logger.warning(f"Could not parse week label: {week_label}")
-        return datetime.now()
+        return business_now(
+            datetime,
+        )
 
 
 def update_report_progress(percent: int, message: str) -> None:

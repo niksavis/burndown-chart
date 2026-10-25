@@ -12,6 +12,7 @@ from data.budget_calculator import (
 )
 from data.iso_week_bucketing import get_week_label
 from data.persistence.factory import get_backend
+from utils.business_time import business_now
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +78,11 @@ def calculate_budget_metrics(
     budget_total = budget_settings.get("budget_total_eur", 0.0)
     currency = budget_settings.get("currency_symbol", "€")
 
-    current_week = get_week_label(datetime.now())
+    current_week = get_week_label(
+        business_now(
+            datetime,
+        )
+    )
 
     try:
         consumed_eur, budget_total_calc, consumed_pct = calculate_budget_consumed(

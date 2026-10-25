@@ -1,6 +1,8 @@
 import logging
 from datetime import date, datetime, timedelta
 
+from utils.business_time import business_now
+
 logger = logging.getLogger(__name__)
 
 
@@ -96,7 +98,11 @@ def is_current_week(year: int, week: int) -> bool:
     if not year or not week:
         return False
 
-    current_year, current_week = get_iso_week(datetime.now())
+    current_year, current_week = get_iso_week(
+        business_now(
+            datetime,
+        )
+    )
     return year == current_year and week == current_week
 
 

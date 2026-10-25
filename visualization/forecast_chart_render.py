@@ -4,6 +4,7 @@ from datetime import datetime
 import pandas as pd
 from plotly.subplots import make_subplots
 
+from utils.business_time import business_now
 from visualization.charts import (
     _calculate_forecast_completion_dates,
     _prepare_metrics_data,
@@ -81,7 +82,9 @@ def create_forecast_plot(
                 "avg_weekly_points": 0.0,
                 "med_weekly_items": 0.0,
                 "med_weekly_points": 0.0,
-                "forecast_timestamp": datetime.now().isoformat(),
+                "forecast_timestamp": business_now(
+                    datetime,
+                ).isoformat(),
                 "velocity_cv": 0.0,
                 "schedule_variance_days": 0.0,
             }
@@ -124,7 +127,9 @@ def create_forecast_plot(
             template="plotly_white",
         )
 
-        current_date = datetime.now()
+        current_date = business_now(
+            datetime,
+        )
         if deadline is None or pd.isna(deadline):
             days_to_deadline = 0
         else:
@@ -208,7 +213,9 @@ def create_forecast_plot(
             "avg_weekly_points": float(avg_weekly_points),
             "med_weekly_items": float(med_weekly_items),
             "med_weekly_points": float(med_weekly_points),
-            "forecast_timestamp": datetime.now().isoformat(),
+            "forecast_timestamp": business_now(
+                datetime,
+            ).isoformat(),
             "velocity_cv": float(velocity_cv),
             "schedule_variance_days": float(schedule_variance_days),
         }

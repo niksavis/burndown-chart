@@ -19,6 +19,7 @@ from ui.dashboard_enhanced.stats import (
     _calculate_velocity_statistics,
 )
 from ui.style_constants import COLOR_PALETTE
+from utils.business_time import business_now
 
 
 def _prepare_dashboard_context(
@@ -31,7 +32,11 @@ def _prepare_dashboard_context(
     show_points: bool,
 ) -> dict:
     current_date = (
-        statistics_df["date"].iloc[-1] if not statistics_df.empty else datetime.now()
+        statistics_df["date"].iloc[-1]
+        if not statistics_df.empty
+        else business_now(
+            datetime,
+        )
     )
 
     completed_items = (

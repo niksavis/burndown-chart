@@ -20,6 +20,7 @@ from ui.dashboard.forecast_analytics_controls import (
     _get_probability_tier,
     calculate_schedule_status,
 )
+from utils.business_time import business_now
 
 
 def create_forecast_analytics_section(
@@ -34,7 +35,12 @@ def create_forecast_analytics_section(
     days_to_deadline: int | None = None,
     deadline_str: str | None = None,
 ) -> html.Div:
-    current_date = pert_data.get("last_date", datetime.now())
+    current_date = pert_data.get(
+        "last_date",
+        business_now(
+            datetime,
+        ),
+    )
 
     items_forecast_days = pert_data.get("pert_time_items", 0)
     points_forecast_days = pert_data.get("pert_time_points", 0)

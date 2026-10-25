@@ -21,7 +21,7 @@ class TestInstallationContextDetection:
 
                 assert context.is_frozen is False
                 assert context.executable_dir.exists()
-                assert context.executable_dir.name == "burndown-chart"
+                assert context.executable_dir == Path(__file__).resolve().parents[3]
                 assert context.is_portable is True
         finally:
             if original_has_meipass and original_meipass is not None:

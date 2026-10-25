@@ -1,6 +1,8 @@
 import logging
 from datetime import datetime
 
+from utils.business_time import business_now
+
 logger = logging.getLogger(__name__)
 
 WEEKDAY_WEIGHTS = {
@@ -27,7 +29,9 @@ DAY_NAMES = [
 def get_weekday_weight(current_time: datetime | None = None) -> float:
 
     if current_time is None:
-        current_time = datetime.now()
+        current_time = business_now(
+            datetime,
+        )
 
     weekday = current_time.weekday()
     weight = WEEKDAY_WEIGHTS.get(weekday, 1.0)
@@ -62,7 +66,9 @@ def get_blend_metadata(
 ) -> dict:
 
     if current_time is None:
-        current_time = datetime.now()
+        current_time = business_now(
+            datetime,
+        )
 
     weekday = current_time.weekday()
     actual_weight = get_weekday_weight(current_time)

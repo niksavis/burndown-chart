@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 from data.iso_week_bucketing import get_week_label
 from data.jira.field_utils import extract_story_points_value
+from utils.business_time import business_now
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,9 @@ def jira_to_csv_format(issues: list[dict], config: dict) -> list[dict]:
         date_from = min(all_dates)
         date_to = max(all_dates)
 
-        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today = business_now(
+            datetime,
+        ).replace(hour=0, minute=0, second=0, microsecond=0)
         if date_to < today:
             date_to = today
 

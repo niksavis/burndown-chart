@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 from data.active_work_sorting import get_epic_sort_key
 from data.parent_filter import filter_parent_issues
+from utils.business_time import business_now
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ def filter_active_issues(
     if not flow_wip_statuses:
         flow_wip_statuses = ["In Progress", "In Review", "Testing", "To Do", "Backlog"]
 
-    now = datetime.now(UTC)
+    now = business_now(datetime, UTC)
     cutoff_date = now - timedelta(weeks=data_points_count)
 
     logger.info(
@@ -209,7 +210,7 @@ def _add_health_indicators(
     if flow_wip_statuses is None:
         flow_wip_statuses = []
 
-    now = datetime.now(UTC)
+    now = business_now(datetime, UTC)
     status = issue.get("status", "Unknown")
     is_completed = status in flow_end_statuses
 

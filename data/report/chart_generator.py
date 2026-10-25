@@ -11,6 +11,7 @@ from data.report.chart_burndown import (
 from data.report.chart_flow import generate_work_distribution_chart
 from data.report.chart_scope import generate_scope_changes_chart
 from data.velocity_projections import calculate_required_velocity
+from utils.business_time import business_now
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,12 @@ def _load_remaining_work(deadline: str | None) -> tuple[float, float, float, flo
     if deadline:
         try:
             deadline_date = datetime.strptime(deadline, "%Y-%m-%d")
-            current_date = datetime.combine(datetime.now().date(), datetime.min.time())
+            current_date = datetime.combine(
+                business_now(
+                    datetime,
+                ).date(),
+                datetime.min.time(),
+            )
             if remaining_items > 0:
                 raw = calculate_required_velocity(
                     remaining_items,

@@ -10,6 +10,7 @@ from data.flow_metrics_helpers import (
     _get_field_mappings,
     _is_issue_completed,
 )
+from utils.business_time import business_now
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +62,7 @@ def _calculate_time_in_statuses(
 
     if current_status in status_list and current_start:
         try:
-            now = datetime.now(UTC)
+            now = business_now(datetime, UTC)
             start_time = datetime.fromisoformat(current_start.replace("Z", "+00:00"))
             duration_hours = (now - start_time).total_seconds() / 3600
             if duration_hours > 0:

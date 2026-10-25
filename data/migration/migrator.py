@@ -8,11 +8,12 @@ from data.migration.schema_manager import initialize_schema, verify_schema
 from data.migration.validator import validate_all_profiles
 from data.persistence import PersistenceBackend
 from data.persistence.factory import get_backend
+from utils.runtime import profiles_directory
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_PROFILES_PATH = Path("profiles")
-DEFAULT_DB_PATH = Path("profiles/burndown.db")
+DEFAULT_PROFILES_PATH = profiles_directory()
+DEFAULT_DB_PATH = DEFAULT_PROFILES_PATH / "burndown.db"
 
 
 def is_migration_needed() -> bool:
@@ -62,7 +63,7 @@ def migrate_profile(
     }
 
     try:
-        json_base = Path("profiles") / profile_id
+        json_base = DEFAULT_PROFILES_PATH / profile_id
 
         profile_json_path = json_base / "profile.json"
         if profile_json_path.exists():
@@ -308,14 +309,7 @@ def run_migration_if_needed(
     logger.info("Checking if migration needed")
 
     if not is_migration_needed():
-        if not db_path.exists():
-            logger.info("Fresh installation detected - initializing empty database")
-            try:
-                initialize_schema(db_path)
-                logger.info("Database schema initialized successfully")
-            except Exception as e:
-                logger.error(f"Failed to initialize schema: {e}", exc_info=True)
-                return False
+        initialize_schema(db_path)
         return True
 
     logger.info("Starting JSON to SQLite migration")

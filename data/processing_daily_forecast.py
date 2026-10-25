@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 
+from utils.business_time import business_now
+
 
 def daily_forecast(
     start_val: float,
@@ -15,7 +17,9 @@ def daily_forecast(
     if daily_rate <= 0:
         return [start_date], [start_val]
 
-    today = datetime.now()
+    today = business_now(
+        datetime,
+    )
     absolute_max_date = today + timedelta(days=3653)
     MAX_FORECAST_DAYS = min(max_days, 3653)
 
@@ -77,7 +81,9 @@ def daily_forecast_burnup(
     if daily_rate < 0.001:
         daily_rate = 0.001
 
-    today = datetime.now()
+    today = business_now(
+        datetime,
+    )
     absolute_max_date = today + timedelta(days=3653)
 
     remaining = target_scope - current

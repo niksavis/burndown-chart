@@ -2,6 +2,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from utils.runtime import demo_workspace
+
 
 @dataclass
 class InstallationContext:
@@ -24,12 +26,9 @@ class InstallationContext:
         portable_db_path = executable_dir / "profiles" / "burndown.db"
         is_portable = portable_db_path.parent.exists() or not is_frozen
 
-        if is_portable or not is_frozen:
-            database_path = executable_dir / "profiles" / "burndown.db"
-        else:
-            database_path = executable_dir / "profiles" / "burndown.db"
-
-        logs_path = executable_dir / "logs"
+        workspace = demo_workspace()
+        database_path = (workspace or executable_dir / "profiles") / "burndown.db"
+        logs_path = workspace / "logs" if workspace else executable_dir / "logs"
 
         database_path.parent.mkdir(parents=True, exist_ok=True)
         logs_path.mkdir(parents=True, exist_ok=True)

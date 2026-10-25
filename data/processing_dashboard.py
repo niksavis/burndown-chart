@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 from data.processing_core import calculate_velocity_from_dataframe
+from utils.business_time import business_now
 
 
 def calculate_dashboard_metrics(statistics: list, settings: dict) -> dict:
@@ -18,7 +19,9 @@ def calculate_dashboard_metrics(statistics: list, settings: dict) -> dict:
         "current_velocity_items": 0.0,
         "current_velocity_points": 0.0,
         "velocity_trend": "unknown",
-        "last_updated": datetime.now().isoformat(),
+        "last_updated": business_now(
+            datetime,
+        ).isoformat(),
     }
 
     if not statistics or len(statistics) == 0:
@@ -110,7 +113,12 @@ def calculate_dashboard_metrics(statistics: list, settings: dict) -> dict:
     if deadline:
         try:
             deadline_date = datetime.strptime(deadline, "%Y-%m-%d")
-            days_to_deadline = (deadline_date - datetime.now()).days
+            days_to_deadline = (
+                deadline_date
+                - business_now(
+                    datetime,
+                )
+            ).days
             metrics["days_to_deadline"] = days_to_deadline
         except ValueError, TypeError:
             pass

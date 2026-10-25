@@ -12,6 +12,7 @@ from data.project_health_calculator import (
     prepare_dashboard_metrics_for_health,
 )
 from ui.metric_cards import create_metric_card as create_professional_metric_card
+from utils.business_time import business_now
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,9 @@ def format_date_relative(date_str, reference_date=None):
 
     try:
         target_date = pd.to_datetime(date_str, format="mixed", errors="coerce")
-        ref_date = reference_date or datetime.now()
+        ref_date = reference_date or business_now(
+            datetime,
+        )
         days_diff = (target_date - ref_date).days
 
         if days_diff < 0:

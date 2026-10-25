@@ -17,11 +17,14 @@ from ui.tooltip_utils import (
     create_expandable_tooltip,
     create_info_tooltip,
 )
+from utils.business_time import business_now
 
 
 def create_forecast_graph_card() -> dbc.Card:
 
-    current_date = datetime.now().strftime("%Y%m%d")
+    current_date = business_now(
+        datetime,
+    ).strftime("%Y%m%d")
     default_filename = f"burndown_forecast_{current_date}"
 
     header_content = create_card_header_with_tooltip(

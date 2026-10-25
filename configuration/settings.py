@@ -4,12 +4,17 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 from configuration.logging_config import cleanup_old_logs, setup_logging
+from utils.business_time import business_now
+from utils.runtime import demo_workspace
+
+_workspace = demo_workspace()
+_log_directory = str(_workspace / "logs") if _workspace else "logs"
 
 setup_logging(
-    log_dir="logs", max_bytes=10 * 1024 * 1024, backup_count=5, log_level="INFO"
+    log_dir=_log_directory, max_bytes=10 * 1024 * 1024, backup_count=5, log_level="INFO"
 )
 
-cleanup_old_logs(log_dir="logs", max_age_days=30)
+cleanup_old_logs(log_dir=_log_directory, max_age_days=30)
 
 logger = logging.getLogger(__name__)
 logger.info("Application configuration loaded - logging initialized")
@@ -17,7 +22,12 @@ logger.info("Application configuration loaded - logging initialized")
 DEFAULT_PERT_FACTOR = 6
 DEFAULT_TOTAL_ITEMS = 100
 DEFAULT_TOTAL_POINTS = 1000
-DEFAULT_DEADLINE = (datetime.now() + timedelta(days=60)).strftime("%Y-%m-%d")
+DEFAULT_DEADLINE = (
+    business_now(
+        datetime,
+    )
+    + timedelta(days=60)
+).strftime("%Y-%m-%d")
 DEFAULT_ESTIMATED_ITEMS = 20
 DEFAULT_ESTIMATED_POINTS = 200
 DEFAULT_DATA_POINTS_COUNT = 12
@@ -29,7 +39,12 @@ PROJECT_DATA_FILE = "project_data.json"
 SAMPLE_DATA = pd.DataFrame(
     {
         "date": [
-            (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
+            (
+                business_now(
+                    datetime,
+                )
+                - timedelta(days=i)
+            ).strftime("%Y-%m-%d")
             for i in range(10, 0, -1)
         ],
         "completed_items": [5, 7, 3, 6, 4, 8, 5, 6, 7, 4],
