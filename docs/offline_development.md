@@ -186,6 +186,7 @@ Mobile report overflow remains a recorded product defect.
 
 `basicly verify --mode fast` runs the configured project static checks.
 `basicly verify --mode full` runs those checks and the complete offline unit, integration and browser inventory.
-The native content cache reuses only trusted equivalent passing inputs; changed inputs invalidate that evidence.
+Fail-fast ordering stops before the expensive suite when static checks fail.
+The engine cache does not support this isolated offline runner, so the full suite runs fresh.
 Standalone Ruff and Prettier checks reuse the consumer hook's file-selection policy, so generated basicly files are treated consistently.
 The optional `validate.py --full` additionally runs dependency audit, dead-code analysis and performance tests.
