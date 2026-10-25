@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 from data.time_period_calculator import format_year_week, get_iso_week
+from utils.business_time import business_now
 
 
 def check_has_points_in_period(
@@ -48,7 +49,9 @@ def filter_df_by_week_labels(
         df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
         current_date = df["date"].max()
     else:
-        current_date = datetime.now()
+        current_date = business_now(
+            datetime,
+        )
 
     weeks = []
     for _i in range(data_points_count):

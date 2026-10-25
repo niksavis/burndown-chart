@@ -6,6 +6,7 @@ from typing import Any
 import pandas as pd
 
 from data.velocity_projections import assess_pace_health, calculate_required_velocity
+from utils.business_time import business_now
 
 
 def build_required_pace_signals(
@@ -21,7 +22,12 @@ def build_required_pace_signals(
     if pd.isna(deadline_date):
         return []
 
-    current_date = datetime.combine(datetime.now().date(), datetime.min.time())
+    current_date = datetime.combine(
+        business_now(
+            datetime,
+        ).date(),
+        datetime.min.time(),
+    )
     days_to_deadline = max(0, (deadline_date - current_date).days)
 
     if "remaining_items" not in statistics_df.columns:

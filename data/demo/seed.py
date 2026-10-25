@@ -69,6 +69,8 @@ def _save_delivery_data(issues: list[dict], profile_id: str, scenario: str) -> N
     scope = calculate_jira_project_scope(development, points)
     backend.save_scope(profile_id, "main", scope)
     statistics = jira_to_csv_format(development, {"story_points_field": points})
+    if scenario in {"singleton", "fractional-points"}:
+        statistics = statistics[:1]
     if scenario == "sparse":
         statistics = [row for index, row in enumerate(statistics) if index in {0, 3, 7}]
     backend.save_statistics_batch(profile_id, "main", statistics)

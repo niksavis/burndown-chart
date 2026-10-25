@@ -23,6 +23,7 @@ from ui.flow_metrics_dashboard import (
 from ui.loading_utils import create_skeleton_loader
 from ui.metric_cards import create_metric_cards_grid
 from ui.work_distribution_card import create_work_distribution_card
+from utils.business_time import business_now
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +114,9 @@ def calculate_and_display_flow_metrics(
         n_weeks = data_points if data_points and data_points > 0 else 12
 
         weeks = []
-        current_date = datetime.now()
+        current_date = business_now(
+            datetime,
+        )
         for _ in range(n_weeks):
             year, week = get_iso_week(current_date)
             week_label = format_year_week(year, week)

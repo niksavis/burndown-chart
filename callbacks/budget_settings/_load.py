@@ -9,6 +9,7 @@ from data.iso_week_bucketing import get_week_label
 from data.persistence import load_unified_project_data
 from ui.budget_revision_history import create_revision_history_table
 from ui.budget_settings_card import _create_current_budget_card_content
+from utils.business_time import business_now
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +67,11 @@ def load_budget_settings(
 
     if active_tab != "budget-tab":
         try:
-            current_week = get_week_label(datetime.now())
+            current_week = get_week_label(
+                business_now(
+                    datetime,
+                )
+            )
             budget_with_revisions = get_budget_at_week(
                 profile_id, query_id, current_week
             )

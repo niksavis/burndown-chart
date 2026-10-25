@@ -1,5 +1,5 @@
 import os
-from datetime import UTC, datetime, tzinfo
+from datetime import UTC, date, datetime, tzinfo
 
 from utils.runtime import demo_mode
 
@@ -8,6 +8,12 @@ DEFAULT_DEMO_AS_OF = "2026-01-29T12:00:00+00:00"
 
 def now(timezone: tzinfo | None = None) -> datetime:
     return business_now(datetime, timezone)
+
+
+def business_today(clock: type[date]) -> date:
+    if demo_mode():
+        return now().date()
+    return clock.today()
 
 
 def business_now(clock: type[datetime], timezone: tzinfo | None = None) -> datetime:

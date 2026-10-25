@@ -72,6 +72,10 @@ def _issue_fields(
         "components": [{"name": "Synthetic component"}],
         "assignee": {"displayName": f"Demo developer {number % 3 + 1}"},
         "parent": {"key": "DEMO-100", "fields": {"summary": "Synthetic delivery epic"}},
+        "customfield_10005": {
+            "key": "DEMO-100",
+            "fields": {"summary": "Synthetic delivery epic"},
+        },
     }
     return fields
 
@@ -107,6 +111,7 @@ def _issue(number: int, week: int, issue_type: str, done: bool) -> dict[str, Any
     fields["updated"] = histories[-1]["created"]
     if number % 17 == 0:
         fields.pop("parent")
+        fields.pop("customfield_10005")
     if issue_type == "Bug":
         fields["customfield_10003"] = "TEST" if week % 3 == 0 else "PROD"
     return {
@@ -133,6 +138,7 @@ def complete_issues() -> list[dict[str, Any]]:
         issues.append(deployment)
     epic = _issue(100, 0, "Epic", False)
     epic["fields"].pop("parent")
+    epic["fields"].pop("customfield_10005")
     issues.append(epic)
     test_deployment = _issue(299, 3, "Operational Task", True)
     test_deployment["key"] = "OPS-99"
@@ -204,7 +210,7 @@ def _change_scope(issues: list[dict[str, Any]]) -> None:
     )
     removed["fields"]["updated"] = (START + timedelta(weeks=4)).isoformat()
     issues.append(removed)
-    changed = issues[-3]
+    changed = next(issue for issue in issues if issue["key"] == "DEMO-42")
     changed["changelog"]["histories"].append(
         _transition("customfield_10001", "2.5", "3.5", AS_OF - timedelta(days=1))
     )
@@ -239,6 +245,13 @@ def scenario_issues(scenario: str) -> list[dict[str, Any]]:
         issues[1]["changelog"]["histories"].append(
             _transition("Sprint", "1", "2", START + timedelta(days=8))
         )
+        issues[1]["fields"]["customfield_10002"] = [_sprint(1)]
+        issues[1]["fields"]["updated"] = (START + timedelta(days=8)).isoformat()
+        issues[2]["changelog"]["histories"].append(
+            _transition("Sprint", "1", "", START + timedelta(days=9))
+        )
+        issues[2]["fields"]["customfield_10002"] = []
+        issues[2]["fields"]["updated"] = (START + timedelta(days=9)).isoformat()
     if scenario == "scope-change":
         _change_scope(issues)
     return issues

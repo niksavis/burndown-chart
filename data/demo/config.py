@@ -26,12 +26,16 @@ SCENARIOS = (
     "unmapped-fields",
 )
 FIELD_MAPPINGS = {
+    "workflow": {
+        "flow_end_statuses": ["Done"],
+        "flow_wip_statuses": ["In Progress", "Review", "Testing"],
+    },
     "general": {
         "estimate": "customfield_10001",
         "created_date": "created",
         "updated_date": "updated",
         "completed_date": "resolutiondate",
-        "parent_field": "parent",
+        "parent_field": "customfield_10005",
         "parent_issue_types": ["Epic"],
         "sprint_field": "customfield_10002",
     },

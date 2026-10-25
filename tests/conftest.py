@@ -168,4 +168,7 @@ def temp_cache_dir():
         yield tmp_dir
 
 
-pytest_plugins = ["tests.utils.dashboard_test_fixtures"]
+pytest_plugins = [
+    "tests.utils.dashboard_test_fixtures",
+    "tests.fixtures.demo_workspace",
+]

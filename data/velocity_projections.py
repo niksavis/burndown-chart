@@ -4,6 +4,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
+from utils.business_time import business_now
+
 logger = logging.getLogger(__name__)
 
 
@@ -15,7 +17,9 @@ def calculate_required_velocity(
 ) -> float:
 
     if current_date is None:
-        current_date = datetime.now()
+        current_date = business_now(
+            datetime,
+        )
 
     if current_date.tzinfo is not None and deadline.tzinfo is None:
         deadline = deadline.replace(tzinfo=current_date.tzinfo)
@@ -141,7 +145,9 @@ def calculate_completion_projection(
 ) -> dict[str, Any]:
 
     if current_date is None:
-        current_date = datetime.now()
+        current_date = business_now(
+            datetime,
+        )
 
     if current_velocity <= 0:
         logger.warning(f"Invalid current velocity: {current_velocity}")

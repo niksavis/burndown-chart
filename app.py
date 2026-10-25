@@ -12,7 +12,7 @@ from pathlib import Path
 import dash
 import diskcache
 from dash import DiskcacheManager
-from flask import jsonify
+from flask import Response, jsonify
 from waitress.server import create_server
 
 from callbacks import register_all_callbacks
@@ -34,6 +34,7 @@ from ui.app_config import (
     META_TAGS,
 )
 from utils.license_extractor import extract_license_on_first_run
+from utils.offline_assets import local_stylesheet
 from utils.runtime import demo_mode, demo_workspace
 
 _server = None
@@ -121,6 +122,19 @@ app = dash.Dash(
 )
 
 app.index_string = INDEX_STRING
+
+
+@app.server.after_request
+def remove_demo_remote_stylesheet_imports(response: Response) -> Response:
+    if demo_mode() and response.status_code == 200 and response.mimetype == "text/css":
+        response.direct_passthrough = False
+        source = response.get_data(as_text=True)
+        sanitized = local_stylesheet(source)
+        if sanitized != source:
+            response.set_data(sanitized)
+            response.headers.pop("ETag", None)
+    return response
+
 
 app.layout = serve_layout
 

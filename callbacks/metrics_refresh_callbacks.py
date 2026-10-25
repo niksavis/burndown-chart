@@ -8,6 +8,7 @@ from data.jira import get_jira_config, load_jira_cache
 from data.metrics_calculator import calculate_metrics_for_last_n_weeks
 from data.metrics_snapshots import add_forecasts_to_week
 from data.task_progress import TaskProgress
+from utils.business_time import business_now
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +147,7 @@ def calculate_metrics_from_settings(
             success, message = calculate_metrics_for_last_n_weeks(n_weeks=n_weeks)
 
         if success:
-            current_week_label = get_week_label(datetime.now())
+            current_week_label = get_week_label(business_now(datetime))
             logger.info(
                 "Adding forecasts to week "
                 f"{current_week_label} after metrics calculation"

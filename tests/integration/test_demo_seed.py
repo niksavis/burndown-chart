@@ -1,58 +1,12 @@
-import os
-import shutil
 import sqlite3
-import subprocess
-import sys
 import tempfile
-from collections.abc import Iterator
 from contextlib import closing
 from pathlib import Path
 
 import pytest
 
 from data.demo.config import SCENARIOS
-
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-
-
-def _run_seed(workspace: Path, log: Path, *, empty: bool = False) -> None:
-    command = [
-        sys.executable,
-        str(PROJECT_ROOT / "dev.py"),
-        "seed",
-        "--workspace",
-        str(workspace),
-    ]
-    if empty:
-        command.append("--empty")
-    with log.open("w", encoding="utf-8") as output:
-        result = subprocess.run(
-            command,
-            cwd=PROJECT_ROOT,
-            env=os.environ.copy(),
-            stdout=output,
-            stderr=subprocess.STDOUT,
-            timeout=300,
-        )
-    assert result.returncode == 0, log.read_text(encoding="utf-8")[-12000:]
-
-
-@pytest.fixture(scope="module")
-def generated_demo_template() -> Iterator[Path]:
-    with tempfile.TemporaryDirectory() as directory:
-        root = Path(directory)
-        workspace = root / "demo"
-        _run_seed(workspace, root / "seed.log")
-        yield workspace
-
-
-@pytest.fixture
-def generated_demo(generated_demo_template: Path) -> Iterator[Path]:
-    with tempfile.TemporaryDirectory() as directory:
-        workspace = Path(directory)
-        for name in ("burndown.db", ".demo-workspace"):
-            shutil.copyfile(generated_demo_template / name, workspace / name)
-        yield workspace
+from tests.fixtures.demo_workspace import run_demo_seed
 
 
 def test_demo_contains_all_scenarios_and_real_calculated_snapshots(
@@ -116,7 +70,7 @@ def test_repeated_launch_preserves_developer_edits_and_revision_counts(
             "INSERT INTO app_state VALUES (?, ?)", ("developer_edit", "preserved")
         )
         before = connection.execute("SELECT COUNT(*) FROM budget_revisions").fetchone()
-    _run_seed(generated_demo, generated_demo / "repeat.log")
+    run_demo_seed(generated_demo, generated_demo / "repeat.log")
     with (
         closing(sqlite3.connect(generated_demo / "burndown.db")) as connection,
         connection,
@@ -140,7 +94,7 @@ def test_empty_development_workspace_can_start_without_synthetic_profiles(
         workspace.mkdir()
         if existing_file:
             sqlite3.connect(workspace / "burndown.db").close()
-        _run_seed(workspace, root / "empty.log", empty=True)
+        run_demo_seed(workspace, root / "empty.log", empty=True)
         with (
             closing(sqlite3.connect(workspace / "burndown.db")) as connection,
             connection,

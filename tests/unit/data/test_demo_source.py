@@ -17,6 +17,9 @@ def test_synthetic_history_is_consistent_and_inside_eight_weeks(scenario: str) -
         histories = issue["changelog"]["histories"]
         for history in histories:
             assert created <= datetime.fromisoformat(history["created"]) <= AS_OF
+            assert datetime.fromisoformat(history["created"]) <= datetime.fromisoformat(
+                fields["updated"]
+            )
         status_changes = [
             entry for entry in histories if entry["items"][0]["field"] == "status"
         ]
@@ -75,3 +78,16 @@ def test_scenarios_do_not_share_mutable_issue_or_profile_data() -> None:
         profile_config("complete")["field_mappings"]["general"]["estimate"]
         == "customfield_10001"
     )
+
+
+def test_scope_change_changes_a_development_story_and_sprint_changes_match_fields() -> (
+    None
+):
+    issues = scenario_issues("scope-change")
+    story = next(issue for issue in issues if issue["key"] == "DEMO-42")
+    assert story["fields"]["issuetype"]["name"] == "Story"
+    assert story["fields"]["customfield_10001"] == 3.5
+    changed = scenario_issues("reopened")
+    assert "Demo Sprint 2" in changed[1]["fields"]["customfield_10002"][0]
+    assert changed[2]["fields"]["customfield_10002"] == []
+    assert changed[2]["changelog"]["histories"][-1]["items"][0]["toString"] == ""
